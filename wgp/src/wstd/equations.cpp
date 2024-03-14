@@ -4,6 +4,7 @@
 */
 #include "wstd/equations.h"
 #include <assert.h>
+#include <cmath>
 
 namespace wgp {
 

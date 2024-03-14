@@ -7,7 +7,7 @@
 
 #include <math.h>
 #include "utils.h"
-#include "slice.h"
+#include "array.h"
 
 namespace wgp {
 
@@ -99,6 +99,6 @@ inline bool vector_equals(const wgp::Vector3d& vt1, const wgp::Vector3d& vt2, do
         double_equals(vt1.Z, vt2.Z, epsilon);
 }
 
-template class WGP_API Slice<wgp::Vector3d>;
+template class WGP_API wgp::Array<wgp::Vector3d>;
 
 #endif

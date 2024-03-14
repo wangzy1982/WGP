@@ -9,7 +9,7 @@
 #pragma warning(disable:26495)
 
 #include "interval.h"
-#include "slice.h"
+#include "array.h"
 
 namespace wgp {
 
@@ -105,7 +105,7 @@ namespace wgp {
 			m_root_is_dirty = true;
 		}
 
-		void SetInitialVariables(const Slice<IntervalVector>& initial_variables) {
+		void SetInitialVariables(const Array<IntervalVector>& initial_variables) {
 			m_initial_variables = initial_variables;
 			m_clear_roots.Clear();
 			m_fuzzy_roots.Clear();
@@ -113,7 +113,7 @@ namespace wgp {
 		}
 
 		void SetInitialVariable(const IntervalVector& initial_variable) {
-			m_initial_variables = Slice<IntervalVector>(1);
+			m_initial_variables = Array<IntervalVector>(1);
 			m_initial_variables.Append(initial_variable);
 			m_clear_roots.Clear();
 			m_fuzzy_roots.Clear();
@@ -126,7 +126,7 @@ namespace wgp {
 			}
 			for (int i = 0; i < m_initial_variables.GetCount(); ++i) {
 				IntervalVector value(m_equation_system->GetEquationCount());
-				m_equation_system->CalculateValue(m_initial_variables.GetItem(i), value);
+				m_equation_system->CalculateValue(m_initial_variables.Get(i), value);
 				for (int j = 0; j < m_equation_system->GetEquationCount(); ++j) {
 					if (!(value.Get(j)->Length() <= 1E200)) {
 						return false;
@@ -136,12 +136,12 @@ namespace wgp {
 			return true;
 		}
 
-		Slice<IntervalVector> GetClearRoots() {
+		const Array<IntervalVector>& GetClearRoots() {
 			Execute();
 			return m_clear_roots;
 		}
 
-		Slice<IntervalVector> GetFuzzyRoots() {
+		const Array<IntervalVector>& GetFuzzyRoots() {
 			Execute();
 			return m_fuzzy_roots;
 		}
@@ -149,14 +149,14 @@ namespace wgp {
 		void Execute() {
 			if (m_root_is_dirty) {
 				IteratorRuntime runtime(m_equation_system->GetEquationCount(), m_equation_system->GetVariableCount());
-				Slice<SolverHeapItem<IntervalVector, Real>> heap;
+				Array<SolverHeapItem<IntervalVector, Real>> heap;
 				for (int i = 0; i < m_initial_variables.GetCount(); ++i) {
-					Iterate(&runtime, m_initial_variables.GetItem(i), -1, heap);
+					Iterate(&runtime, m_initial_variables.Get(i), -1, heap);
 				}
 				if (heap.GetCount() < m_max_fuzzy_root_count) {
 					while (heap.GetCount() > 0) {
-						IntervalVector variable1 = heap.GetItemPointer(0)->Variable;
-						int j = Spliter::GetSplitIndex(m_equation_system, heap.GetItemPointer(0));
+						IntervalVector variable1 = heap.GetPointer(0)->Variable;
+						int j = Spliter::GetSplitIndex(m_equation_system, heap.GetPointer(0));
 						HeapPop(heap);
 						IntervalVector variable2 = variable1;
 						Real m = variable1.Get(j)->Center();
@@ -170,13 +170,13 @@ namespace wgp {
 					}
 				}
 				for (int i = 0; i < heap.GetCount(); ++i) {
-					m_fuzzy_roots.Append(heap.GetItemPointer(i)->Variable);
+					m_fuzzy_roots.Append(heap.GetPointer(i)->Variable);
 				}
 				m_root_is_dirty = false;
 			}
 		}
 
-		void HeapPush(Slice<SolverHeapItem<IntervalVector, Real>>& heap, Real size, int prev_split_index, const IntervalVector& variable) {
+		void HeapPush(Array<SolverHeapItem<IntervalVector, Real>>& heap, Real size, int prev_split_index, const IntervalVector& variable) {
 			SolverHeapItem<IntervalVector, Real> item;
 			item.Size = size;
 			item.PrevSplitIndex = prev_split_index;
@@ -185,21 +185,21 @@ namespace wgp {
 			int i = heap.GetCount() - 1;
 			while (i > 0) {
 				int j = (i - 1) / 2;
-				if (Priority::Compare(m_equation_system, heap.GetItemPointer(j), heap.GetItemPointer(i)) != -1) {
+				if (Priority::Compare(m_equation_system, heap.GetPointer(j), heap.GetPointer(i)) != -1) {
 					break;
 				}
-				SolverHeapItem<IntervalVector, Real> t = heap.GetItem(i);
-				heap.SetItem(i, heap.GetItem(j));
-				heap.SetItem(j, t);
+				SolverHeapItem<IntervalVector, Real> t = heap.Get(i);
+				heap.Set(i, heap.Get(j));
+				heap.Set(j, t);
 				i = j;
 			}
 		}
 
-		void HeapPop(Slice<SolverHeapItem<IntervalVector, Real>>& heap) {
+		void HeapPop(Array<SolverHeapItem<IntervalVector, Real>>& heap) {
 			if (heap.GetCount() > 1) {
-				heap.SetItem(0, heap.GetItem(heap.GetCount() - 1));
+				heap.Set(0, heap.Get(heap.GetCount() - 1));
 			}
-			heap.Resize(0, heap.GetCount() - 1);
+			heap.PopLast();
 			int i = 0;
 			while (true) {
 				int j = i * 2 + 1;
@@ -207,15 +207,15 @@ namespace wgp {
 					break;
 				}
 				int k = j + 1;
-				if (k < heap.GetCount() && Priority::Compare(m_equation_system, heap.GetItemPointer(k), heap.GetItemPointer(j)) == 1) {
+				if (k < heap.GetCount() && Priority::Compare(m_equation_system, heap.GetPointer(k), heap.GetPointer(j)) == 1) {
 					j = k;
 				}
-				if (Priority::Compare(m_equation_system, heap.GetItemPointer(j), heap.GetItemPointer(i)) != 1) {
+				if (Priority::Compare(m_equation_system, heap.GetPointer(j), heap.GetPointer(i)) != 1) {
 					break;
 				}
-				SolverHeapItem<IntervalVector, Real> t = heap.GetItem(i);
-				heap.SetItem(i, heap.GetItem(j));
-				heap.SetItem(j, t);
+				SolverHeapItem<IntervalVector, Real> t = heap.Get(i);
+				heap.Set(i, heap.Get(j));
+				heap.Set(j, t);
 				i = j;
 			}
 		}
@@ -477,7 +477,7 @@ namespace wgp {
 		}
 
 		void Iterate(IteratorRuntime* runtime, IntervalVector variable, int prev_split_index, 
-			Slice<SolverHeapItem<IntervalVector, Real>>& heap) {
+			Array<SolverHeapItem<IntervalVector, Real>>& heap) {
 			Real size;
 			IteratedResult r = Iterate(runtime, &variable, size);
 			if (r == IteratedResult::Fuzzy) {
@@ -502,9 +502,9 @@ namespace wgp {
 	private:
 		int m_max_fuzzy_root_count;
 		EquationSystem* m_equation_system;
-		Slice<IntervalVector> m_initial_variables;
-		Slice<IntervalVector> m_clear_roots;
-		Slice<IntervalVector> m_fuzzy_roots;
+		Array<IntervalVector> m_initial_variables;
+		Array<IntervalVector> m_clear_roots;
+		Array<IntervalVector> m_fuzzy_roots;
 		bool m_root_is_dirty;
 	};
 

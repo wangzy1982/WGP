@@ -9,7 +9,6 @@
 #pragma warning(disable:26495)
 
 #include "interval.h"
-#include "slice.h"
 
 namespace wgp {
 
