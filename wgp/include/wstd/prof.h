@@ -5,7 +5,7 @@
 #ifndef _WGP_STD_PROF_
 #define _WGP_STD_PROF_
 
-#include "wgp_base.h"
+#include "wbase.h"
 #include <chrono>
 
 namespace wgp {

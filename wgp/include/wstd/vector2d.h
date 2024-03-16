@@ -7,7 +7,7 @@
 
 #include <math.h>
 #include "utils.h"
-#include "slice.h"
+#include "array.h"
 
 namespace wgp {
 
@@ -86,6 +86,6 @@ namespace wgp {
 
 }
 
-template class WGP_API Slice<wgp::Vector2d>;
+template class WGP_API wgp::Array<wgp::Vector2d>;
 
 #endif

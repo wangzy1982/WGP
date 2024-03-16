@@ -20,8 +20,8 @@ namespace wgp {
         Interval2d(const Vector2d& vt);
         Interval Dot(const Vector2d& other) const;
         Interval Dot(const Interval2d& other) const;
-        Interval2d Cross(const Vector2d& other) const;
-        Interval2d Cross(const Interval2d& other) const;
+        Interval Cross(const Vector2d& other) const;
+        Interval Cross(const Interval2d& other) const;
         Vector2d Center() const;
         Interval Length() const;
         Interval2d Normalize() const;
@@ -98,11 +98,11 @@ namespace wgp {
         return X * other.X + Y * other.Y;
     }
 
-    inline Interval2d Interval2d::Cross(const Vector2d& other) const {
+    inline Interval Interval2d::Cross(const Vector2d& other) const {
         return X * other.Y - Y * other.X;
     }
 
-    inline Interval2d Interval2d::Cross(const Interval2d& other) const {
+    inline Interval Interval2d::Cross(const Interval2d& other) const {
         return X * other.Y - Y * other.X;
     }
 
@@ -143,7 +143,7 @@ namespace wgp {
 
 }
 
-inline wgeo::Interval sqr(const wgeo::Interval2d& interval2d) {
+inline wgp::Interval sqr(const wgp::Interval2d& interval2d) {
     return sqr(interval2d.X) + sqr(interval2d.Y);
 }
 
