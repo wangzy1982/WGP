@@ -34,6 +34,34 @@ namespace wgp {
 		Interval* m_data;
 	};
 
+	class WGP_API StandardEquationsVariable {
+	public:
+		StandardEquationsVariable() {}
+		StandardEquationsVariable(int degree) : m_vector(degree) {}
+		StandardEquationsVariable(const StandardEquationsVariable& vt) : m_vector(vt.m_vector) {}
+		virtual ~StandardEquationsVariable() {}
+		int GetDegree() const { return m_vector.GetDegree(); }
+		StandardEquationsVariable& operator=(const StandardEquationsVariable& vt) { 
+			m_vector = vt.m_vector;
+			return *this;
+		}
+		const Interval& Get(int i) const { return *m_vector.Get(i); }
+		void Set(int i, const Interval& value) { *m_vector.Get(i) = value; }
+		void Split(int index, StandardEquationsVariable& variable1, StandardEquationsVariable& variable2) {
+			variable1.m_vector = m_vector;
+			variable2.m_vector = m_vector;
+			double m = m_vector.Get(index)->Center();
+			variable1.m_vector.Get(index)->Max = m;
+			variable2.m_vector.Get(index)->Min = m;
+		}
+	public:
+		void Center(StandardEquationsVariable& vt) const { m_vector.Center(vt.m_vector); }
+		void Min(StandardEquationsVariable& vt) const { m_vector.Min(vt.m_vector); }
+		void Max(StandardEquationsVariable& vt) const { m_vector.Max(vt.m_vector); }
+	private:
+		StandardIntervalVector m_vector;
+	};
+
 	class WGP_API StandardIntervalMatrix {
 	public:
 		StandardIntervalMatrix();
@@ -81,14 +109,15 @@ namespace wgp {
 		virtual int GetVariableCount() = 0;
 		virtual double GetVariableEpsilon(int i) = 0;
 		virtual double GetValueEpsilon(int i) = 0;
-		virtual void CalculateValue(const StandardIntervalVector& variable, StandardIntervalVector& value) = 0;
-		virtual void CalculatePartialDerivative(const StandardIntervalVector& variable, StandardIntervalMatrix& value) = 0;
-		virtual bool Transform(const StandardIntervalVector& variable, StandardIntervalMatrix& partial_derivative);
+		virtual void CalculateValue(const StandardEquationsVariable& variable, StandardIntervalVector& value) = 0;
+		virtual void CalculatePartialDerivative(const StandardEquationsVariable& variable, StandardIntervalMatrix& value) = 0;
+		virtual void Transform(const StandardEquationsVariable& variable, StandardIntervalVector& value, 
+			StandardIntervalMatrix& partial_derivative, bool& recheck_value, bool& use_default_transform);
 		virtual void Restore();
 	};
 
 	template<int degree>
-	class WGP_API IntervalVector {
+	class IntervalVector {
 	public:
 		IntervalVector() {}
 		IntervalVector(int degree) {}
@@ -150,8 +179,37 @@ namespace wgp {
 		Interval m_data[degree];
 	};
 
+	template<int degree>
+	class EquationsVariable {
+	public:
+		EquationsVariable() {}
+		EquationsVariable(int degree) : m_vector(degree) {}
+		EquationsVariable(const EquationsVariable& vt) : m_vector(vt.m_vector) {}
+		virtual ~EquationsVariable() {}
+		int GetDegree() const { return m_vector.GetDegree(); }
+		EquationsVariable& operator=(const EquationsVariable& vt) { 
+			m_vector = vt.m_vector; 
+			return *this;
+		}
+		const Interval& Get(int i) const { return *m_vector.Get(i); }
+		void Set(int i, const Interval& value) { *m_vector.Get(i) = value; }
+		void Split(int index, EquationsVariable& variable1, EquationsVariable& variable2) {
+			variable1.m_vector = m_vector;
+			variable2.m_vector = m_vector;
+			double m = m_vector.Get(index)->Center();
+			variable1.m_vector.Get(index)->Max = m;
+			variable2.m_vector.Get(index)->Min = m;
+		}
+	public:
+		void Center(EquationsVariable& vt) const { m_vector.Center(vt.m_vector); }
+		void Min(EquationsVariable& vt) const { m_vector.Min(vt.m_vector); }
+		void Max(EquationsVariable& vt) const { m_vector.Max(vt.m_vector); }
+	private:
+		IntervalVector<degree> m_vector;
+	};
+
 	template<int row_count, int col_count>
-	class WGP_API IntervalMatrix {
+	class IntervalMatrix {
 	public:
 		IntervalMatrix() {}
 
@@ -190,7 +248,7 @@ namespace wgp {
 	};
 
 	template<int row_count, int col_count>
-	class WGP_API Matrix {
+	class Matrix {
 	public:
 		Matrix() {}
 
@@ -268,7 +326,7 @@ namespace wgp {
 	};
 
 	template<int equation_count, int variable_count>
-	class WGP_API EquationSystem {
+	class EquationSystem {
 	public:
 		virtual ~EquationSystem() {}
 	public:
@@ -276,12 +334,16 @@ namespace wgp {
 		int GetVariableCount() { return variable_count; }
 		virtual double GetVariableEpsilon(int i) = 0;
 		virtual double GetValueEpsilon(int i) = 0;
-		virtual void CalculateValue(const IntervalVector<variable_count>& variable, 
+		virtual void CalculateValue(const EquationsVariable<variable_count>& variable,
 			IntervalVector<equation_count>& value) = 0;
-		virtual void CalculatePartialDerivative(const IntervalVector<variable_count>& variable, 
+		virtual void CalculatePartialDerivative(const EquationsVariable<variable_count>& variable,
 			IntervalMatrix<equation_count, variable_count>& value) = 0;
-		virtual bool Transform(const IntervalVector<variable_count>& variable, 
-			IntervalMatrix<equation_count, variable_count>& partial_derivative) { return true; }
+		virtual void Transform(const EquationsVariable<variable_count>& variable, IntervalVector<equation_count>& value,
+			IntervalMatrix<equation_count, variable_count>& partial_derivative, 
+			bool& recheck_value, bool& use_default_transform) { 
+			recheck_value = false;
+			use_default_transform = true;
+		}
 		virtual void Restore() {}
 	};
 

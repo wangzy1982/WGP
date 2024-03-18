@@ -257,8 +257,10 @@ namespace wgp {
 		}
 	}
 
-	bool StandardEquationSystem::Transform(const StandardIntervalVector& variable, StandardIntervalMatrix& partial_derivative) {
-		return true;
+	void StandardEquationSystem::Transform(const StandardEquationsVariable& variable, StandardIntervalVector& value,
+		StandardIntervalMatrix& partial_derivative, bool& recheck_value, bool& use_default_transform) {
+		recheck_value = false;
+		use_default_transform = true;
 	}
 
 	void StandardEquationSystem::Restore() {

@@ -25,7 +25,7 @@ namespace wgp {
         virtual Interval2d CalculateDt(int index, const Interval& t);
         virtual Interval2d CalculateDt2(int index, const Interval& t);
     public:
-        virtual void RotateForIntersect(Curve2d*& dst, double angle, double cos, double sin) const;
+        virtual void RotateForIntersect(Curve2d*& dst, double angle, double cos, double sin);
     private:
         Vector2d m_center;
         double m_radius;

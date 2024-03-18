@@ -96,7 +96,7 @@ namespace wgp {
 					m_capacity = CalculateCapacity(m_capacity + 1);
 					T* newItems = (T*)malloc(m_capacity * sizeof(T));
 					Move(newItems, m_items + m_start, m_count);
-					delete[] m_items;
+					free(m_items);
 					m_items = newItems;
 					m_start = 0;
 				}
@@ -115,7 +115,7 @@ namespace wgp {
 					m_capacity = CalculateCapacity(m_capacity + 1);
 					T* newItems = (T*)malloc(m_capacity * sizeof(T));
 					Move(newItems, m_items + m_start, m_count);
-					delete[] m_items;
+					free(m_items);
 					m_items = newItems;
 					m_start = 0;
 				}
@@ -131,7 +131,7 @@ namespace wgp {
 					T* newItems = (T*)malloc(m_capacity * sizeof(T));
 					Move(newItems, m_items + m_start, i);
 					Move(newItems + i + 1, m_items + m_start + i, m_count - i);
-					delete[] m_items;
+					free(m_items);
 					m_items = newItems;
 					m_start = 0;
 					m_count += 1;
@@ -160,7 +160,7 @@ namespace wgp {
 					T* newItems = (T*)malloc(m_capacity * sizeof(T));
 					Move(newItems, m_items + m_start, i);
 					Move(newItems + i + 1, m_items + m_start + i, m_count - i);
-					delete[] m_items;
+					free(m_items);
 					m_items = newItems;
 					m_start = 0;
 					m_count += 1;

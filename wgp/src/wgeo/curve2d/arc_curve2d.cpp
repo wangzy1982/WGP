@@ -34,7 +34,7 @@ namespace wgp {
         return Interval2d(-m_radius * cos(a), -m_radius * sin(a));
     }
 
-    void ArcCurve2d::RotateForIntersect(Curve2d*& dst, double angle, double cos, double sin) const {
+    void ArcCurve2d::RotateForIntersect(Curve2d*& dst, double angle, double cos, double sin) {
         Vector2d center = Vector2d(
             cos * m_center.X - sin * m_center.Y,
             sin * m_center.X + cos * m_center.Y
