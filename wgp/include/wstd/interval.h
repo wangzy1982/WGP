@@ -21,6 +21,7 @@ namespace wgp {
         double Length() const;
         bool IsIntersected(double d, double epsilon) const;
         bool IsIntersected(const Interval& other, double epsilon) const;
+        bool IsInner(const Interval& other) const;
         void Extend(double d);
         void Merge(const Interval& other);
         void Intersect(const Interval& other);
@@ -169,6 +170,10 @@ namespace wgp {
 
     inline bool Interval::IsIntersected(const Interval& other, double epsilon) const {
         return other.Min <= Max + epsilon && other.Max >= Min - epsilon;
+    }
+
+    inline bool Interval::IsInner(const Interval& other) const {
+        return other.Min <= Min && other.Max >= Max;
     }
 
     inline void Interval::Extend(double d) {

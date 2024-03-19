@@ -113,6 +113,13 @@ namespace wgp {
 			m_root_is_dirty = true;
 		}
 
+		void SetInitialVariables(Array<EquationsVariable>&& initial_variables) {
+			m_initial_variables = std::forward(initial_variables);
+			m_clear_roots.Clear();
+			m_fuzzy_roots.Clear();
+			m_root_is_dirty = true;
+		}
+
 		void SetInitialVariable(const EquationsVariable& initial_variable) {
 			m_initial_variables.Clear();
 			m_initial_variables.Append(initial_variable);
@@ -548,6 +555,7 @@ namespace wgp {
 					m_equation_system->Restore();
 					return IteratedResult::Fuzzy;
 				}
+				m_equation_system->Restore();
 			}
 		}
 		/*

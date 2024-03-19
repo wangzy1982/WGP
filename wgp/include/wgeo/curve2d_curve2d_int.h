@@ -19,6 +19,8 @@ namespace wgp {
 
     class WGP_API Curve2dCurve2dInt {
     public:
+        void* Tag1;
+        void* Tag2;
         Variable T1;
         Variable T2;
         Curve2dCurve2dIntType Type;

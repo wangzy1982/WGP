@@ -249,6 +249,33 @@ namespace wgp {
             points2.Append(curve2->CalculateValue(segments2.GetPointer(i)->Index,
                 segments2.GetPointer(i)->Value));
         }
+        /*
+        for (int i = 0; i < segments1.GetCount(); ++i) {
+            for (int j = 0; j < segments2.GetCount(); ++j) {
+                int index1 = segments1.GetPointer(i)->Index;
+                int index2 = segments2.GetPointer(j)->Index;
+                Curve2dCurve2dIntVariable initial_variable;
+                initial_variable.Set(0, segments1.GetPointer(i)->Value);
+                initial_variable.Set(1, segments2.GetPointer(j)->Value);
+                initial_variable.SetCurveValue(0, points1.Get(i));
+                initial_variable.SetCurveValue(1, points2.Get(j));
+                solver.SetInitialVariable(initial_variable);
+                const Array<Curve2dCurve2dIntVariable>& fuzzy_roots = solver.GetFuzzyRoots();
+                if (fuzzy_roots.GetCount() > 0) {
+                    //todo
+                }
+                const Array<Curve2dCurve2dIntVariable>& clear_roots = solver.GetClearRoots();
+                for (int k = 0; k < clear_roots.GetCount(); ++k) {
+                    const Curve2dCurve2dIntVariable* root = clear_roots.GetPointer(k);
+                    Curve2dCurve2dInt curve_curve_int;
+                    curve_curve_int.T1 = Variable(index1, root->Get(0).Center());
+                    curve_curve_int.T2 = Variable(index2, root->Get(1).Center());
+                    curve_curve_int.Type = Curve2dCurve2dIntType::Cross;
+                    result.Append(curve_curve_int);
+                }
+            }
+        }
+        */
         Array<Curve2dCurve2dIntVariable> initial_variables(segments1.GetCount() * segments2.GetCount());
         int i0 = 0;
         while (i0 < segments1.GetCount()) {
@@ -282,15 +309,59 @@ namespace wgp {
                 }
                 solver.SetInitialVariables(initial_variables);
                 const Array<Curve2dCurve2dIntVariable>& fuzzy_roots = solver.GetFuzzyRoots();
-                if (fuzzy_roots.GetCount() > 0) {
-                    //todo
-                }
                 const Array<Curve2dCurve2dIntVariable>& clear_roots = solver.GetClearRoots();
+                for (int k = 0; k < fuzzy_roots.GetCount(); ++k) {
+                    const Curve2dCurve2dIntVariable* fuzzy_root = fuzzy_roots.GetPointer(k);
+                    int i = i0;
+                    while (i < i1) {
+                        if (fuzzy_root->Get(0).IsInner(segments1.GetPointer(i)->Value)) {
+                            break;
+                        }
+                        ++i;
+                    }
+                    int j = j0;
+                    while (j < j1) {
+                        if (fuzzy_root->Get(1).IsInner(segments2.GetPointer(j)->Value)) {
+                            break;
+                        }
+                        ++j;
+                    }
+                    Curve2dCurve2dInt curve_curve_int1;
+                    curve_curve_int1.Tag1 = segments1.GetPointer(i);
+                    curve_curve_int1.Tag2 = segments2.GetPointer(j);
+                    curve_curve_int1.T1 = Variable(index1, fuzzy_root->Get(0).Min);
+                    curve_curve_int1.T2 = Variable(index2, fuzzy_root->Get(1).Min);
+                    curve_curve_int1.Type = Curve2dCurve2dIntType::OverlapBegin;
+                    result.Append(curve_curve_int1);
+                    Curve2dCurve2dInt curve_curve_int2;
+                    curve_curve_int2.Tag1 = segments1.GetPointer(i);
+                    curve_curve_int2.Tag2 = segments2.GetPointer(j);
+                    curve_curve_int2.T1 = Variable(index1, fuzzy_root->Get(0).Max);
+                    curve_curve_int2.T2 = Variable(index2, fuzzy_root->Get(1).Max);
+                    curve_curve_int2.Type = Curve2dCurve2dIntType::OverlapEnd;
+                    result.Append(curve_curve_int2);
+                }
                 for (int k = 0; k < clear_roots.GetCount(); ++k) {
-                    const Curve2dCurve2dIntVariable* root = clear_roots.GetPointer(k);
+                    const Curve2dCurve2dIntVariable* clear_root = clear_roots.GetPointer(k);
+                    int i = i0;
+                    while (i < i1) {
+                        if (clear_root->Get(0).IsInner(segments1.GetPointer(i)->Value)) {
+                            break;
+                        }
+                        ++i;
+                    }
+                    int j = j0;
+                    while (j < j1) {
+                        if (clear_root->Get(1).IsInner(segments2.GetPointer(j)->Value)) {
+                            break;
+                        }
+                        ++j;
+                    }
                     Curve2dCurve2dInt curve_curve_int;
-                    curve_curve_int.T1 = Variable(index1, root->Get(0).Center());
-                    curve_curve_int.T2 = Variable(index2, root->Get(1).Center());
+                    curve_curve_int.Tag1 = segments1.GetPointer(i);
+                    curve_curve_int.Tag2 = segments2.GetPointer(j);
+                    curve_curve_int.T1 = Variable(index1, clear_root->Get(0).Center());
+                    curve_curve_int.T2 = Variable(index2, clear_root->Get(1).Center());
                     curve_curve_int.Type = Curve2dCurve2dIntType::Cross;
                     result.Append(curve_curve_int);
                 }
@@ -298,6 +369,7 @@ namespace wgp {
             }
             i0 = i1;
         }
+        //todo 处理重合段
     }
 
 }
