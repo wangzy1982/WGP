@@ -20,6 +20,7 @@ namespace wgp {
     public:
         ArcCurve2d(const Vector2d& center, double radius, double start_angle, double t_min, double t_max);
         GeometryType* GetType() const { return ArcCurve2dType::Instance(); }
+        virtual void SplitFlat(Array<VariableInterval>& segments, double angle_epsilon);
     public:
         virtual Interval2d CalculateValue(int index, const Interval& t);
         virtual Interval2d CalculateDt(int index, const Interval& t);

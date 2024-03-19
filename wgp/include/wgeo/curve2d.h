@@ -18,7 +18,7 @@ namespace wgp {
         Curve2d(VariableDomain* t_domain);
         virtual ~Curve2d();
         VariableDomain* TDomain() const;
-        virtual void SplitFlat(Array<VariableInterval>& variable_interval_array, double angle_epsilon);
+        virtual void SplitFlat(Array<VariableInterval>& segments, double angle_epsilon) = 0;
     public:
         virtual Interval2d CalculateValue(int index, const Interval& t) = 0;
         virtual Interval2d CalculateDt(int index, const Interval& t) = 0;
@@ -29,9 +29,6 @@ namespace wgp {
         virtual Vector2d CalculateDt2(int index, double t);
     public:
         virtual void RotateForIntersect(Curve2d*& dst, double angle, double cos, double sin) = 0;
-    protected:
-        void SplitFlat(Array<VariableInterval>& variable_interval_array, double angle_epsilon, 
-            const VariableInterval& current_variable_interval);
     protected:
         VariableDomain* m_t_domain;
     };

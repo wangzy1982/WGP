@@ -19,6 +19,29 @@ namespace wgp {
         m_start_angle(start_angle) {
     }
 
+    void ArcCurve2d::SplitFlat(Array<VariableInterval>& segments, double angle_epsilon) {
+        double t0 = m_t_domain->GetKnot(0);
+        double t1 = m_t_domain->GetKnot(1);
+        double d = abs(t1 - t0);
+        int n = (int)(d / angle_epsilon);
+        if (d - n * angle_epsilon > g_unit_epsilon) {
+            n += 1;
+        }
+        if (n == 0) {
+            segments.Append(VariableInterval(0, Interval(t0, t1)));
+        }
+        else {
+            double dt = (t1 - t0) / n;
+            double t2 = t0 + dt;
+            for (int i = 0; i < n - 1; ++i) {
+                segments.Append(VariableInterval(0, Interval(t0, t2)));
+                t0 = t2;
+                t2 = t0 + dt;
+            }
+            segments.Append(VariableInterval(0, Interval(t0, t1)));
+        }
+    }
+
     Interval2d ArcCurve2d::CalculateValue(int index, const Interval& t) {
         Interval a = t + m_start_angle;
         return Interval2d(m_radius * cos(a), m_radius * sin(a)) + m_center;

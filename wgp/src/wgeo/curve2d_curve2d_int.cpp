@@ -234,7 +234,7 @@ namespace wgp {
             Interval, double, Curve2dCurve2dIntSolverSpliter, Curve2dCurve2dIntSolverPriority> solver;
         solver.SetEquationSystem(&equations);
         solver.SetMaxFuzzyRootCount(16);
-        const double flat_angle_epsilon = g_pi / 4;
+        const double flat_angle_epsilon = g_pi / 2;
         Array<VariableInterval> segments1(16);
         Array<VariableInterval> segments2(16);
         curve1->SplitFlat(segments1, flat_angle_epsilon);
@@ -249,17 +249,38 @@ namespace wgp {
             points2.Append(curve2->CalculateValue(segments2.GetPointer(i)->Index,
                 segments2.GetPointer(i)->Value));
         }
-        for (int i = 0; i < segments1.GetCount(); ++i) {
-            for (int j = 0; j < segments2.GetCount(); ++j) {
-                int index1 = segments1.GetPointer(i)->Index;
-                int index2 = segments2.GetPointer(j)->Index;
-                equations.SetIndex(index1, index2);
-                Curve2dCurve2dIntVariable initial_variable;
-                initial_variable.Set(0, segments1.GetPointer(i)->Value);
-                initial_variable.Set(1, segments2.GetPointer(j)->Value);
-                initial_variable.SetCurveValue(0, points1.Get(i));
-                initial_variable.SetCurveValue(1, points2.Get(j));
-                solver.SetInitialVariable(initial_variable);
+        Array<Curve2dCurve2dIntVariable> initial_variables(segments1.GetCount() * segments2.GetCount());
+        int i0 = 0;
+        while (i0 < segments1.GetCount()) {
+            int i1 = i0 + 1;
+            int index1 = segments1.GetPointer(i0)->Index;
+            while (i1 < segments1.GetCount()) {
+                if (segments1.GetPointer(i1)->Index != index1) {
+                    break;
+                }
+                ++i1;
+            }
+            int j0 = 0;
+            while (j0 < segments2.GetCount()) {
+                int j1 = j0 + 1;
+                int index2 = segments2.GetPointer(j0)->Index;
+                while (j1 < segments2.GetCount()) {
+                    if (segments2.GetPointer(j1)->Index != index2) {
+                        break;
+                    }
+                    ++j1;
+                }
+                for (int i = i0; i < i1; ++i) {
+                    for (int j = j0; j < j1; ++j) {
+                        Curve2dCurve2dIntVariable initial_variable;
+                        initial_variable.Set(0, segments1.GetPointer(i)->Value);
+                        initial_variable.Set(1, segments2.GetPointer(j)->Value);
+                        initial_variable.SetCurveValue(0, points1.Get(i));
+                        initial_variable.SetCurveValue(1, points2.Get(j));
+                        initial_variables.Append(initial_variable);
+                    }
+                }
+                solver.SetInitialVariables(initial_variables);
                 const Array<Curve2dCurve2dIntVariable>& fuzzy_roots = solver.GetFuzzyRoots();
                 if (fuzzy_roots.GetCount() > 0) {
                     //todo
@@ -273,10 +294,10 @@ namespace wgp {
                     curve_curve_int.Type = Curve2dCurve2dIntType::Cross;
                     result.Append(curve_curve_int);
                 }
-
+                j0 = j1;
             }
+            i0 = i1;
         }
-        //todo
     }
 
 }
