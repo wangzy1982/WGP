@@ -42,14 +42,21 @@ namespace wgp {
 		return *this;
 	}
 
-	Interval* StandardIntervalVector::Get(int i) {
+	const Interval& StandardIntervalVector::Get(int i) const {
 		assert(i < m_degree);
-		return m_data + i;
+		return m_data[i];
 	}
 
-	const Interval* StandardIntervalVector::Get(int i) const {
-		assert(i < m_degree);
-		return m_data + i;
+	void StandardIntervalVector::SetMin(int i, double d) {
+		m_data[i].Min = d;
+	}
+
+	void StandardIntervalVector::SetMax(int i, double d) {
+		m_data[i].Max = d;
+	}
+
+	void StandardIntervalVector::Set(int i, const Interval& value) {
+		m_data[i] = value;
 	}
 
 	StandardIntervalVector StandardIntervalVector::Center() const {
@@ -92,6 +99,12 @@ namespace wgp {
 		for (int i = 0; i < m_degree; ++i) {
 			vt.m_data[i] = m_data[i].Max;
 		}
+	}
+
+	void StandardIntervalVector::Split(int index, StandardIntervalVector& vt1, StandardIntervalVector& vt2) {
+		double m = m_data[index].Center();
+		vt1.m_data[index].Max = m;
+		vt2.m_data[index].Min = m;
 	}
 
 	StandardIntervalMatrix::StandardIntervalMatrix() : m_row_count(0), m_col_count(0), m_data(nullptr) {
@@ -146,12 +159,12 @@ namespace wgp {
 
 	StandardIntervalVector StandardIntervalMatrix::Row(int i) const {
 		StandardIntervalVector vt(m_col_count);
-		memcpy(vt.Get(0), Get(i, 0), m_col_count * sizeof(Interval));
+		memcpy(vt.m_data, Get(i, 0), m_col_count * sizeof(Interval));
 		return vt;
 	}
 
 	void StandardIntervalMatrix::Row(int i, StandardIntervalVector& vt) const {
-		memcpy(vt.Get(0), Get(i, 0), m_col_count * sizeof(Interval));
+		memcpy(vt.m_data, Get(i, 0), m_col_count * sizeof(Interval));
 	}
 
 	StandardMatrix::StandardMatrix() : m_row_count(0), m_col_count(0), m_data(nullptr) {
@@ -257,13 +270,54 @@ namespace wgp {
 		}
 	}
 
-	void StandardEquationSystem::Transform(const StandardEquationsVariable& variable, StandardIntervalVector& value,
+	void StandardEquationSystem::Transform(const StandardIntervalVector& variable, StandardIntervalVector& value,
 		StandardIntervalMatrix& partial_derivative, bool& recheck_value, bool& use_default_transform) {
 		recheck_value = false;
 		use_default_transform = true;
 	}
 
 	void StandardEquationSystem::Restore() {
+	}
+
+	int StandardEquationSystem::GetSplitIndex(const StandardIntervalVector& variable, int prev_split_index, double size) {
+		bool b = false;
+		int next_split_index = 0;
+		double ves[2] = { 1E-12, 0 };
+		for (int k = 0; k < 2; ++k) {
+			next_split_index = prev_split_index + 1;
+			do {
+				if (next_split_index == GetVariableCount()) {
+					next_split_index = 0;
+				}
+				if (variable.Get(next_split_index).Length() > ves[k]) {
+					b = true;
+					break;
+				}
+				++next_split_index;
+			} while (next_split_index != prev_split_index + 1);
+			if (b) {
+				break;
+			}
+		}
+		if (b) {
+			return next_split_index;
+		}
+		return 0;
+	}
+
+	int StandardEquationSystem::CompareIteratePriority(const StandardIntervalVector& variable1, double size1,
+		const StandardIntervalVector& variable2, double size2) {
+		if (size1 < size2) {
+			return -1;
+		}
+		if (size1 > size2) {
+			return 1;
+		}
+		return 0;
+	}
+
+	bool StandardEquationSystem::SpeciallySolve(StandardIntervalVector* variable, SolverIteratedResult& result, double& size) {
+		return false;
 	}
 
 }

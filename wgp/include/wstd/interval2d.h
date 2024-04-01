@@ -29,6 +29,7 @@ namespace wgp {
         double DiagonalLength() const;
         bool IsIntersected(const Vector2d& vt, double epsilon) const;
         bool IsIntersected(const Interval2d& other, double epsilon) const;
+        bool GetVectorBorder(Vector2d& vt1, Vector2d& vt2) const;
     };
 
     inline Interval2d operator+(const Interval2d& vt0, const Interval2d& vt1) {
@@ -141,6 +142,59 @@ namespace wgp {
         return X.IsIntersected(other.X, epsilon) && Y.IsIntersected(other.Y, epsilon);
     }
 
+    inline bool Interval2d::GetVectorBorder(Vector2d& vt1, Vector2d& vt2) const {
+        if (X.Min > g_double_epsilon) {
+            if (Y.Min > g_double_epsilon) {
+                vt1 = Vector2d(X.Max, Y.Min).Normalize();
+                vt2 = Vector2d(X.Min, Y.Max).Normalize();
+                return true;
+            }
+            else if (Y.Max < g_double_epsilon) {
+                vt1 = Vector2d(X.Min, Y.Min).Normalize();
+                vt2 = Vector2d(X.Max, Y.Max).Normalize();
+                return true;
+            }
+            else {
+                vt1 = Vector2d(X.Min, Y.Min).Normalize();
+                vt2 = Vector2d(X.Min, Y.Max).Normalize();
+                return true;
+            }
+        }
+        else if (X.Max < g_double_epsilon) {
+            if (Y.Min > g_double_epsilon) {
+                vt1 = Vector2d(X.Max, Y.Max).Normalize();
+                vt2 = Vector2d(X.Min, Y.Min).Normalize();
+                return true;
+            }
+            else if (Y.Max < g_double_epsilon) {
+                vt1 = Vector2d(X.Min, Y.Max).Normalize();
+                vt2 = Vector2d(X.Max, Y.Min).Normalize();
+                return true;
+            }
+            else {
+                vt1 = Vector2d(X.Max, Y.Max).Normalize();
+                vt2 = Vector2d(X.Max, Y.Min).Normalize();
+                return true;
+            }
+        }
+        else {
+            if (Y.Min > g_double_epsilon) {
+                vt1 = Vector2d(X.Max, Y.Min).Normalize();
+                vt2 = Vector2d(X.Min, Y.Min).Normalize();
+                return true;
+            }
+            else if (Y.Max < g_double_epsilon) {
+                vt1 = Vector2d(X.Min, Y.Max).Normalize();
+                vt2 = Vector2d(X.Max, Y.Max).Normalize();
+                return true;
+            }
+            else {
+                vt1 = Vector2d(1, 0);
+                vt2 = Vector2d(-1, 0);
+                return false;
+            }
+        }
+    }
 }
 
 inline wgp::Interval sqr(const wgp::Interval2d& interval2d) {

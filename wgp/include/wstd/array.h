@@ -50,7 +50,7 @@ namespace wgp {
 			free(m_items);
 		}
 
-		void operator=(const Array& right) {
+		Array operator=(const Array& right) {
 			FreeItems(m_items + m_start, m_count);
 			if (m_capacity >= right.m_count) {
 				m_start = 0;
@@ -65,9 +65,10 @@ namespace wgp {
 				m_items = (T*)malloc(m_capacity * sizeof(T));
 				Copy(m_items, right.m_items + right.m_start, m_count);
 			}
+			return *this;
 		}
 
-		void operator=(Array&& right) {
+		Array operator=(Array&& right) noexcept {
 			FreeItems(m_items + m_start, m_count);
 			free(m_items);
 			m_capacity = right.m_capacity;
@@ -78,12 +79,46 @@ namespace wgp {
 			right.m_start = 0;
 			right.m_count = 0;
 			right.m_items = nullptr;
+			return *this;
+		}
+
+		void Exchange(Array& other) {
+			int capacity = m_capacity;
+			m_capacity = other.m_capacity;
+			other.m_capacity = capacity;
+			int start = m_start;
+			m_start = other.m_start;
+			other.m_start = start;
+			int count = m_count;
+			m_count = other.m_count;
+			other.m_count = count;
+			T* items = m_items;
+			m_items = other.m_items;
+			other.m_items = items;
+		}
+
+		void Exchange(int i, int j) {
+			T t = m_items[m_start + i];
+			m_items[m_start + i] = m_items[m_start + j];
+			m_items[m_start + j] = t;
 		}
 
 		void Clear() {
 			FreeItems(m_items + m_start, m_count);
 			m_start = 0;
 			m_count = 0;
+		}
+
+		template<class Less>
+		void Sort(Less less) {
+			//todo quick sort
+			for (int i = 0; i < m_count; ++i) {
+				for (int j = i + 1; j < m_count; ++j) {
+					if (less(m_items[m_start + j], m_items[m_start + i])) {
+						Exchange(i, j);
+					}
+				}
+			}
 		}
 		
 		void Append(const T& item) {
@@ -122,6 +157,13 @@ namespace wgp {
 			}
 			new(m_items + (m_start + m_count)) T(std::forward<T>(item));
 			m_count += 1;
+		}
+
+		void Append(const Array& arr) {
+			//todo optimize
+			for (int i = 0; i < arr.GetCount(); ++i) {
+				Append(arr.Get(i));
+			}
 		}
 
 		void Insert(int i, const T& item) {
@@ -208,6 +250,10 @@ namespace wgp {
 
 		int GetCount() const {
 			return m_count;
+		}
+
+		int GetCapacity() const {
+			return m_capacity;
 		}
 
 		T Get(int i) const {

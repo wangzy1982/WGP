@@ -9,6 +9,7 @@
 #pragma warning(disable:26495)
 
 #include "interval.h"
+#include "solver.h"
 
 namespace wgp {
 
@@ -20,8 +21,10 @@ namespace wgp {
 		virtual ~StandardIntervalVector();
 		int GetDegree() const;
 		StandardIntervalVector& operator=(const StandardIntervalVector& vt);
-		Interval* Get(int i);
-		const Interval* Get(int i) const;
+		const Interval& Get(int i) const;
+		void SetMin(int i, double d);
+		void SetMax(int i, double d);
+		void Set(int i, const Interval& value);
 	public:
 		StandardIntervalVector Center() const;
 		void Center(StandardIntervalVector& vt) const;
@@ -29,37 +32,11 @@ namespace wgp {
 		void Min(StandardIntervalVector& vt) const;
 		StandardIntervalVector Max() const;
 		void Max(StandardIntervalVector& vt) const;
+		void Split(int index, StandardIntervalVector& vt1, StandardIntervalVector& vt2);
 	private:
+		friend class StandardIntervalMatrix;
 		int m_degree;
 		Interval* m_data;
-	};
-
-	class WGP_API StandardEquationsVariable {
-	public:
-		StandardEquationsVariable() {}
-		StandardEquationsVariable(int degree) : m_vector(degree) {}
-		StandardEquationsVariable(const StandardEquationsVariable& vt) : m_vector(vt.m_vector) {}
-		virtual ~StandardEquationsVariable() {}
-		int GetDegree() const { return m_vector.GetDegree(); }
-		StandardEquationsVariable& operator=(const StandardEquationsVariable& vt) { 
-			m_vector = vt.m_vector;
-			return *this;
-		}
-		const Interval& Get(int i) const { return *m_vector.Get(i); }
-		void Set(int i, const Interval& value) { *m_vector.Get(i) = value; }
-		void Split(int index, StandardEquationsVariable& variable1, StandardEquationsVariable& variable2) {
-			variable1.m_vector = m_vector;
-			variable2.m_vector = m_vector;
-			double m = m_vector.Get(index)->Center();
-			variable1.m_vector.Get(index)->Max = m;
-			variable2.m_vector.Get(index)->Min = m;
-		}
-	public:
-		void Center(StandardEquationsVariable& vt) const { m_vector.Center(vt.m_vector); }
-		void Min(StandardEquationsVariable& vt) const { m_vector.Min(vt.m_vector); }
-		void Max(StandardEquationsVariable& vt) const { m_vector.Max(vt.m_vector); }
-	private:
-		StandardIntervalVector m_vector;
 	};
 
 	class WGP_API StandardIntervalMatrix {
@@ -109,11 +86,15 @@ namespace wgp {
 		virtual int GetVariableCount() = 0;
 		virtual double GetVariableEpsilon(int i) = 0;
 		virtual double GetValueEpsilon(int i) = 0;
-		virtual void CalculateValue(const StandardEquationsVariable& variable, StandardIntervalVector& value) = 0;
-		virtual void CalculatePartialDerivative(const StandardEquationsVariable& variable, StandardIntervalMatrix& value) = 0;
-		virtual void Transform(const StandardEquationsVariable& variable, StandardIntervalVector& value, 
+		virtual void CalculateValue(const StandardIntervalVector& variable, StandardIntervalVector& value) = 0;
+		virtual void CalculatePartialDerivative(const StandardIntervalVector& variable, StandardIntervalMatrix& value) = 0;
+		virtual void Transform(const StandardIntervalVector& variable, StandardIntervalVector& value,
 			StandardIntervalMatrix& partial_derivative, bool& recheck_value, bool& use_default_transform);
 		virtual void Restore();
+		virtual int GetSplitIndex(const StandardIntervalVector& variable, int prev_split_index, double size);
+		virtual int CompareIteratePriority(const StandardIntervalVector& variable1, double size1,
+			const StandardIntervalVector& variable2, double size2);
+		virtual bool SpeciallySolve(StandardIntervalVector* variable, SolverIteratedResult& result, double& size);
 	};
 
 	template<int degree>
@@ -126,12 +107,20 @@ namespace wgp {
 
 		int GetDegree() const { return degree; }
 
-		Interval* Get(int i) {
-			return m_data + i;
+		const Interval& Get(int i) const {
+			return m_data[i];
 		}
 
-		const Interval* Get(int i) const {
-			return m_data + i;
+		void SetMin(int i, double d) {
+			m_data[i].Min = d;
+		}
+
+		void SetMax(int i, double d) {
+			m_data[i].Max = d;
+		}
+
+		void Set(int i, const Interval& value) {
+			m_data[i] = value;
 		}
 	public:
 		IntervalVector Center() const {
@@ -180,32 +169,43 @@ namespace wgp {
 	};
 
 	template<int degree>
-	class EquationsVariable {
+	class Vector {
 	public:
-		EquationsVariable() {}
-		EquationsVariable(int degree) : m_vector(degree) {}
-		EquationsVariable(const EquationsVariable& vt) : m_vector(vt.m_vector) {}
-		virtual ~EquationsVariable() {}
-		int GetDegree() const { return m_vector.GetDegree(); }
-		EquationsVariable& operator=(const EquationsVariable& vt) { 
-			m_vector = vt.m_vector; 
-			return *this;
+		Vector() {}
+		Vector(int degree) {}
+
+		virtual ~Vector() {}
+
+		int GetDegree() const { return degree; }
+
+		double Get(int i) const {
+			return m_data[i];
 		}
-		const Interval& Get(int i) const { return *m_vector.Get(i); }
-		void Set(int i, const Interval& value) { *m_vector.Get(i) = value; }
-		void Split(int index, EquationsVariable& variable1, EquationsVariable& variable2) {
-			variable1.m_vector = m_vector;
-			variable2.m_vector = m_vector;
-			double m = m_vector.Get(index)->Center();
-			variable1.m_vector.Get(index)->Max = m;
-			variable2.m_vector.Get(index)->Min = m;
+
+		void Set(int i, double value) {
+			m_data[i] = value;
 		}
-	public:
-		void Center(EquationsVariable& vt) const { m_vector.Center(vt.m_vector); }
-		void Min(EquationsVariable& vt) const { m_vector.Min(vt.m_vector); }
-		void Max(EquationsVariable& vt) const { m_vector.Max(vt.m_vector); }
 	private:
-		IntervalVector<degree> m_vector;
+		double m_data[degree];
+	};
+
+	template<int degree>
+	class NewtonVariable : public Vector<degree> {
+	public:
+		NewtonVariable() {}
+		NewtonVariable(int degree) {}
+
+		virtual ~NewtonVariable() {}
+
+		Interval GetInterval(int i) const {
+			return m_interval.Get(i);
+		}
+
+		void SetInterval(int i, const Interval& value) {
+			m_interval.Set(i, value);
+		}
+	private:
+		IntervalVector<degree> m_interval;
 	};
 
 	template<int row_count, int col_count>
@@ -233,14 +233,14 @@ namespace wgp {
 		IntervalVector<col_count> Row(int i) const {
 			IntervalVector<col_count> vt;
 			for (int j = 0; j < col_count; ++j) {
-				*vt.Get(j) = m_data[i][j];
+				vt.Set(j, m_data[i][j]);
 			}
 			return vt;
 		}
 
 		void Row(int i, IntervalVector<col_count>& vt) const {
 			for (int j = 0; j < col_count; ++j) {
-				*vt.Get(j) = m_data[i][j];
+				vt.Set(j, m_data[i][j]);
 			}
 		}
 	private:
@@ -334,17 +334,55 @@ namespace wgp {
 		int GetVariableCount() { return variable_count; }
 		virtual double GetVariableEpsilon(int i) = 0;
 		virtual double GetValueEpsilon(int i) = 0;
-		virtual void CalculateValue(const EquationsVariable<variable_count>& variable,
+		virtual void CalculateValue(const IntervalVector<variable_count>& variable,
 			IntervalVector<equation_count>& value) = 0;
-		virtual void CalculatePartialDerivative(const EquationsVariable<variable_count>& variable,
+		virtual void CalculatePartialDerivative(const IntervalVector<variable_count>& variable,
 			IntervalMatrix<equation_count, variable_count>& value) = 0;
-		virtual void Transform(const EquationsVariable<variable_count>& variable, IntervalVector<equation_count>& value,
+		virtual void Transform(const IntervalVector<variable_count>& variable, IntervalVector<equation_count>& value,
 			IntervalMatrix<equation_count, variable_count>& partial_derivative, 
 			bool& recheck_value, bool& use_default_transform) { 
 			recheck_value = false;
 			use_default_transform = true;
 		}
 		virtual void Restore() {}
+		virtual int GetSplitIndex(const IntervalVector<variable_count>& variable, int prev_split_index, double size) {
+			bool b = false;
+			int next_split_index = 0;
+			double ves[2] = { 1E-12, 0 };
+			for (int k = 0; k < 2; ++k) {
+				next_split_index = prev_split_index + 1;
+				do {
+					if (next_split_index == GetVariableCount()) {
+						next_split_index = 0;
+					}
+					if (variable.Get(next_split_index).Length() > ves[k]) {
+						b = true;
+						break;
+					}
+					++next_split_index;
+				} while (next_split_index != prev_split_index + 1);
+				if (b) {
+					break;
+				}
+			}
+			if (b) {
+				return next_split_index;
+			}
+			return 0;
+		}
+		virtual int CompareIteratePriority(const IntervalVector<variable_count>& variable1, double size1,
+			const IntervalVector<variable_count>& variable2, double size2) {
+			if (size1 < size2) {
+				return -1;
+			}
+			if (size1 > size2) {
+				return 1;
+			}
+			return 0;
+		}
+		virtual bool SpeciallySolve(IntervalVector<variable_count>* variable, SolverIteratedResult& result, double& size) {
+			return false;
+		}
 	};
 
 }

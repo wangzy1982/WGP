@@ -93,7 +93,7 @@ namespace wgp {
 
 }
 
-inline bool vector_equals(const wgp::Vector3d& vt1, const wgp::Vector3d& vt2, double epsilon) {
+inline bool vector3_equals(const wgp::Vector3d& vt1, const wgp::Vector3d& vt2, double epsilon) {
     return double_equals(vt1.X, vt2.X, epsilon) &&
         double_equals(vt1.Y, vt2.Y, epsilon) &&
         double_equals(vt1.Z, vt2.Z, epsilon);

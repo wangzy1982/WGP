@@ -23,66 +23,22 @@ namespace wgp {
 		Real Size;
 	};
 
-	template<
-		class EquationSystem,
-		class SolverHeapItem
-	>
-	class DefaultSolverSpliter {
-	public:
-		static int GetSplitIndex(EquationSystem* equation_system, SolverHeapItem* item) {
-			bool b = false;
-			int next_split_index = 0;
-			double ves[2] = { 1E-12, 0 };
-			for (int k = 0; k < 2; ++k) {
-				next_split_index = item->PrevSplitIndex + 1;
-				do {
-					if (next_split_index == equation_system->GetVariableCount()) {
-						next_split_index = 0;
-					}
-					if (item->Variable.Get(next_split_index).Length() > ves[k]) {
-						b = true;
-						break;
-					}
-					++next_split_index;
-				} while (next_split_index != item->PrevSplitIndex + 1);
-				if (b) {
-					break;
-				}
-			}
-			if (b) {
-				return next_split_index;
-			}
-			return 0;
-		}
-	};
-
-	template<
-		class EquationSystem,
-		class SolverHeapItem
-	>
-	class DefaultSolverPriority {
-	public:
-		static int Compare(EquationSystem* equation_system, SolverHeapItem* item1, SolverHeapItem* item2) {
-			if (item1->Size < item2->Size) {
-				return -1;
-			}
-			if (item1->Size > item2->Size) {
-				return 1;
-			}
-			return 0;
-		}
+	enum class SolverIteratedResult {
+		Fuzzy,
+		OnIntervalRoot,
+		OnClearRoot,
+		NoRoot
 	};
 
 	template<
 		class EquationSystem,
 		class EquationsVariable,
-		class IntervalVector,
+		class EquationsValue,
+		class EquationDv,
 		class IntervalMatrix,
 		class Matrix,
 		class RealInterval = Interval,
-		class Real = double,
-		class Spliter = DefaultSolverSpliter<EquationSystem, SolverHeapItem<EquationsVariable, Real>>,
-		class Priority = DefaultSolverPriority<EquationSystem, SolverHeapItem<EquationsVariable, Real>>
+		class Real = double
 	>
 	class Solver {
 	public:
@@ -95,6 +51,7 @@ namespace wgp {
 		void SetMaxFuzzyRootCount(int max_fuzzy_root_count) {
 			m_max_fuzzy_root_count = max_fuzzy_root_count;
 			m_clear_roots.Clear();
+			m_interval_roots.Clear();
 			m_fuzzy_roots.Clear();
 			m_root_is_dirty = true;
 		}
@@ -102,6 +59,7 @@ namespace wgp {
 		void SetEquationSystem(EquationSystem* equation_system) {
 			m_equation_system = equation_system;
 			m_clear_roots.Clear();
+			m_interval_roots.Clear();
 			m_fuzzy_roots.Clear();
 			m_root_is_dirty = true;
 		}
@@ -109,6 +67,7 @@ namespace wgp {
 		void SetInitialVariables(const Array<EquationsVariable>& initial_variables) {
 			m_initial_variables = initial_variables;
 			m_clear_roots.Clear();
+			m_interval_roots.Clear();
 			m_fuzzy_roots.Clear();
 			m_root_is_dirty = true;
 		}
@@ -116,6 +75,7 @@ namespace wgp {
 		void SetInitialVariables(Array<EquationsVariable>&& initial_variables) {
 			m_initial_variables = std::forward(initial_variables);
 			m_clear_roots.Clear();
+			m_interval_roots.Clear();
 			m_fuzzy_roots.Clear();
 			m_root_is_dirty = true;
 		}
@@ -124,6 +84,7 @@ namespace wgp {
 			m_initial_variables.Clear();
 			m_initial_variables.Append(initial_variable);
 			m_clear_roots.Clear();
+			m_interval_roots.Clear();
 			m_fuzzy_roots.Clear();
 			m_root_is_dirty = true;
 		}
@@ -133,7 +94,7 @@ namespace wgp {
 				return true;
 			}
 			for (int i = 0; i < m_initial_variables.GetCount(); ++i) {
-				IntervalVector value(m_equation_system->GetEquationCount());
+				EquationsValue value(m_equation_system->GetEquationCount());
 				m_equation_system->CalculateValue(m_initial_variables.Get(i), value);
 				for (int j = 0; j < m_equation_system->GetEquationCount(); ++j) {
 					if (!(value.Get(j)->Length() <= 1E200)) {
@@ -147,6 +108,11 @@ namespace wgp {
 		const Array<EquationsVariable>& GetClearRoots() {
 			Execute();
 			return m_clear_roots;
+		}
+
+		const Array<EquationsVariable>& GetIntervalRoots() {
+			Execute();
+			return m_interval_roots;
 		}
 
 		const Array<EquationsVariable>& GetFuzzyRoots() {
@@ -163,7 +129,8 @@ namespace wgp {
 				}
 				if (heap.GetCount() < m_max_fuzzy_root_count) {
 					while (heap.GetCount() > 0) {
-						int j = Spliter::GetSplitIndex(m_equation_system, heap.GetPointer(0));
+						SolverHeapItem<EquationsVariable, Real>* item = heap.GetPointer(0);
+						int j = m_equation_system->GetSplitIndex(item->Variable, item->PrevSplitIndex, item->Size);
 						EquationsVariable variable1;
 						EquationsVariable variable2;
 						heap.GetPointer(0)->Variable.Split(j, variable1, variable2);
@@ -191,7 +158,9 @@ namespace wgp {
 			int i = heap.GetCount() - 1;
 			while (i > 0) {
 				int j = (i - 1) / 2;
-				if (Priority::Compare(m_equation_system, heap.GetPointer(j), heap.GetPointer(i)) != -1) {
+				SolverHeapItem<EquationsVariable, Real>* itemi = heap.GetPointer(i);
+				SolverHeapItem<EquationsVariable, Real>* itemj = heap.GetPointer(j);
+				if (m_equation_system->CompareIteratePriority(itemj->Variable, itemj->Size, itemi->Variable, itemi->Size) != -1) {
 					break;
 				}
 				SolverHeapItem<EquationsVariable, Real> t = heap.Get(i);
@@ -213,10 +182,14 @@ namespace wgp {
 					break;
 				}
 				int k = j + 1;
-				if (k < heap.GetCount() && Priority::Compare(m_equation_system, heap.GetPointer(k), heap.GetPointer(j)) == 1) {
+				SolverHeapItem<EquationsVariable, Real>* itemk = heap.GetPointer(k);
+				SolverHeapItem<EquationsVariable, Real>* itemj = heap.GetPointer(j);
+				if (k < heap.GetCount() && m_equation_system->CompareIteratePriority(itemk->Variable, itemk->Size, itemj->Variable, itemj->Size) == 1) {
 					j = k;
 				}
-				if (Priority::Compare(m_equation_system, heap.GetPointer(j), heap.GetPointer(i)) != 1) {
+				SolverHeapItem<EquationsVariable, Real>* itemi = heap.GetPointer(i);
+				itemj = heap.GetPointer(j);
+				if (m_equation_system->CompareIteratePriority(itemj->Variable, itemj->Size, itemi->Variable, itemi->Size) != 1) {
 					break;
 				}
 				SolverHeapItem<EquationsVariable, Real> t = heap.Get(i);
@@ -226,27 +199,21 @@ namespace wgp {
 			}
 		}
 
-		enum class IteratedResult {
-			Fuzzy,
-			OnRoot,
-			NoRoot
-		};
-
 		struct IteratorRuntime {
-			IntervalVector q_value;
+			EquationsValue q_value;
 			IntervalMatrix df;
 			Matrix m1;
 			Matrix m2;
 			IntervalMatrix bm;
-			IntervalVector b_min_value;
-			IntervalVector b_max_value;
-			IntervalVector t_min_value;
-			IntervalVector t_max_value;
+			EquationsValue b_min_value;
+			EquationsValue b_max_value;
+			EquationsValue t_min_value;
+			EquationsValue t_max_value;
 			EquationsVariable min_variable;
 			EquationsVariable max_variable;
-			IntervalVector q_min_value;
-			IntervalVector q_max_value;
-			IntervalVector dv;
+			EquationsValue q_min_value;
+			EquationsValue q_max_value;
+			EquationDv dv;
 			EquationsVariable temp_variable;
 		public:
 			IteratorRuntime(int equation_count, int variable_count) : IteratorRuntime(equation_count, variable_count,
@@ -271,19 +238,23 @@ namespace wgp {
 			}
 		};
 
-		IteratedResult Iterate(IteratorRuntime* runtime, EquationsVariable* variable, Real& size) {
+		SolverIteratedResult Iterate(IteratorRuntime* runtime, EquationsVariable* variable, Real& size) {
 			Real prev_size = -10000;
 			bool slow = true;
 			while (true) {
+				SolverIteratedResult result;
+				if (m_equation_system->SpeciallySolve(variable, result, size)) {
+					return result;
+				}
 				m_equation_system->CalculateValue(*variable, runtime->q_value);
 				size = 0;
 				Real accept_size = 0;
 				for (int i = 0; i < m_equation_system->GetEquationCount(); ++i) {
-					RealInterval v = *runtime->q_value.Get(i);
+					RealInterval v = runtime->q_value.Get(i);
 					Real value_epsilon = m_equation_system->GetValueEpsilon(i);
 					if (!v.IsIntersected(0, value_epsilon)) {
 						size = 0;
-						return IteratedResult::NoRoot;
+						return SolverIteratedResult::NoRoot;
 					}
 					Real d = v.Length();
 					Real d1 = d / value_epsilon;
@@ -296,15 +267,15 @@ namespace wgp {
 					}
 				}
 				if (accept_size <= 1) {
-					return IteratedResult::OnRoot;
+					return SolverIteratedResult::OnClearRoot;
 				}
 				if (prev_size > 0) {
 					Real delta_size = prev_size - size;
 					if (delta_size <= 0.1) {
-						return IteratedResult::Fuzzy;
+						return SolverIteratedResult::Fuzzy;
 					}
 					if (slow && delta_size / prev_size <= 0.01) {
-						return IteratedResult::Fuzzy;
+						return SolverIteratedResult::Fuzzy;
 					}
 				}
 				prev_size = size;
@@ -314,12 +285,12 @@ namespace wgp {
 				m_equation_system->Transform(*variable, runtime->q_value, runtime->df, recheck_value, use_default_transform);
 				if (recheck_value) {
 					for (int i = 0; i < m_equation_system->GetEquationCount(); ++i) {
-						RealInterval v = *runtime->q_value.Get(i);
+						RealInterval v = runtime->q_value.Get(i);
 						Real value_epsilon = m_equation_system->GetValueEpsilon(i);
 						if (!v.IsIntersected(0, value_epsilon)) {
 							size = 0;
 							m_equation_system->Restore();
-							return IteratedResult::NoRoot;
+							return SolverIteratedResult::NoRoot;
 						}
 					}
 				}
@@ -335,45 +306,45 @@ namespace wgp {
 					Real delta_min = 0;
 					Real delta_max = 0;
 					for (int j = 0; j < m_equation_system->GetEquationCount(); ++j) {
-						RealInterval* min_value = runtime->q_min_value.Get(j);
-						RealInterval* max_value = runtime->q_max_value.Get(j);
+						RealInterval min_value = runtime->q_min_value.Get(j);
+						RealInterval max_value = runtime->q_max_value.Get(j);
 						RealInterval* dvi = runtime->df.Get(j, i);
-						if (min_value->Min > m_equation_system->GetValueEpsilon(j)) {
+						if (min_value.Min > m_equation_system->GetValueEpsilon(j)) {
 							if (dvi->Min >= 0) {
 								m_equation_system->Restore();
-								return IteratedResult::NoRoot;
+								return SolverIteratedResult::NoRoot;
 							}
-							Real d = -min_value->Min / dvi->Min;
+							Real d = -min_value.Min / dvi->Min;
 							if (d > delta_min) {
 								delta_min = d;
 							}
 						}
-						else if (min_value->Max < -m_equation_system->GetValueEpsilon(j)) {
+						else if (min_value.Max < -m_equation_system->GetValueEpsilon(j)) {
 							if (dvi->Max <= 0) {
 								m_equation_system->Restore();
-								return IteratedResult::NoRoot;
+								return SolverIteratedResult::NoRoot;
 							}
-							Real d = -min_value->Max / dvi->Max;
+							Real d = -min_value.Max / dvi->Max;
 							if (d > delta_min) {
 								delta_min = d;
 							}
 						}
-						if (max_value->Min > m_equation_system->GetValueEpsilon(j)) {
+						if (max_value.Min > m_equation_system->GetValueEpsilon(j)) {
 							if (dvi->Max <= 0) {
 								m_equation_system->Restore();
-								return IteratedResult::NoRoot;
+								return SolverIteratedResult::NoRoot;
 							}
-							Real d = max_value->Min / dvi->Max;
+							Real d = max_value.Min / dvi->Max;
 							if (d > delta_max) {
 								delta_max = d;
 							}
 						}
-						else if (max_value->Max < -m_equation_system->GetValueEpsilon(j)) {
+						else if (max_value.Max < -m_equation_system->GetValueEpsilon(j)) {
 							if (dvi->Min >= 0) {
 								m_equation_system->Restore();
-								return IteratedResult::NoRoot;
+								return SolverIteratedResult::NoRoot;
 							}
-							Real d = max_value->Max / dvi->Min;
+							Real d = max_value.Max / dvi->Min;
 							if (d > delta_max) {
 								delta_max = d;
 							}
@@ -386,7 +357,7 @@ namespace wgp {
 						if (d1 > d2) {
 							if (variable->Get(i).Min == variable->Get(i).Max) {
 								m_equation_system->Restore();
-								return IteratedResult::NoRoot;
+								return SolverIteratedResult::NoRoot;
 							}
 							Real dt = (variable->Get(i).Max - variable->Get(i).Min) / (delta_max + delta_min);
 							double d = variable->Get(i).Min + delta_min * dt;
@@ -436,13 +407,13 @@ namespace wgp {
 					variable->Max(runtime->temp_variable);
 					m_equation_system->CalculateValue(runtime->temp_variable, runtime->t_max_value);
 					for (int j = 0; j < degree; ++j) {
-						*runtime->b_min_value.Get(j) = 0;
+						runtime->b_min_value.Set(j, 0);
 						for (int k = 0; k < degree; ++k) {
-							*runtime->b_min_value.Get(j) = *runtime->b_min_value.Get(j) + *runtime->m2.Get(j, k) * *runtime->t_min_value.Get(k);
+							runtime->b_min_value.Set(j, runtime->b_min_value.Get(j) + *runtime->m2.Get(j, k) * runtime->t_min_value.Get(k));
 						}
-						*runtime->b_max_value.Get(j) = 0;
+						runtime->b_max_value.Set(j, 0);
 						for (int k = 0; k < degree; ++k) {
-							*runtime->b_max_value.Get(j) = *runtime->b_max_value.Get(j) + *runtime->m2.Get(j, k) * *runtime->t_max_value.Get(k);
+							runtime->b_max_value.Set(j, runtime->b_max_value.Get(j) + *runtime->m2.Get(j, k) * runtime->t_max_value.Get(k));
 						}
 					}
 					Real delta_min = 0;
@@ -451,31 +422,31 @@ namespace wgp {
 						RealInterval min_value;
 						RealInterval max_value;
 						if (i == j && i < degree) {
-							min_value = *runtime->b_min_value.Get(j);
-							max_value = *runtime->b_max_value.Get(j);
+							min_value = runtime->b_min_value.Get(j);
+							max_value = runtime->b_max_value.Get(j);
 							runtime->bm.Row(j, runtime->dv);
 							for (int k = 0; k < m_equation_system->GetVariableCount(); ++k) {
 								if (k == i) {
 									continue;
 								}
-								min_value = min_value + RealInterval(0, variable->Get(k).Length()) * *runtime->dv.Get(k);
-								max_value = max_value + RealInterval(-variable->Get(k).Length(), 0) * *runtime->dv.Get(k);
+								min_value = min_value + RealInterval(0, variable->Get(k).Length()) * runtime->dv.Get(k);
+								max_value = max_value + RealInterval(-variable->Get(k).Length(), 0) * runtime->dv.Get(k);
 							}
 						}
 						else {
-							min_value = *runtime->t_min_value.Get(j);
-							max_value = *runtime->t_max_value.Get(j);
+							min_value = runtime->t_min_value.Get(j);
+							max_value = runtime->t_max_value.Get(j);
 							runtime->df.Row(j, runtime->dv);
 							for (int k = 0; k < degree; ++k) {
 								if (k == i) {
 									continue;
 								}
-								Real c = runtime->dv.Get(k)->Center();
+								Real c = runtime->dv.Get(k).Center();
 								if (abs(c) > g_double_epsilon) {
-									min_value = min_value - *runtime->b_min_value.Get(k) * c;
-									max_value = max_value - *runtime->b_max_value.Get(k) * c;
+									min_value = min_value - runtime->b_min_value.Get(k) * c;
+									max_value = max_value - runtime->b_max_value.Get(k) * c;
 									for (int u = 0; u < m_equation_system->GetVariableCount(); ++u) {
-										*runtime->dv.Get(u) = *runtime->dv.Get(u) - *runtime->bm.Get(k, u) * c;
+										runtime->dv.Set(u, runtime->dv.Get(u) - *runtime->bm.Get(k, u) * c);
 									}
 								}
 							}
@@ -483,47 +454,47 @@ namespace wgp {
 								if (k == i) {
 									continue;
 								}
-								min_value = min_value + RealInterval(0, variable->Get(k).Length()) * *runtime->dv.Get(k);
-								max_value = max_value + RealInterval(-variable->Get(k).Length(), 0) * *runtime->dv.Get(k);
+								min_value = min_value + RealInterval(0, variable->Get(k).Length()) * runtime->dv.Get(k);
+								max_value = max_value + RealInterval(-variable->Get(k).Length(), 0) * runtime->dv.Get(k);
 							}
 						}
-						RealInterval* dvi = runtime->dv.Get(i);
+						RealInterval dvi = runtime->dv.Get(i);
 						if (min_value.Min > m_equation_system->GetValueEpsilon(j)) {
-							if (dvi->Min >= 0) {
+							if (dvi.Min >= 0) {
 								m_equation_system->Restore();
-								return IteratedResult::NoRoot;
+								return SolverIteratedResult::NoRoot;
 							}
-							Real d = -min_value.Min / dvi->Min;
+							Real d = -min_value.Min / dvi.Min;
 							if (d > delta_min) {
 								delta_min = d;
 							}
 						}
 						else if (min_value.Max < -m_equation_system->GetValueEpsilon(j)) {
-							if (dvi->Max <= 0) {
+							if (dvi.Max <= 0) {
 								m_equation_system->Restore();
-								return IteratedResult::NoRoot;
+								return SolverIteratedResult::NoRoot;
 							}
-							Real d = -min_value.Max / dvi->Max;
+							Real d = -min_value.Max / dvi.Max;
 							if (d > delta_min) {
 								delta_min = d;
 							}
 						}
 						if (max_value.Min > m_equation_system->GetValueEpsilon(j)) {
-							if (dvi->Max <= 0) {
+							if (dvi.Max <= 0) {
 								m_equation_system->Restore();
-								return IteratedResult::NoRoot;
+								return SolverIteratedResult::NoRoot;
 							}
-							Real d = max_value.Min / dvi->Max;
+							Real d = max_value.Min / dvi.Max;
 							if (d > delta_max) {
 								delta_max = d;
 							}
 						}
 						else if (max_value.Max < -m_equation_system->GetValueEpsilon(j)) {
-							if (dvi->Min >= 0) {
+							if (dvi.Min >= 0) {
 								m_equation_system->Restore();
-								return IteratedResult::NoRoot;
+								return SolverIteratedResult::NoRoot;
 							}
-							Real d = max_value.Max / dvi->Min;
+							Real d = max_value.Max / dvi.Min;
 							if (d > delta_max) {
 								delta_max = d;
 							}
@@ -536,7 +507,7 @@ namespace wgp {
 						if (d1 > d2) {
 							if (variable->Get(i).Min == variable->Get(i).Max) {
 								m_equation_system->Restore();
-								return IteratedResult::NoRoot;
+								return SolverIteratedResult::NoRoot;
 							}
 							Real dt = (variable->Get(i).Max - variable->Get(i).Min) / (delta_max + delta_min);
 							double d = variable->Get(i).Min + delta_min * dt;
@@ -553,225 +524,17 @@ namespace wgp {
 				}
 				if (stop) {
 					m_equation_system->Restore();
-					return IteratedResult::Fuzzy;
+					return SolverIteratedResult::Fuzzy;
 				}
 				m_equation_system->Restore();
 			}
 		}
-		/*
-		IteratedResult Iterate(IteratorRuntime* runtime, IntervalVector* variable, Real& size) {
-			Real prev_size = -10000;
-			while (true) {
-				m_equation_system->CalculateValue(*variable, runtime->q_value);
-				variable->Center(runtime->middle_variable);
-				m_equation_system->CalculateValue(runtime->middle_variable, runtime->middle_value);
-				m_equation_system->CalculatePartialDerivative(*variable, runtime->df);
-				size = 0;
-				Real accept_size = 0;
-				for (int i = 0; i < m_equation_system->GetEquationCount(); ++i) {
-					RealInterval v = *runtime->middle_value.Get(i);
-					for (int j = 0; j < m_equation_system->GetVariableCount(); ++j) {
-						v = v + *runtime->df.Get(i, j) * (*variable->Get(j) - *runtime->middle_variable.Get(j));
-					}
-					v.Intersect(*runtime->q_value.Get(i));
-					Real value_epsilon = m_equation_system->GetValueEpsilon(i);
-					if (!v.IsIntersected(0, value_epsilon)) {
-						size = 0;
-						return IteratedResult::NoRoot;
-					}
-					Real d = v.Length();
-					Real d1 = d / value_epsilon;
-					if (d1 > size) {
-						size = d1;
-					}
-					Real d2 = d / value_epsilon;
-					if (d2 > accept_size) {
-						accept_size = d2;
-					}
-				}
-				if (accept_size <= 1) {
-					return IteratedResult::OnRoot;
-				}
-				if (prev_size > 0) {
-					Real delta_size = prev_size - size;
-					if (delta_size <= 0.1) {
-						return IteratedResult::Fuzzy;
-					}
-					if (delta_size / prev_size <= 0.01) {
-						return IteratedResult::Fuzzy;
-					}
-				}
-				prev_size = size;
-				int degree = runtime->m1.GetRowCount();
-				for (int i = 0; i < degree; ++i) {
-					for (int j = 0; j < degree; ++j) {
-						*runtime->m1.Get(i, j) = runtime->df.Get(i, j)->Center();
-					}
-				}
-				for (int i = 0; i < degree; ++i) {
-					for (int j = 0; j < degree; ++j) {
-						*runtime->m2.Get(i, j) = 0;
-					}
-					*runtime->m2.Get(i, i) = 1;
-				}
-				runtime->m1.GaussianElimination(runtime->m2);
-				for (int i = 0; i < degree; ++i) {
-					for (int j = 0; j < m_equation_system->GetVariableCount(); ++j) {
-						*runtime->bm.Get(i, j) = 0;
-						for (int k = 0; k < degree; ++k) {
-							*runtime->bm.Get(i, j) = *runtime->bm.Get(i, j) + *runtime->m2.Get(i, k) * *runtime->df.Get(k, j);
-						}
-					}
-				}
-				bool stop = true;
-				for (int i = 0; i < m_equation_system->GetVariableCount(); ++i) {
-					variable->Min(runtime->temp_variable);
-					m_equation_system->CalculateValue(runtime->temp_variable, runtime->t_min_value);
-					variable->Max(runtime->temp_variable);
-					m_equation_system->CalculateValue(runtime->temp_variable, runtime->t_max_value);
-					runtime->min_variable = *variable;
-					runtime->max_variable = *variable;
-					runtime->min_variable.Get(i)->Max = runtime->min_variable.Get(i)->Min;
-					runtime->max_variable.Get(i)->Min = runtime->max_variable.Get(i)->Max;
-					m_equation_system->CalculateValue(runtime->min_variable, runtime->q_min_value);
-					m_equation_system->CalculateValue(runtime->max_variable, runtime->q_max_value);
-					for (int j = 0; j < degree; ++j) {
-						*runtime->b_min_value.Get(j) = 0;
-						for (int k = 0; k < degree; ++k) {
-							*runtime->b_min_value.Get(j) = *runtime->b_min_value.Get(j) + *runtime->m2.Get(j, k) * *runtime->t_min_value.Get(k);
-						}
-						*runtime->b_max_value.Get(j) = 0;
-						for (int k = 0; k < degree; ++k) {
-							*runtime->b_max_value.Get(j) = *runtime->b_max_value.Get(j) + *runtime->m2.Get(j, k) * *runtime->t_max_value.Get(k);
-						}
-					}
-					Real delta_min = 0;
-					Real delta_max = 0;
-					for (int j = 0; j < m_equation_system->GetEquationCount(); ++j) {
-						for (int st = 0; st <= 1; ++st) {
-							RealInterval min_value;
-							RealInterval max_value;
-							if (st == 0) {
-								min_value = *runtime->t_min_value.Get(j);
-								max_value = *runtime->t_max_value.Get(j);
-								runtime->dv = runtime->df.Row(j);
-								for (int k = 0; k < m_equation_system->GetVariableCount(); ++k) {
-									if (k == i) {
-										continue;
-									}
-									min_value = min_value + RealInterval(0, variable->Get(k)->Length()) * *runtime->dv.Get(k);
-									max_value = max_value + RealInterval(-variable->Get(k)->Length(), 0) * *runtime->dv.Get(k);
-								}
-								min_value.Intersect(*runtime->q_min_value.Get(j));
-								max_value.Intersect(*runtime->q_max_value.Get(j));
-							}
-							else {
-								if (i == j && i < degree) {
-									min_value = *runtime->b_min_value.Get(j);
-									max_value = *runtime->b_max_value.Get(j);
-									runtime->dv = runtime->bm.Row(j);
-									for (int k = 0; k < m_equation_system->GetVariableCount(); ++k) {
-										if (k == i) {
-											continue;
-										}
-										min_value = min_value + RealInterval(0, variable->Get(k)->Length()) * *runtime->dv.Get(k);
-										max_value = max_value + RealInterval(-variable->Get(k)->Length(), 0) * *runtime->dv.Get(k);
-									}
-								}
-								else {
-									min_value = *runtime->t_min_value.Get(j);
-									max_value = *runtime->t_max_value.Get(j);
-									runtime->dv = runtime->df.Row(j);
-									for (int k = 0; k < degree; ++k) {
-										if (k == i) {
-											continue;
-										}
-										Real c = runtime->dv.Get(k)->Center();
-										if (abs(c) > g_double_epsilon) {
-											min_value = min_value - *runtime->b_min_value.Get(k) * c;
-											max_value = max_value - *runtime->b_max_value.Get(k) * c;
-											for (int u = 0; u < m_equation_system->GetVariableCount(); ++u) {
-												*runtime->dv.Get(u) = *runtime->dv.Get(u) - *runtime->bm.Get(k, u) * c;
-											}
-										}
-									}
-									for (int k = 0; k < m_equation_system->GetVariableCount(); ++k) {
-										if (k == i) {
-											continue;
-										}
-										min_value = min_value + RealInterval(0, variable->Get(k)->Length()) * *runtime->dv.Get(k);
-										max_value = max_value + RealInterval(-variable->Get(k)->Length(), 0) * *runtime->dv.Get(k);
-									}
-								}
-							}
-							if (min_value.Min > m_equation_system->GetValueEpsilon(j)) {
-								if (runtime->dv.Get(i)->Min >= 0) {
-									return IteratedResult::NoRoot;
-								}
-								Real d = -min_value.Min / runtime->dv.Get(i)->Min;
-								if (d > delta_min) {
-									delta_min = d;
-								}
-							}
-							else if (min_value.Max < -m_equation_system->GetValueEpsilon(j)) {
-								if (runtime->dv.Get(i)->Max <= 0) {
-									return IteratedResult::NoRoot;
-								}
-								Real d = -min_value.Max / runtime->dv.Get(i)->Max;
-								if (d > delta_min) {
-									delta_min = d;
-								}
-							}
-							if (max_value.Min > m_equation_system->GetValueEpsilon(j)) {
-								if (runtime->dv.Get(i)->Max <= 0) {
-									return IteratedResult::NoRoot;
-								}
-								Real d = max_value.Min / runtime->dv.Get(i)->Max;
-								if (d > delta_max) {
-									delta_max = d;
-								}
-							}
-							else if (max_value.Max < -m_equation_system->GetValueEpsilon(j)) {
-								if (runtime->dv.Get(i)->Min >= 0) {
-									return IteratedResult::NoRoot;
-								}
-								Real d = max_value.Max / runtime->dv.Get(i)->Min;
-								if (d > delta_max) {
-									delta_max = d;
-								}
-							}
-						}
-					}
-					if (delta_min > 0 || delta_max > 0) {
-						stop = false;
-						Real d1 = variable->Get(i)->Min + delta_min;
-						Real d2 = variable->Get(i)->Max - delta_max;
-						if (d1 > d2) {
-							if (variable->Get(i)->Min == variable->Get(i)->Max) {
-								return IteratedResult::NoRoot;
-							}
-							Real dt = (variable->Get(i)->Max - variable->Get(i)->Min) / (delta_max + delta_min);
-							variable->Get(i)->Min += delta_min * dt;
-							variable->Get(i)->Max = variable->Get(i)->Min;
-						}
-						else {
-							variable->Get(i)->Min = d1;
-							variable->Get(i)->Max = d2;
-						}
-					}
-				}
-				if (stop) {
-					return IteratedResult::Fuzzy;
-				}
-			}
-		}
-		*/
 
 		void Iterate(IteratorRuntime* runtime, EquationsVariable variable, int prev_split_index,
 			Array<SolverHeapItem<EquationsVariable, Real>>& heap) {
 			Real size;
-			IteratedResult r = Iterate(runtime, &variable, size);
-			if (r == IteratedResult::Fuzzy) {
+			SolverIteratedResult r = Iterate(runtime, &variable, size);
+			if (r == SolverIteratedResult::Fuzzy) {
 				bool b = true;
 				for (int i = 0; i < m_equation_system->GetVariableCount(); ++i) {
 					if (variable.Get(i).Length() > m_equation_system->GetVariableEpsilon(i)) {
@@ -786,7 +549,10 @@ namespace wgp {
 					HeapPush(heap, size, prev_split_index, variable);
 				}
 			}
-			else if (r == IteratedResult::OnRoot) {
+			else if (r == SolverIteratedResult::OnIntervalRoot) {
+				m_interval_roots.Append(variable);
+			}
+			else if (r == SolverIteratedResult::OnClearRoot) {
 				m_clear_roots.Append(variable);
 			}
 		}
@@ -795,8 +561,86 @@ namespace wgp {
 		EquationSystem* m_equation_system;
 		Array<EquationsVariable> m_initial_variables;
 		Array<EquationsVariable> m_clear_roots;
+		Array<EquationsVariable> m_interval_roots;
 		Array<EquationsVariable> m_fuzzy_roots;
 		bool m_root_is_dirty;
+	};
+
+	template<
+		class EquationSystem,
+		class EquationsVariable,
+		class EquationsValue,
+		class DeltaVariable,
+		class Matrix,
+		class RealInterval = Interval,
+		class Real = double
+	>
+	class NewtonSolver {
+	public:
+		NewtonSolver() {
+			m_equation_system = nullptr;
+		}
+
+		void SetEquationSystem(EquationSystem* equation_system) {
+			m_equation_system = equation_system;
+		}
+
+		bool Iterate(EquationsVariable* variable, int max_iterate_count) {
+			EquationsValue value(m_equation_system->GetEquationCount());
+			DeltaVariable dv;
+			Matrix m1;
+			Matrix m2;
+			for (int n = 0; n < max_iterate_count; ++n) {
+				m_equation_system->CalculateValue(*variable, value);
+				m_equation_system->CalculatePartialDerivative(*variable, m1);
+				for (int i = 0; i < m2.GetRowCount(); ++i) {
+					for (int j = 0; j < m2.GetColCount(); ++j) {
+						*m2.Get(i, j) = 0;
+					}
+					*m2.Get(i, i) = 1;
+				}
+				m1.GaussianElimination(m2);
+				for (int i = 0; i < m1.GetRowCount(); ++i) {
+					if (*m1.Get(i, i) < 0.5) {
+						return false;
+					}
+				}
+				bool b = true;
+				for (int i = 0; i < m_equation_system->GetEquationCount(); ++i) {
+					if (!is_zero(value.Get(i), m_equation_system->GetValueEpsilon(i))) {
+						b = false;
+						break;
+					}
+				}
+				for (int i = 0; i < m_equation_system->GetVariableCount(); ++i) {
+					Real d = 0;
+					for (int j = 0; j < m_equation_system->GetEquationCount(); ++j) {
+						d -= *m2.Get(i, j) * value.Get(j);
+					}
+					RealInterval vi = variable->GetInterval(i);
+					Real d0 = variable->Get(i);
+					if (d0 + d < vi.Min) {
+						d = vi.Min - d0;
+					} 
+					else if (d0 + d > vi.Max) {
+						d = vi.Max - d0;
+					}
+					if (b && !is_zero(d, m_equation_system->GetDeltaVariableEpsilon(i))) {
+						b = false;
+					}
+					dv.Set(i, d);
+				}
+				if (b) {
+					return true;
+				}
+				for (int i = 0; i < m_equation_system->GetVariableCount(); ++i) {
+					variable->Set(i, variable->Get(i) + dv.Get(i));
+				}
+			}
+			return false;
+		}
+	private:
+		EquationSystem* m_equation_system;
 	};
 
 }
