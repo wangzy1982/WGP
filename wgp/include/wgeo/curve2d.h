@@ -20,13 +20,8 @@ namespace wgp {
         VariableDomain* TDomain() const;
         virtual void SplitFlat(Array<VariableInterval>& segments, double angle_epsilon) = 0;
     public:
-        virtual Interval2d CalculateValue(int index, const Interval& t) = 0;
-        virtual Interval2d CalculateDt(int index, const Interval& t) = 0;
-        virtual Interval2d CalculateDt2(int index, const Interval& t) = 0;
-    public:
-        virtual Vector2d CalculateValue(int index, double t);
-        virtual Vector2d CalculateDt(int index, double t);
-        virtual Vector2d CalculateDt2(int index, double t);
+        virtual void Calculate(int index, double t, Vector2d* d0, Vector2d* dt, Vector2d* dt2) = 0;
+        virtual void Calculate(int index, const Interval& t, Interval2d* d0, Interval2d* dt, Interval2d* dt2) = 0;
     public:
         virtual void CalculateByCircleTransformation(int index, const Interval& t, const Vector2d& center, Interval* d0, Interval* dt) = 0;
     public:

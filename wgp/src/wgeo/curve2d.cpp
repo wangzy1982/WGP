@@ -17,16 +17,4 @@ namespace wgp {
 		return m_t_domain;
 	}
 
-	Vector2d Curve2d::CalculateValue(int index, double t) {
-		return CalculateValue(index, Interval(t)).Center();
-	}
-
-	Vector2d Curve2d::CalculateDt(int index, double t) {
-		return CalculateDt(index, Interval(t)).Center();
-	}
-
-	Vector2d Curve2d::CalculateDt2(int index, double t) {
-		return CalculateDt2(index, Interval(t)).Center();
-	}
-
 }

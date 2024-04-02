@@ -17,8 +17,6 @@ namespace wgp {
         VariableInterval T2;
         short RootState1;       //0-Unknown  1-Root  2-Not root
         short RootState2;
-        short RelativeState1;   //0-Unknown  1-First is left  2-First is right
-        short RelativeState2;
         short SameDirState;     //0-Unknown  1-True  2-False
         bool IsClearRoot;
         Array<Curve2dCurve2dInt> Ints;
@@ -58,6 +56,43 @@ namespace wgp {
         return false;
     }
 
+    void CalculateSameDirState(Curve2d* curve1, Curve2d* curve2, IntInfo* int_info) {
+        if (int_info->SameDirState == 0) {
+            Vector2d dt1, dt2;
+            curve1->Calculate(int_info->T1.Index, int_info->T1.Value.Center(), nullptr, &dt1, nullptr);
+            curve2->Calculate(int_info->T2.Index, int_info->T2.Value.Center(), nullptr, &dt2, nullptr);
+            if (dt1.Dot(dt2) > 0) {
+                int_info->SameDirState = 1;
+            }
+            else {
+                int_info->SameDirState = 2;
+            }
+        }
+    }
+
+    void CalculateSameDirState(Curve2d* curve1, Curve2d* curve2, IntInfo* int_info1, IntInfo* int_info2) {
+        if (int_info1->SameDirState == 0) {
+            if (int_info2->SameDirState == 0) {
+                Vector2d dt1, dt2;
+                curve1->Calculate(int_info1->T1.Index, int_info1->T1.Value.Center(), nullptr, &dt1, nullptr);
+                curve2->Calculate(int_info1->T2.Index, int_info1->T2.Value.Center(), nullptr, &dt2, nullptr);
+                if (dt1.Dot(dt2) > 0) {
+                    int_info1->SameDirState = 1;
+                }
+                else {
+                    int_info1->SameDirState = 2;
+                }
+                int_info2->SameDirState = int_info1->SameDirState;
+            }
+            else {
+                int_info1->SameDirState = int_info2->SameDirState;
+            }
+        }
+        else {
+            int_info2->SameDirState = int_info1->SameDirState;
+        }
+    }
+
     void Intersect(Curve2d* curve1, Curve2d* curve2, double distance_epsilon, Array<Curve2dCurve2dInt>& result) {
         //preliminary solve
         Array<IntInfo> pre_int_infos;
@@ -79,13 +114,15 @@ namespace wgp {
         curve2->SplitFlat(segments2, flat_angle_epsilon);
         Array<Interval2d> points1(segments1.GetCount());
         for (int i = 0; i < segments1.GetCount(); ++i) {
-            points1.Append(curve1->CalculateValue(segments1.GetPointer(i)->Index,
-                segments1.GetPointer(i)->Value));
+            Interval2d point;
+            curve1->Calculate(segments1.GetPointer(i)->Index, segments1.GetPointer(i)->Value, &point, nullptr, nullptr);
+            points1.Append(point);
         }
         Array<Interval2d> points2(segments2.GetCount());
         for (int i = 0; i < segments2.GetCount(); ++i) {
-            points2.Append(curve2->CalculateValue(segments2.GetPointer(i)->Index,
-                segments2.GetPointer(i)->Value));
+            Interval2d point;
+            curve2->Calculate(segments2.GetPointer(i)->Index, segments2.GetPointer(i)->Value, &point, nullptr, nullptr);
+            points2.Append(point);
         }
         Array<Curve2dCurve2dIntVariable> initial_variables(segments1.GetCount() * segments2.GetCount());
         int i0 = 0;
@@ -145,8 +182,6 @@ namespace wgp {
                     int_info.T2 = VariableInterval(index2, fuzzy_root->Get(1));
                     int_info.RootState1 = 0;
                     int_info.RootState2 = 0;
-                    int_info.RelativeState1 = 0;
-                    int_info.RelativeState2 = 0;
                     int_info.SameDirState = 0;
                     int_info.IsClearRoot = false;
                     pre_int_infos.Append(int_info);
@@ -174,8 +209,6 @@ namespace wgp {
                     int_info.T2 = VariableInterval(index2, clear_root->Get(1));
                     int_info.RootState1 = 0;
                     int_info.RootState2 = 0;
-                    int_info.RelativeState1 = 0;
-                    int_info.RelativeState2 = 0;
                     int_info.SameDirState = 0;
                     int_info.IsClearRoot = true;
                     pre_int_infos.Append(int_info);
@@ -203,16 +236,7 @@ namespace wgp {
                                 int_info2->T2.Value.Merge(int_info1->T2.Value);
                             }
                             else {
-                                if (int_info2->SameDirState == 0) {
-                                    Vector2d dt1 = curve1->CalculateDt(int_info2->T1.Index, int_info2->T1.Value.Center());
-                                    Vector2d dt2 = curve2->CalculateDt(int_info2->T2.Index, int_info2->T2.Value.Center());
-                                    if (dt1.Dot(dt2) > 0) {
-                                        int_info2->SameDirState = 1;
-                                    }
-                                    else {
-                                        int_info2->SameDirState = 2;
-                                    }
-                                }
+                                CalculateSameDirState(curve1, curve2, int_info2);
                                 if (int_info1->T1.Value.Center() > int_info2->T1.Value.Center()) {
                                     int_info2->T1.Value.Max = int_info1->T1.Value.Max;
                                     if (int_info2->SameDirState == 1) {
@@ -239,8 +263,9 @@ namespace wgp {
                         }
                     }
                     if (int_info1) {
-                        Vector2d point11 = curve1->CalculateValue(int_info1->T1.Index, int_info1->T1.Value.Min);
-                        Vector2d point12 = curve1->CalculateValue(int_info1->T1.Index, int_info1->T1.Value.Min);
+                        Vector2d point11, point12;
+                        curve1->Calculate(int_info1->T1.Index, int_info1->T1.Value.Min, &point11, nullptr, nullptr);
+                        curve1->Calculate(int_info1->T1.Index, int_info1->T1.Value.Max, &point12, nullptr, nullptr);
                         if (vector2_equals(point11, point12, distance_epsilon)) {
                             Curve2dCurve2dInt curve_curve_int;
                             curve_curve_int.Type = Curve2dCurve2dIntType::Cross;
@@ -248,32 +273,16 @@ namespace wgp {
                             curve_curve_int.Tag2 = segments2.GetPointer(int_info1->SegmentIndex2);
                             curve_curve_int.T1 = Variable(int_info1->T1.Index, int_info1->T1.Value.Center());
                             curve_curve_int.T2 = Variable(int_info1->T2.Index, int_info1->T2.Value.Center());
-                            Vector2d point1 = curve1->CalculateValue(curve_curve_int.T1.Index, curve_curve_int.T1.Value);
-                            Vector2d point2 = curve2->CalculateValue(curve_curve_int.T2.Index, curve_curve_int.T2.Value);
-                            curve_curve_int.Point1 = point1;
-                            curve_curve_int.Point2 = point2;
-                            Interval2d dt1 = curve1->CalculateDt(int_info1->T1.Index, int_info1->T1.Value).Normalize();
-                            Interval2d dt2 = curve2->CalculateDt(int_info1->T2.Index, int_info1->T2.Value).Normalize();
-                            Interval d = dt1.Cross(dt2);
-                            if (d.Max < -g_unit_epsilon) {
-                                curve_curve_int.PrevRelation = Curve2dCurve2dIntRelation::FirstIsIn;
-                                curve_curve_int.NextRelation = Curve2dCurve2dIntRelation::FirstIsOut;
-                            }
-                            else if (d.Min > g_unit_epsilon) {
-                                curve_curve_int.PrevRelation = Curve2dCurve2dIntRelation::FirstIsOut;
-                                curve_curve_int.NextRelation = Curve2dCurve2dIntRelation::FirstIsIn;
-                            }
-                            else {
-                                curve_curve_int.PrevRelation = Curve2dCurve2dIntRelation::Unknown;
-                                curve_curve_int.NextRelation = Curve2dCurve2dIntRelation::Unknown;
-                            }
+                            curve1->Calculate(curve_curve_int.T1.Index, curve_curve_int.T1.Value, &curve_curve_int.Point1, nullptr, nullptr);
+                            curve2->Calculate(curve_curve_int.T2.Index, curve_curve_int.T2.Value, &curve_curve_int.Point2, nullptr, nullptr);
+                            curve_curve_int.PrevRelation = Curve2dCurve2dIntRelation::Unknown;
+                            curve_curve_int.NextRelation = Curve2dCurve2dIntRelation::Unknown;
                             pre_result.Append(curve_curve_int);
                         }
                         else {
-                            Vector2d dt1 = curve1->CalculateValue(int_info1->T1.Index, int_info1->T1.Value.Center());
-                            Vector2d dt2 = curve2->CalculateValue(int_info1->T2.Index, int_info1->T2.Value.Center());
+                            CalculateSameDirState(curve1, curve2, int_info1);
                             double t21, t22;
-                            if (dt1.Dot(dt2) > 0) {
+                            if (int_info1->SameDirState == 1) {
                                 t21 = int_info1->T2.Value.Min;
                                 t22 = int_info1->T2.Value.Max;
                             }
@@ -281,8 +290,9 @@ namespace wgp {
                                 t21 = int_info1->T2.Value.Max;
                                 t22 = int_info1->T2.Value.Min;
                             }
-                            Vector2d point21 = curve2->CalculateValue(int_info1->T2.Index, t21);
-                            Vector2d point22 = curve2->CalculateValue(int_info1->T2.Index, t22);
+                            Vector2d point21, point22;
+                            curve2->Calculate(int_info1->T2.Index, t21, &point21, nullptr, nullptr);
+                            curve2->Calculate(int_info1->T2.Index, t22, &point22, nullptr, nullptr);
                             Curve2dCurve2dInt curve_curve_int1;
                             curve_curve_int1.Type = Curve2dCurve2dIntType::OverlapBegin;
                             curve_curve_int1.Tag1 = segments1.GetPointer(int_info1->SegmentIndex1);
@@ -291,18 +301,7 @@ namespace wgp {
                             curve_curve_int1.T2 = Variable(int_info1->T2.Index, t21);
                             curve_curve_int1.Point1 = point11;
                             curve_curve_int1.Point2 = point21;
-                            dt1 = curve1->CalculateDt(int_info1->T1.Index, int_info1->T1.Value.Min).Normalize();
-                            dt2 = curve2->CalculateDt(int_info1->T2.Index, t21).Normalize();
-                            double d = dt1.Cross(dt2);
-                            if (d < -g_unit_epsilon) {
-                                curve_curve_int1.PrevRelation = Curve2dCurve2dIntRelation::FirstIsIn;
-                            }
-                            else if (d > g_unit_epsilon) {
-                                curve_curve_int1.PrevRelation = Curve2dCurve2dIntRelation::FirstIsOut;
-                            }
-                            else {
-                                curve_curve_int1.PrevRelation = Curve2dCurve2dIntRelation::Unknown;
-                            }
+                            curve_curve_int1.PrevRelation = Curve2dCurve2dIntRelation::Unknown;
                             curve_curve_int1.NextRelation = Curve2dCurve2dIntRelation::Overlap;
                             pre_result.Append(curve_curve_int1);
                             Curve2dCurve2dInt curve_curve_int2;
@@ -313,18 +312,7 @@ namespace wgp {
                             curve_curve_int2.T2 = Variable(int_info1->T2.Index, t22);
                             curve_curve_int2.Point1 = point12;
                             curve_curve_int2.Point2 = point22;
-                            dt1 = curve1->CalculateDt(int_info1->T1.Index, int_info1->T1.Value.Max).Normalize();
-                            dt2 = curve2->CalculateDt(int_info1->T2.Index, t22).Normalize();
-                            d = dt1.Cross(dt2);
-                            if (d < -g_unit_epsilon) {
-                                curve_curve_int2.NextRelation = Curve2dCurve2dIntRelation::FirstIsOut;
-                            }
-                            else if (d > g_unit_epsilon) {
-                                curve_curve_int2.NextRelation = Curve2dCurve2dIntRelation::FirstIsIn;
-                            }
-                            else {
-                                curve_curve_int2.NextRelation = Curve2dCurve2dIntRelation::Unknown;
-                            }
+                            curve_curve_int2.NextRelation = Curve2dCurve2dIntRelation::Unknown;
                             curve_curve_int2.PrevRelation = Curve2dCurve2dIntRelation::Overlap;
                             pre_result.Append(curve_curve_int2);
                         }
@@ -340,16 +328,7 @@ namespace wgp {
             for (int i = 0; i < pre_int_infos.GetCount(); ++i) {
                 IntInfo* int_info = pre_int_infos.GetPointer(i);
                 if (int_info->RootState1 == 1) {
-                    if (int_info->SameDirState == 0) {
-                        Vector2d dt1 = curve1->CalculateDt(int_info->T1.Index, int_info->T1.Value.Center());
-                        Vector2d dt2 = curve2->CalculateDt(int_info->T2.Index, int_info->T2.Value.Center());
-                        if (dt1.Dot(dt2) > 0) {
-                            int_info->SameDirState = 1;
-                        }
-                        else {
-                            int_info->SameDirState = 2;
-                        }
-                    }
+                    CalculateSameDirState(curve1, curve2, int_info);
                     Curve2dCurve2dInt curve_curve_int;
                     curve_curve_int.Type = Curve2dCurve2dIntType::Cross;
                     curve_curve_int.Tag1 = segments1.GetPointer(int_info->SegmentIndex1);
@@ -361,23 +340,14 @@ namespace wgp {
                     else {
                         curve_curve_int.T2 = Variable(int_info->T2.Index, int_info->T2.Value.Max);
                     }
-                    curve_curve_int.Point1 = curve1->CalculateValue(curve_curve_int.T1.Index, curve_curve_int.T1.Value);
-                    curve_curve_int.Point2 = curve2->CalculateValue(curve_curve_int.T2.Index, curve_curve_int.T2.Value);
+                    curve1->Calculate(curve_curve_int.T1.Index, curve_curve_int.T1.Value, &curve_curve_int.Point1, nullptr, nullptr);
+                    curve2->Calculate(curve_curve_int.T2.Index, curve_curve_int.T2.Value, &curve_curve_int.Point2, nullptr, nullptr);
                     curve_curve_int.PrevRelation = Curve2dCurve2dIntRelation::Unknown;
                     curve_curve_int.NextRelation = Curve2dCurve2dIntRelation::Unknown;
                     int_info->Ints.Insert(0, curve_curve_int);
                 }
                 if (int_info->RootState2 == 1) {
-                    if (int_info->SameDirState == 0) {
-                        Vector2d dt1 = curve1->CalculateDt(int_info->T1.Index, int_info->T1.Value.Center());
-                        Vector2d dt2 = curve2->CalculateDt(int_info->T2.Index, int_info->T2.Value.Center());
-                        if (dt1.Dot(dt2) > 0) {
-                            int_info->SameDirState = 1;
-                        }
-                        else {
-                            int_info->SameDirState = 2;
-                        }
-                    }
+                    CalculateSameDirState(curve1, curve2, int_info);
                     Curve2dCurve2dInt curve_curve_int;
                     curve_curve_int.Type = Curve2dCurve2dIntType::Cross;
                     curve_curve_int.Tag1 = segments1.GetPointer(int_info->SegmentIndex1);
@@ -389,8 +359,8 @@ namespace wgp {
                     else {
                         curve_curve_int.T2 = Variable(int_info->T2.Index, int_info->T2.Value.Min);
                     }
-                    curve_curve_int.Point1 = curve1->CalculateValue(curve_curve_int.T1.Index, curve_curve_int.T1.Value);
-                    curve_curve_int.Point2 = curve2->CalculateValue(curve_curve_int.T2.Index, curve_curve_int.T2.Value);
+                    curve1->Calculate(curve_curve_int.T1.Index, curve_curve_int.T1.Value, &curve_curve_int.Point1, nullptr, nullptr);
+                    curve2->Calculate(curve_curve_int.T2.Index, curve_curve_int.T2.Value, &curve_curve_int.Point2, nullptr, nullptr);
                     curve_curve_int.PrevRelation = Curve2dCurve2dIntRelation::Unknown;
                     curve_curve_int.NextRelation = Curve2dCurve2dIntRelation::Unknown;
                     int_info->Ints.Append(curve_curve_int);
@@ -414,7 +384,6 @@ namespace wgp {
                                 int_info2->Ints = std::move(int_info1->Ints);
                                 int_info2->T1.Value.Merge(int_info1->T1.Value);
                                 int_info2->T2.Value.Merge(int_info1->T2.Value);
-                                int_info2->RelativeState1 = int_info1->RelativeState1;
                                 int_info2->RootState1 = int_info1->RootState1;
                                 if (int_info2->SameDirState == 0) {
                                     int_info2->SameDirState = int_info1->SameDirState;
@@ -424,30 +393,18 @@ namespace wgp {
                             }
                             else if (int_info1->RootState2 == 0 && int_info2->RootState1 == 0) {
                                 double t1 = int_info1->T1.Value.Max;
-                                if (int_info2->SameDirState == 0) {
-                                    if (int_info1->SameDirState != 0) {
-                                        int_info2->SameDirState = int_info1->SameDirState;
-                                    }
-                                    else {
-                                        Vector2d dt1 = curve1->CalculateDt(int_info2->T1.Index, int_info2->T1.Value.Center());
-                                        Vector2d dt2 = curve2->CalculateDt(int_info2->T2.Index, int_info2->T2.Value.Center());
-                                        if (dt1.Dot(dt2) > 0) {
-                                            int_info2->SameDirState = 1;
-                                        }
-                                        else {
-                                            int_info2->SameDirState = 2;
-                                        }
-                                    }
-                                }
-                                int_info1->SameDirState = int_info2->SameDirState;
+                                CalculateSameDirState(curve1, curve2, int_info1, int_info2);
                                 double t2 = int_info1->SameDirState ? int_info1->T2.Value.Max : int_info1->T2.Value.Min;
-                                Vector2d point1 = curve1->CalculateValue(int_info1->T1.Index, t1);
-                                Vector2d vt = curve1->CalculateDt(int_info1->T1.Index, t1).Normalize();
+                                Vector2d point1;
+                                Vector2d vt;
+                                curve1->Calculate(int_info1->T1.Index, t1, &point1, &vt, nullptr);
+                                vt = vt.Normalize();
                                 vt = Vector2d(-vt.Y, vt.X);
                                 VariableInterval variable = int_info1->T2;
                                 variable.Value.Merge(int_info2->T2.Value);
                                 if (QuickIntersectCurveBeeline(curve2, variable, t2, point1, vt, distance_epsilon)) {
-                                    Vector2d point2 = curve2->CalculateValue(int_info1->T2.Index, t2);
+                                    Vector2d point2;
+                                    curve2->Calculate(int_info1->T2.Index, t2, &point2, nullptr, nullptr);
                                     if (vector2_equals(point1, point2, distance_epsilon)) {
                                         Curve2dCurve2dInt curve_curve_int;
                                         curve_curve_int.Type = Curve2dCurve2dIntType::Cross;
@@ -464,7 +421,6 @@ namespace wgp {
                                         int_info2->Ints = std::move(int_info1->Ints);
                                         int_info2->T1.Value.Merge(int_info1->T1.Value);
                                         int_info2->T2.Value.Merge(int_info1->T2.Value);
-                                        int_info2->RelativeState1 = int_info1->RelativeState1;
                                         int_info2->RootState1 = int_info1->RootState1;
                                         int_info1 = nullptr;
                                         break;
@@ -482,14 +438,6 @@ namespace wgp {
                                         }
                                         int_info1->RootState2 = 2;
                                         int_info2->RootState1 = 2;
-                                        if ((point2 - point1).Dot(vt) > 0) {
-                                            int_info1->RelativeState2 = 2;
-                                            int_info2->RelativeState1 = 2;
-                                        }
-                                        else {
-                                            int_info1->RelativeState2 = 1;
-                                            int_info2->RelativeState1 = 1;
-                                        }
                                     }
                                 }
                                 else {
@@ -497,7 +445,6 @@ namespace wgp {
                                     int_info2->Ints = std::move(int_info1->Ints);
                                     int_info2->T1.Value.Merge(int_info1->T1.Value);
                                     int_info2->T2.Value.Merge(int_info1->T2.Value);
-                                    int_info2->RelativeState1 = int_info1->RelativeState1;
                                     int_info2->RootState1 = int_info1->RootState1;
                                     int_info1 = nullptr;
                                     break;
@@ -509,7 +456,6 @@ namespace wgp {
                                 int_info2->Ints.Append(int_info1->Ints);
                                 int_info2->T1.Value.Merge(int_info1->T1.Value);
                                 int_info2->T2.Value.Merge(int_info1->T2.Value);
-                                int_info2->RelativeState2 = int_info1->RelativeState2;
                                 int_info2->RootState2 = int_info1->RootState2;
                                 if (int_info2->SameDirState == 0) {
                                     int_info2->SameDirState = int_info1->SameDirState;
@@ -519,30 +465,18 @@ namespace wgp {
                             }
                             else if (int_info1->RootState2 == 0 && int_info2->RootState1 == 0) {
                                 double t1 = int_info1->T1.Value.Min;
-                                if (int_info2->SameDirState == 0) {
-                                    if (int_info1->SameDirState != 0) {
-                                        int_info2->SameDirState = int_info1->SameDirState;
-                                    }
-                                    else {
-                                        Vector2d dt1 = curve1->CalculateDt(int_info2->T1.Index, int_info2->T1.Value.Center());
-                                        Vector2d dt2 = curve2->CalculateDt(int_info2->T2.Index, int_info2->T2.Value.Center());
-                                        if (dt1.Dot(dt2) > 0) {
-                                            int_info2->SameDirState = 1;
-                                        }
-                                        else {
-                                            int_info2->SameDirState = 2;
-                                        }
-                                    }
-                                }
-                                int_info1->SameDirState = int_info2->SameDirState;
+                                CalculateSameDirState(curve1, curve2, int_info1, int_info2);
                                 double t2 = int_info1->SameDirState ? int_info1->T2.Value.Min : int_info1->T2.Value.Max;
-                                Vector2d point1 = curve1->CalculateValue(int_info1->T1.Index, t1);
-                                Vector2d vt = curve1->CalculateDt(int_info1->T1.Index, t1).Normalize();
+                                Vector2d point1;
+                                Vector2d vt;
+                                curve1->Calculate(int_info1->T1.Index, t1, &point1, &vt, nullptr);
+                                vt = vt.Normalize();
                                 vt = Vector2d(-vt.Y, vt.X);
                                 VariableInterval variable = int_info1->T2;
                                 variable.Value.Merge(int_info2->T2.Value);
                                 if (QuickIntersectCurveBeeline(curve2, variable, t2, point1, vt, distance_epsilon)) {
-                                    Vector2d point2 = curve2->CalculateValue(int_info1->T2.Index, t2);
+                                    Vector2d point2;
+                                    curve2->Calculate(int_info1->T2.Index, t2, &point2, nullptr, nullptr);
                                     if (vector2_equals(point1, point2, distance_epsilon)) {
                                         Curve2dCurve2dInt curve_curve_int;
                                         curve_curve_int.Type = Curve2dCurve2dIntType::Cross;
@@ -558,7 +492,6 @@ namespace wgp {
                                         int_info2->Ints.Append(int_info1->Ints);
                                         int_info2->T1.Value.Merge(int_info1->T1.Value);
                                         int_info2->T2.Value.Merge(int_info1->T2.Value);
-                                        int_info2->RelativeState2 = int_info1->RelativeState2;
                                         int_info2->RootState2 = int_info1->RootState2;
                                         int_info1 = nullptr;
                                         break;
@@ -575,22 +508,13 @@ namespace wgp {
                                             int_info2->T2.Value.Min = t2;
                                         }
                                         int_info1->RootState1 = 2;
-                                        int_info2->RootState2 = 2;
-                                        if ((point2 - point1).Dot(vt) > 0) {
-                                            int_info1->RelativeState1 = 2;
-                                            int_info2->RelativeState2 = 2;
-                                        }
-                                        else {
-                                            int_info1->RelativeState1 = 1;
-                                            int_info2->RelativeState2 = 1;
-                                        }
+                                        int_info2->RootState2 = 2;                                        
                                     }
                                 }
                                 else {
                                     int_info2->Ints.Append(int_info1->Ints);
                                     int_info2->T1.Value.Merge(int_info1->T1.Value);
                                     int_info2->T2.Value.Merge(int_info1->T2.Value);
-                                    int_info2->RelativeState2 = int_info1->RelativeState2;
                                     int_info2->RootState2 = int_info1->RootState2;
                                     int_info1 = nullptr;
                                     break;
@@ -609,20 +533,13 @@ namespace wgp {
                 IntInfo* int_info = merged_int_infos.GetPointer(i);
                 if (int_info->RootState1 == 0) {
                     double t1 = int_info->T1.Value.Min;
-                    Vector2d vt = curve1->CalculateDt(int_info->T1.Index, t1).Normalize();
+                    Vector2d point1;
+                    Vector2d vt;
+                    curve1->Calculate(int_info->T1.Index, t1, &point1, &vt, nullptr);
+                    vt = vt.Normalize();
                     vt = Vector2d(-vt.Y, vt.X);
-                    Vector2d point1 = curve1->CalculateValue(int_info->T1.Index, t1);
                     double t2;
-                    if (int_info->SameDirState == 0) {
-                        Vector2d dt1 = curve1->CalculateDt(int_info->T1.Index, int_info->T1.Value.Center());
-                        Vector2d dt2 = curve2->CalculateDt(int_info->T2.Index, int_info->T2.Value.Center());
-                        if (dt1.Dot(dt2) > 0) {
-                            int_info->SameDirState = 1;
-                        }
-                        else {
-                            int_info->SameDirState = 2;
-                        }
-                    }
+                    CalculateSameDirState(curve1, curve2, int_info);
                     if (int_info->SameDirState == 1) {
                         t2 = int_info->T2.Value.Min;
                     }
@@ -633,23 +550,24 @@ namespace wgp {
                     double t = t2;
                     if (QuickIntersectCurveBeeline(curve2, int_info->T2, t, point1, vt, distance_epsilon)) {
                         t2 = t;
-                        point2 = curve2->CalculateValue(int_info->T2.Index, t2);
+                        curve2->Calculate(int_info->T2.Index, t2, &point2, nullptr, nullptr);
                     }
                     else {
-                        Vector2d point2 = curve2->CalculateValue(int_info->T2.Index, t2);
+                        Vector2d point2;
+                        curve2->Calculate(int_info->T2.Index, t2, &point2, nullptr, nullptr);
                         t = t1;
                         if (QuickIntersectCurveBeeline(curve1, int_info->T1, t, point2, vt, distance_epsilon)) {
                             t1 = t;
-                            point1 = curve1->CalculateValue(int_info->T1.Index, t1);
+                            curve1->Calculate(int_info->T1.Index, t1, &point1, nullptr, nullptr);
                         }
                         else {
                             if (IntersectCurveBeeline(curve2, int_info->T2, t, point1, vt, distance_epsilon)) {
                                 t2 = t;
-                                point2 = curve2->CalculateValue(int_info->T2.Index, t2);
+                                curve2->Calculate(int_info->T2.Index, t2, &point2, nullptr, nullptr);
                             }
                             else if (IntersectCurveBeeline(curve1, int_info->T1, t, point2, vt, distance_epsilon)) {
                                 t1 = t;
-                                point1 = curve1->CalculateValue(int_info->T1.Index, t1);
+                                curve1->Calculate(int_info->T1.Index, t1, &point1, nullptr, nullptr);
                             }
                         }
                     }
@@ -676,30 +594,17 @@ namespace wgp {
                     }
                     else {
                         int_info->RootState1 = 2;
-                        if ((point2 - point1).Dot(vt) > 0) {
-                            int_info->RelativeState1 = 2;
-                        }
-                        else {
-                            int_info->RelativeState1 = 1;
-                        }
                     }
                 }
                 if (int_info->RootState2 == 0) {
                     double t1 = int_info->T1.Value.Max;
-                    Vector2d vt = curve1->CalculateDt(int_info->T1.Index, t1).Normalize();
+                    Vector2d point1;
+                    Vector2d vt;
+                    curve1->Calculate(int_info->T1.Index, t1, &point1, &vt, nullptr);
+                    vt = vt.Normalize();
                     vt = Vector2d(-vt.Y, vt.X);
-                    Vector2d point1 = curve1->CalculateValue(int_info->T1.Index, t1);
                     double t2;
-                    if (int_info->SameDirState == 0) {
-                        Vector2d dt1 = curve1->CalculateDt(int_info->T1.Index, int_info->T1.Value.Center());
-                        Vector2d dt2 = curve2->CalculateDt(int_info->T2.Index, int_info->T2.Value.Center());
-                        if (dt1.Dot(dt2) > 0) {
-                            int_info->SameDirState = 1;
-                        }
-                        else {
-                            int_info->SameDirState = 2;
-                        }
-                    }
+                    CalculateSameDirState(curve1, curve2, int_info);
                     if (int_info->SameDirState == 1) {
                         t2 = int_info->T2.Value.Max;
                     }
@@ -710,23 +615,24 @@ namespace wgp {
                     double t = t2;
                     if (QuickIntersectCurveBeeline(curve2, int_info->T2, t, point1, vt, distance_epsilon)) {
                         t2 = t;
-                        point2 = curve2->CalculateValue(int_info->T2.Index, t2);
+                        curve2->Calculate(int_info->T2.Index, t2, &point2, nullptr, nullptr);
                     }
                     else {
-                        Vector2d point2 = curve2->CalculateValue(int_info->T2.Index, t2);
+                        Vector2d point2;
+                        curve2->Calculate(int_info->T2.Index, t2, &point2, nullptr, nullptr);
                         t = t1;
                         if (QuickIntersectCurveBeeline(curve1, int_info->T1, t, point2, vt, distance_epsilon)) {
                             t1 = t;
-                            point1 = curve1->CalculateValue(int_info->T1.Index, t1);
+                            curve1->Calculate(int_info->T1.Index, t1, &point1, nullptr, nullptr);
                         }
                         else {
                             if (IntersectCurveBeeline(curve2, int_info->T2, t, point1, vt, distance_epsilon)) {
                                 t2 = t;
-                                point2 = curve2->CalculateValue(int_info->T2.Index, t2);
+                                curve2->Calculate(int_info->T2.Index, t2, &point2, nullptr, nullptr);
                             }
                             else if (IntersectCurveBeeline(curve1, int_info->T1, t, point2, vt, distance_epsilon)) {
                                 t1 = t;
-                                point1 = curve1->CalculateValue(int_info->T1.Index, t1);
+                                curve1->Calculate(int_info->T1.Index, t1, &point1, nullptr, nullptr);
                             }
                         }
                     }
@@ -753,12 +659,6 @@ namespace wgp {
                     }
                     else {
                         int_info->RootState2 = 2;
-                        if ((point2 - point1).Dot(vt) > 0) {
-                            int_info->RelativeState2 = 2;
-                        }
-                        else {
-                            int_info->RelativeState2 = 1;
-                        }
                     }
                 }
             }
@@ -773,16 +673,7 @@ namespace wgp {
                             int_info = nullptr;
                         }
                         else if (int_info->Ints.GetCount() == 1) {
-                            if (int_info->SameDirState == 0) {
-                                Vector2d dt1 = curve1->CalculateDt(int_info->T1.Index, int_info->T1.Value.Center());
-                                Vector2d dt2 = curve2->CalculateDt(int_info->T2.Index, int_info->T2.Value.Center());
-                                if (dt1.Dot(dt2) > 0) {
-                                    int_info->SameDirState = 1;
-                                }
-                                else {
-                                    int_info->SameDirState = 2;
-                                }
-                            }
+                            CalculateSameDirState(curve1, curve2, int_info);
                             Curve2dCurve2dInt* curve_curve_int = int_info->Ints.GetPointer(0);
                             IntInfo int_info1;
                             int_info1.IsClearRoot = false;
@@ -798,8 +689,6 @@ namespace wgp {
                             int_info1.SameDirState = int_info->SameDirState;
                             int_info1.RootState1 = 2;
                             int_info1.RootState2 = 1;
-                            int_info1.RelativeState1 = int_info->RelativeState1;
-                            int_info1.RelativeState2 = 0;
                             int_info1.Ints.Append(*curve_curve_int);
                             merged_int_infos.Append(int_info1);
                             IntInfo int_info2;
@@ -816,24 +705,13 @@ namespace wgp {
                             int_info1.SameDirState = int_info->SameDirState;
                             int_info1.RootState1 = 1;
                             int_info1.RootState2 = 2;
-                            int_info1.RelativeState1 = 0;
-                            int_info1.RelativeState2 = int_info->RelativeState2;
                             int_info1.Ints.Append(*curve_curve_int);
                             merged_int_infos.Append(int_info1);
                             pre_result.Append(*curve_curve_int);
                             int_info = nullptr;
                         }
                         else {
-                            if (int_info->SameDirState == 0) {
-                                Vector2d dt1 = curve1->CalculateDt(int_info->T1.Index, int_info->T1.Value.Center());
-                                Vector2d dt2 = curve2->CalculateDt(int_info->T2.Index, int_info->T2.Value.Center());
-                                if (dt1.Dot(dt2) > 0) {
-                                    int_info->SameDirState = 1;
-                                }
-                                else {
-                                    int_info->SameDirState = 2;
-                                }
-                            }
+                            CalculateSameDirState(curve1, curve2, int_info);
                             Curve2dCurve2dInt* curve_curve_int1 = int_info->Ints.GetPointer(0);
                             IntInfo int_info1;
                             int_info1.IsClearRoot = false;
@@ -849,8 +727,6 @@ namespace wgp {
                             int_info1.SameDirState = int_info->SameDirState;
                             int_info1.RootState1 = 2;
                             int_info1.RootState2 = 1;
-                            int_info1.RelativeState1 = int_info->RelativeState1;
-                            int_info1.RelativeState2 = 0;
                             int_info1.Ints.Append(*curve_curve_int1);
                             merged_int_infos.Append(int_info1);
                             Curve2dCurve2dInt* curve_curve_int2 = int_info->Ints.GetPointer(int_info->Ints.GetCount() - 1);
@@ -868,8 +744,6 @@ namespace wgp {
                             int_info2.SameDirState = int_info->SameDirState;
                             int_info2.RootState1 = 1;
                             int_info2.RootState2 = 2;
-                            int_info2.RelativeState1 = 0;
-                            int_info2.RelativeState2 = int_info->RelativeState2;
                             int_info2.Ints.Append(*curve_curve_int2);
                             merged_int_infos.Append(int_info2);
                             int_info->T1.Value = Interval(curve_curve_int1->T1.Value, curve_curve_int2->T1.Value);
@@ -881,8 +755,6 @@ namespace wgp {
                             }
                             int_info->RootState1 = 1;
                             int_info->RootState2 = 1;
-                            int_info->RelativeState1 = 0;
-                            int_info->RelativeState2 = 0;
                         }
                     }
                     else {
@@ -891,16 +763,7 @@ namespace wgp {
                             int_info = nullptr;
                         }
                         else {
-                            if (int_info->SameDirState == 0) {
-                                Vector2d dt1 = curve1->CalculateDt(int_info->T1.Index, int_info->T1.Value.Center());
-                                Vector2d dt2 = curve2->CalculateDt(int_info->T2.Index, int_info->T2.Value.Center());
-                                if (dt1.Dot(dt2) > 0) {
-                                    int_info->SameDirState = 1;
-                                }
-                                else {
-                                    int_info->SameDirState = 2;
-                                }
-                            }
+                            CalculateSameDirState(curve1, curve2, int_info);
                             Curve2dCurve2dInt* curve_curve_int = int_info->Ints.GetPointer(0);
                             IntInfo int_info1;
                             int_info1.IsClearRoot = false;
@@ -916,8 +779,6 @@ namespace wgp {
                             int_info1.SameDirState = int_info->SameDirState;
                             int_info1.RootState1 = 2;
                             int_info1.RootState2 = 1;
-                            int_info1.RelativeState1 = int_info->RelativeState1;
-                            int_info1.RelativeState2 = 0;
                             int_info1.Ints.Append(*curve_curve_int);
                             merged_int_infos.Append(int_info1);
                             int_info->T1.Value.Max = curve_curve_int->T1.Value;
@@ -928,7 +789,6 @@ namespace wgp {
                                 int_info->T2.Value.Min = curve_curve_int->T2.Value;
                             }
                             int_info->RootState1 = 1;
-                            int_info->RelativeState1 = 0;
                         }
                     }
                 }
@@ -938,16 +798,7 @@ namespace wgp {
                         int_info = nullptr;
                     }
                     else {
-                        if (int_info->SameDirState == 0) {
-                            Vector2d dt1 = curve1->CalculateDt(int_info->T1.Index, int_info->T1.Value.Center());
-                            Vector2d dt2 = curve2->CalculateDt(int_info->T2.Index, int_info->T2.Value.Center());
-                            if (dt1.Dot(dt2) > 0) {
-                                int_info->SameDirState = 1;
-                            }
-                            else {
-                                int_info->SameDirState = 2;
-                            }
-                        }
+                        CalculateSameDirState(curve1, curve2, int_info);
                         Curve2dCurve2dInt* curve_curve_int = int_info->Ints.GetPointer(int_info->Ints.GetCount() - 1);
                         IntInfo int_info2;
                         int_info2.IsClearRoot = false;
@@ -963,8 +814,6 @@ namespace wgp {
                         int_info2.SameDirState = int_info->SameDirState;
                         int_info2.RootState1 = 1;
                         int_info2.RootState2 = 2;
-                        int_info2.RelativeState1 = 0;
-                        int_info2.RelativeState2 = int_info->RelativeState2;
                         int_info2.Ints.Append(*curve_curve_int);
                         merged_int_infos.Append(int_info2);
                         int_info->T1.Value.Min = curve_curve_int->T1.Value;
@@ -975,7 +824,6 @@ namespace wgp {
                             int_info->T2.Value.Max = curve_curve_int->T2.Value;
                         }
                         int_info->RootState2 = 1;
-                        int_info->RelativeState2 = 0;
                     }
                 }
                 if (int_info) {
@@ -1035,21 +883,14 @@ namespace wgp {
                             pre_result.GetPointer(pre_result.GetCount() - 1)->Type = Curve2dCurve2dIntType::OverlapEnd;
                             break;
                         }
-                        if (int_info->SameDirState == 0) {
-                            Vector2d dt1 = curve1->CalculateDt(int_info->T1.Index, int_info->T1.Value.Center());
-                            Vector2d dt2 = curve2->CalculateDt(int_info->T2.Index, int_info->T2.Value.Center());
-                            if (dt1.Dot(dt2) > 0) {
-                                int_info->SameDirState = 1;
-                            }
-                            else {
-                                int_info->SameDirState = 2;
-                            }
-                        }
+                        CalculateSameDirState(curve1, curve2, int_info);
                         Curve2dCurve2dInt* curve_curve_int1 = int_info->Ints.GetPointer(k);
                         Curve2dCurve2dInt* curve_curve_int2 = int_info->Ints.GetPointer(k + 1);
                         double t1 = (curve_curve_int1->T1.Value + curve_curve_int2->T1.Value) * 0.5;
-                        Vector2d point1 = curve1->CalculateValue(curve_curve_int1->T1.Index, t1);
-                        Vector2d vt = curve1->CalculateDt(curve_curve_int1->T1.Index, t1).Normalize();
+                        Vector2d point1;
+                        Vector2d vt;
+                        curve1->Calculate(curve_curve_int1->T1.Index, t1, &point1, &vt, nullptr);
+                        vt = vt.Normalize();
                         vt = Vector2d(-vt.Y, vt.X);
                         double t2 = (curve_curve_int1->T2.Value + curve_curve_int2->T2.Value) * 0.5;
                         VariableInterval vi2 = VariableInterval(curve_curve_int1->T2.Index, int_info->SameDirState == 1 ? 
@@ -1057,7 +898,8 @@ namespace wgp {
                             Interval(curve_curve_int2->T2.Value, curve_curve_int1->T2.Value));
                         if (QuickIntersectCurveBeeline(curve2, vi2, t2, point1, vt, distance_epsilon) ||
                             IntersectCurveBeeline(curve2, vi2, t2, point1, vt, distance_epsilon)) {
-                            Vector2d point2 = curve2->CalculateValue(curve_curve_int1->T2.Index, t2);
+                            Vector2d point2;
+                            curve2->Calculate(curve_curve_int1->T2.Index, t2, &point2, nullptr, nullptr);
                             if (vector2_equals(point1, point2, distance_epsilon)) {
                                 Curve2dCurve2dInt curve_curve_int;
                                 curve_curve_int.Type = Curve2dCurve2dIntType::Cross;
@@ -1097,8 +939,6 @@ namespace wgp {
                                 int_info1.SameDirState = int_info->SameDirState;
                                 int_info1.RootState1 = 1;
                                 int_info1.RootState2 = 2;
-                                int_info1.RelativeState1 = int_info->RelativeState1;
-                                int_info1.RelativeState2 = rs;
                                 for (int j = 0; j <= k; ++j) {
                                     int_info1.Ints.Append(int_info->Ints.Get(j));
                                 }
@@ -1117,8 +957,6 @@ namespace wgp {
                                 int_info2.SameDirState = int_info->SameDirState;
                                 int_info2.RootState1 = 2;
                                 int_info2.RootState2 = 1;
-                                int_info2.RelativeState1 = rs;
-                                int_info2.RelativeState2 = int_info->RelativeState2;
                                 for (int j = k + 1; j < int_info->Ints.GetCount(); ++j) {
                                     int_info2.Ints.Append(int_info->Ints.Get(j));
                                 }
@@ -1145,8 +983,6 @@ namespace wgp {
                                 int_info1.SameDirState = int_info->SameDirState;
                                 int_info1.RootState1 = 1;
                                 int_info1.RootState2 = 1;
-                                int_info1.RelativeState1 = int_info->RelativeState1;
-                                int_info1.RelativeState2 = 0;
                                 for (int j = 0; j <= k; ++j) {
                                     int_info1.Ints.Append(int_info->Ints.Get(j));
                                 }
@@ -1171,8 +1007,6 @@ namespace wgp {
                                 int_info2.SameDirState = int_info->SameDirState;
                                 int_info2.RootState1 = 1;
                                 int_info2.RootState2 = 1;
-                                int_info2.RelativeState1 = 0;
-                                int_info2.RelativeState2 = int_info->RelativeState2;
                                 for (int j = k + 1; j < int_info->Ints.GetCount(); ++j) {
                                     int_info2.Ints.Append(int_info->Ints.Get(j));
                                 }
@@ -1192,12 +1026,15 @@ namespace wgp {
                 if (int_info->RootState1 == 2 || int_info->RootState2 == 2) {
                     double t1 = int_info->T1.Value.Center();
                     double t2 = int_info->T2.Value.Center();
-                    Vector2d point1 = curve1->CalculateValue(int_info->T1.Index, t1);
-                    Vector2d vt = curve1->CalculateDt(int_info->T1.Index, t1).Normalize();
+                    Vector2d point1;
+                    Vector2d vt;
+                    curve1->Calculate(int_info->T1.Index, t1, &point1, &vt, nullptr);
+                    vt = vt.Normalize();
                     vt = Vector2d(-vt.Y, vt.X);
                     if (QuickIntersectCurveBeeline(curve2, int_info->T2, t2, point1, vt, distance_epsilon) ||
                         IntersectCurveBeeline(curve2, int_info->T2, t2, point1, vt, distance_epsilon)) {
-                        Vector2d point2 = curve2->CalculateValue(int_info->T2.Index, t2);
+                        Vector2d point2;
+                        curve2->Calculate(int_info->T2.Index, t2, &point2, nullptr, nullptr);
                         if (vector2_equals(point1, point2, distance_epsilon)) {
                             if (int_info->RootState1 == 1) {
                                 Curve2dCurve2dInt curve_curve_int;
@@ -1233,26 +1070,17 @@ namespace wgp {
                             }
                         }
                         if (int_info) {
-                            if (int_info->SameDirState == 0) {
-                                Vector2d dt1 = curve1->CalculateDt(int_info->T1.Index, int_info->T1.Value.Center());
-                                Vector2d dt2 = curve2->CalculateDt(int_info->T2.Index, int_info->T2.Value.Center());
-                                if (dt1.Dot(dt2) > 0) {
-                                    int_info->SameDirState = 1;
-                                }
-                                else {
-                                    int_info->SameDirState = 2;
-                                }
-                            }
-                            Vector2d point11 = curve1->CalculateValue(int_info->T1.Index, int_info->T1.Value.Min);
-                            Vector2d point12 = curve1->CalculateValue(int_info->T1.Index, int_info->T1.Value.Max);
-                            Vector2d point21, point22;
+                            CalculateSameDirState(curve1, curve2, int_info);
+                            Vector2d point11, point12, point21, point22;
+                            curve1->Calculate(int_info->T1.Index, int_info->T1.Value.Min, &point11, nullptr, nullptr);
+                            curve1->Calculate(int_info->T1.Index, int_info->T1.Value.Max, &point12, nullptr, nullptr);
                             if (int_info->SameDirState == 1) {
-                                point21 = curve2->CalculateValue(int_info->T2.Index, int_info->T2.Value.Min);
-                                point22 = curve2->CalculateValue(int_info->T2.Index, int_info->T2.Value.Max);
+                                 curve2->Calculate(int_info->T2.Index, int_info->T2.Value.Min, &point21, nullptr, nullptr);
+                                 curve2->Calculate(int_info->T2.Index, int_info->T2.Value.Max, &point22, nullptr, nullptr);
                             }
                             else {
-                                point21 = curve2->CalculateValue(int_info->T2.Index, int_info->T2.Value.Max);
-                                point22 = curve2->CalculateValue(int_info->T2.Index, int_info->T2.Value.Min);
+                                 curve2->Calculate(int_info->T2.Index, int_info->T2.Value.Max, &point21, nullptr, nullptr);
+                                 curve2->Calculate(int_info->T2.Index, int_info->T2.Value.Min, &point22, nullptr, nullptr);
                             }
                             Vector2d center;
                             if (ArcCurve2d::Get3PointCircle((point11 + point21) * 0.5, (point1 + point2) * 0.5, (point12 + point22) * 0.5, center)) {
@@ -1273,8 +1101,6 @@ namespace wgp {
                                     int_info2.T2 = VariableInterval(int_info->T2.Index, fuzzy_root->Get(1));
                                     int_info2.RootState1 = 0;
                                     int_info2.RootState2 = 0;
-                                    int_info2.RelativeState1 = 0;
-                                    int_info2.RelativeState2 = 0;
                                     int_info2.SameDirState = 0;
                                     int_info2.IsClearRoot = false;
                                     merged_int_infos.Append(int_info2);
@@ -1288,8 +1114,6 @@ namespace wgp {
                                     int_info2.T2 = VariableInterval(int_info->T2.Index, clear_root->Get(1));
                                     int_info2.RootState1 = 0;
                                     int_info2.RootState2 = 0;
-                                    int_info2.RelativeState1 = 0;
-                                    int_info2.RelativeState2 = 0;
                                     int_info2.SameDirState = 0;
                                     int_info2.IsClearRoot = true;
                                     merged_int_infos.Append(int_info2);
@@ -1317,8 +1141,6 @@ namespace wgp {
                             int_info2.T2 = VariableInterval(int_info->T2.Index, fuzzy_root->Get(1));
                             int_info2.RootState1 = 0;
                             int_info2.RootState2 = 0;
-                            int_info2.RelativeState1 = 0;
-                            int_info2.RelativeState2 = 0;
                             int_info2.SameDirState = 0;
                             int_info2.IsClearRoot = false;
                             merged_int_infos.Append(int_info2);
@@ -1332,8 +1154,6 @@ namespace wgp {
                             int_info2.T2 = VariableInterval(int_info->T2.Index, clear_root->Get(1));
                             int_info2.RootState1 = 0;
                             int_info2.RootState2 = 0;
-                            int_info2.RelativeState1 = 0;
-                            int_info2.RelativeState2 = 0;
                             int_info2.SameDirState = 0;
                             int_info2.IsClearRoot = true;
                             merged_int_infos.Append(int_info2);

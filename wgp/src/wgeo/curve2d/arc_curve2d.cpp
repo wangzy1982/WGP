@@ -42,19 +42,32 @@ namespace wgp {
         }
     }
 
-    Interval2d ArcCurve2d::CalculateValue(int index, const Interval& t) {
-        Interval a = t + m_start_angle;
-        return Interval2d(m_radius * cos(a), m_radius * sin(a)) + m_center;
+    void ArcCurve2d::Calculate(int index, double t, Vector2d* d0, Vector2d* dt, Vector2d* dt2) {
+        double cos, sin;
+        sincos(t + m_start_angle, &sin, &cos);
+        if (d0) {
+            *d0 = Vector2d(m_radius * cos, m_radius * sin) + m_center;
+        }
+        if (dt) {
+            *dt = Vector2d(-m_radius * sin, m_radius * cos);
+        }
+        if (dt2) {
+            *dt2 = Vector2d(-m_radius * cos, -m_radius * sin);
+        }
     }
 
-    Interval2d ArcCurve2d::CalculateDt(int index, const Interval& t) {
-        Interval a = t + m_start_angle;
-        return Interval2d(-m_radius * sin(a), m_radius * cos(a));
-    }
-
-    Interval2d ArcCurve2d::CalculateDt2(int index, const Interval& t) {
-        Interval a = t + m_start_angle;
-        return Interval2d(-m_radius * cos(a), -m_radius * sin(a));
+    void ArcCurve2d::Calculate(int index, const Interval& t, Interval2d* d0, Interval2d* dt, Interval2d* dt2) {
+        Interval cos, sin;
+        sincos(t + m_start_angle, &sin, &cos);
+        if (d0) {
+            *d0 = Interval2d(m_radius * cos, m_radius * sin) + m_center;
+        }
+        if (dt) {
+            *dt = Interval2d(-m_radius * sin, m_radius * cos);
+        }
+        if (dt2) {
+            *dt2 = Interval2d(-m_radius * cos, -m_radius * sin);
+        }
     }
 
     void ArcCurve2d::CalculateByCircleTransformation(int index, const Interval& t, const Vector2d& center, Interval* d0, Interval* dt) {
