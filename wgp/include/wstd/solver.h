@@ -44,6 +44,7 @@ namespace wgp {
 	public:
 		Solver() {
 			m_max_fuzzy_root_count = 128;
+			m_slow_threshold = 0.01;
 			m_root_is_dirty = true;
 			m_equation_system = nullptr;
 		}
@@ -54,6 +55,10 @@ namespace wgp {
 			m_interval_roots.Clear();
 			m_fuzzy_roots.Clear();
 			m_root_is_dirty = true;
+		}
+
+		void SetSlowThreshold(Real slow_threshold) {
+			m_slow_threshold = slow_threshold;
 		}
 
 		void SetEquationSystem(EquationSystem* equation_system) {
@@ -274,7 +279,7 @@ namespace wgp {
 					if (delta_size <= 0.1) {
 						return SolverIteratedResult::Fuzzy;
 					}
-					if (slow && delta_size / prev_size <= 0.01) {
+					if (slow && delta_size / prev_size <= m_slow_threshold) {
 						return SolverIteratedResult::Fuzzy;
 					}
 				}
@@ -558,6 +563,7 @@ namespace wgp {
 		}
 	private:
 		int m_max_fuzzy_root_count;
+		Real m_slow_threshold;
 		EquationSystem* m_equation_system;
 		Array<EquationsVariable> m_initial_variables;
 		Array<EquationsVariable> m_clear_roots;

@@ -3,6 +3,7 @@
     Copyright (c) 2024 Zuoyuan Wang
 */
 #include "wgeo/curve2d_curve2d_int.h"
+#include "wgeo/curve2d/arc_curve2d.h"
 #include "wstd/equations.h"
 #include "wstd/solver.h"
 #include "intersect_equations.h"
@@ -65,6 +66,12 @@ namespace wgp {
             IntervalVector<2>, IntervalMatrix<2, 2>, Matrix<2, 2>> solver;
         solver.SetEquationSystem(&equations);
         solver.SetMaxFuzzyRootCount(16);
+        Curve2dCurve2dIntExEquationSystem equations_ex(curve1, curve2, distance_epsilon);
+        Solver<Curve2dCurve2dIntExEquationSystem, Curve2dCurve2dIntExVariable, IntervalVector<3>,
+            IntervalVector<2>, IntervalMatrix<3, 2>, Matrix<2, 2>> solver_ex;
+        solver_ex.SetEquationSystem(&equations_ex);
+        solver_ex.SetMaxFuzzyRootCount(16);
+        solver_ex.SetSlowThreshold(0.1);
         const double flat_angle_epsilon = g_pi / 2;
         Array<VariableInterval> segments1(16);
         Array<VariableInterval> segments2(16);
@@ -1179,49 +1186,160 @@ namespace wgp {
             }
             pre_int_infos.Clear();
             merged_int_infos.Exchange(pre_int_infos);
-            //calculate side root
+            //divide
             for (int i = 0; i < pre_int_infos.GetCount(); ++i) {
                 IntInfo* int_info = pre_int_infos.GetPointer(i);
                 if (int_info->RootState1 == 2 || int_info->RootState2 == 2) {
-                    solver.SetMaxFuzzyRootCount(10);
-                    equations.SetIndex(int_info->T1.Index, int_info->T2.Index);
-                    Curve2dCurve2dIntVariable initial_variable;
-                    initial_variable.Set(0, int_info->T1.Value);
-                    initial_variable.Set(1, int_info->T2.Value);
-                    solver.SetInitialVariable(initial_variable);
-                    const Array<Curve2dCurve2dIntVariable>& fuzzy_roots = solver.GetFuzzyRoots();
-                    const Array<Curve2dCurve2dIntVariable>& clear_roots = solver.GetClearRoots();
-                    for (int k = 0; k < fuzzy_roots.GetCount(); ++k) {
-                        const Curve2dCurve2dIntVariable* fuzzy_root = fuzzy_roots.GetPointer(k);
-                        IntInfo int_info2;
-                        int_info2.SegmentIndex1 = int_info->SegmentIndex1;
-                        int_info2.SegmentIndex2 = int_info->SegmentIndex2;
-                        int_info2.T1 = VariableInterval(int_info->T1.Index, fuzzy_root->Get(0));
-                        int_info2.T2 = VariableInterval(int_info->T2.Index, fuzzy_root->Get(1));
-                        int_info2.RootState1 = 0;
-                        int_info2.RootState2 = 0;
-                        int_info2.RelativeState1 = 0;
-                        int_info2.RelativeState2 = 0;
-                        int_info2.SameDirState = 0;
-                        int_info2.IsClearRoot = false;
-                        merged_int_infos.Append(int_info2);
+                    double t1 = int_info->T1.Value.Center();
+                    double t2 = int_info->T2.Value.Center();
+                    Vector2d point1 = curve1->CalculateValue(int_info->T1.Index, t1);
+                    Vector2d vt = curve1->CalculateDt(int_info->T1.Index, t1).Normalize();
+                    vt = Vector2d(-vt.Y, vt.X);
+                    if (QuickIntersectCurveBeeline(curve2, int_info->T2, t2, point1, vt, distance_epsilon) ||
+                        IntersectCurveBeeline(curve2, int_info->T2, t2, point1, vt, distance_epsilon)) {
+                        Vector2d point2 = curve2->CalculateValue(int_info->T2.Index, t2);
+                        if (vector2_equals(point1, point2, distance_epsilon)) {
+                            if (int_info->RootState1 == 1) {
+                                Curve2dCurve2dInt curve_curve_int;
+                                curve_curve_int.Type = Curve2dCurve2dIntType::Cross;
+                                curve_curve_int.Tag1 = segments1.GetPointer(int_info->SegmentIndex1);
+                                curve_curve_int.Tag2 = segments2.GetPointer(int_info->SegmentIndex2);
+                                curve_curve_int.T1 = Variable(int_info->T1.Index, t1);
+                                curve_curve_int.T2 = Variable(int_info->T2.Index, t2);
+                                curve_curve_int.Point1 = point1;
+                                curve_curve_int.Point2 = point2;
+                                curve_curve_int.PrevRelation = Curve2dCurve2dIntRelation::Unknown;
+                                curve_curve_int.NextRelation = Curve2dCurve2dIntRelation::Unknown;
+                                merged_int_infos.Append(*int_info);
+                                IntInfo* int_info1 = merged_int_infos.GetPointer(merged_int_infos.GetCount() - 1);
+                                int_info1->Ints.Append(curve_curve_int);
+                                int_info = nullptr;
+                            }
+                            else if (int_info->RootState2 == 1) {
+                                Curve2dCurve2dInt curve_curve_int;
+                                curve_curve_int.Type = Curve2dCurve2dIntType::Cross;
+                                curve_curve_int.Tag1 = segments1.GetPointer(int_info->SegmentIndex1);
+                                curve_curve_int.Tag2 = segments2.GetPointer(int_info->SegmentIndex2);
+                                curve_curve_int.T1 = Variable(int_info->T1.Index, t1);
+                                curve_curve_int.T2 = Variable(int_info->T2.Index, t2);
+                                curve_curve_int.Point1 = point1;
+                                curve_curve_int.Point2 = point2;
+                                curve_curve_int.PrevRelation = Curve2dCurve2dIntRelation::Unknown;
+                                curve_curve_int.NextRelation = Curve2dCurve2dIntRelation::Unknown;
+                                merged_int_infos.Append(*int_info);
+                                IntInfo* int_info1 = merged_int_infos.GetPointer(merged_int_infos.GetCount() - 1);
+                                int_info1->Ints.Insert(0, curve_curve_int);
+                                int_info = nullptr;
+                            }
+                        }
+                        if (int_info) {
+                            if (int_info->SameDirState == 0) {
+                                Vector2d dt1 = curve1->CalculateDt(int_info->T1.Index, int_info->T1.Value.Center());
+                                Vector2d dt2 = curve2->CalculateDt(int_info->T2.Index, int_info->T2.Value.Center());
+                                if (dt1.Dot(dt2) > 0) {
+                                    int_info->SameDirState = 1;
+                                }
+                                else {
+                                    int_info->SameDirState = 2;
+                                }
+                            }
+                            Vector2d point11 = curve1->CalculateValue(int_info->T1.Index, int_info->T1.Value.Min);
+                            Vector2d point12 = curve1->CalculateValue(int_info->T1.Index, int_info->T1.Value.Max);
+                            Vector2d point21, point22;
+                            if (int_info->SameDirState == 1) {
+                                point21 = curve2->CalculateValue(int_info->T2.Index, int_info->T2.Value.Min);
+                                point22 = curve2->CalculateValue(int_info->T2.Index, int_info->T2.Value.Max);
+                            }
+                            else {
+                                point21 = curve2->CalculateValue(int_info->T2.Index, int_info->T2.Value.Max);
+                                point22 = curve2->CalculateValue(int_info->T2.Index, int_info->T2.Value.Min);
+                            }
+                            Vector2d center;
+                            if (ArcCurve2d::Get3PointCircle((point11 + point21) * 0.5, (point1 + point2) * 0.5, (point12 + point22) * 0.5, center)) {
+                                equations_ex.SetIndex(int_info->T1.Index, int_info->T2.Index);
+                                equations_ex.SetCenter(center);
+                                Curve2dCurve2dIntExVariable initial_variable;
+                                initial_variable.Set(0, int_info->T1.Value);
+                                initial_variable.Set(1, int_info->T2.Value);
+                                solver_ex.SetInitialVariable(initial_variable);
+                                const Array<Curve2dCurve2dIntExVariable>& fuzzy_roots = solver_ex.GetFuzzyRoots();
+                                const Array<Curve2dCurve2dIntExVariable>& clear_roots = solver_ex.GetClearRoots();
+                                for (int k = 0; k < fuzzy_roots.GetCount(); ++k) {
+                                    const Curve2dCurve2dIntExVariable* fuzzy_root = fuzzy_roots.GetPointer(k);
+                                    IntInfo int_info2;
+                                    int_info2.SegmentIndex1 = int_info->SegmentIndex1;
+                                    int_info2.SegmentIndex2 = int_info->SegmentIndex2;
+                                    int_info2.T1 = VariableInterval(int_info->T1.Index, fuzzy_root->Get(0));
+                                    int_info2.T2 = VariableInterval(int_info->T2.Index, fuzzy_root->Get(1));
+                                    int_info2.RootState1 = 0;
+                                    int_info2.RootState2 = 0;
+                                    int_info2.RelativeState1 = 0;
+                                    int_info2.RelativeState2 = 0;
+                                    int_info2.SameDirState = 0;
+                                    int_info2.IsClearRoot = false;
+                                    merged_int_infos.Append(int_info2);
+                                }
+                                for (int k = 0; k < clear_roots.GetCount(); ++k) {
+                                    const Curve2dCurve2dIntExVariable* clear_root = clear_roots.GetPointer(k);
+                                    IntInfo int_info2;
+                                    int_info2.SegmentIndex1 = int_info->SegmentIndex1;
+                                    int_info2.SegmentIndex2 = int_info->SegmentIndex2;
+                                    int_info2.T1 = VariableInterval(int_info->T1.Index, clear_root->Get(0));
+                                    int_info2.T2 = VariableInterval(int_info->T2.Index, clear_root->Get(1));
+                                    int_info2.RootState1 = 0;
+                                    int_info2.RootState2 = 0;
+                                    int_info2.RelativeState1 = 0;
+                                    int_info2.RelativeState2 = 0;
+                                    int_info2.SameDirState = 0;
+                                    int_info2.IsClearRoot = true;
+                                    merged_int_infos.Append(int_info2);
+                                }
+                                int_info = nullptr;
+                            }
+                        }
                     }
-                    for (int k = 0; k < clear_roots.GetCount(); ++k) {
-                        const Curve2dCurve2dIntVariable* clear_root = clear_roots.GetPointer(k);
-                        IntInfo int_info2;
-                        int_info2.SegmentIndex1 = int_info->SegmentIndex1;
-                        int_info2.SegmentIndex2 = int_info->SegmentIndex2;
-                        int_info2.T1 = VariableInterval(int_info->T1.Index, clear_root->Get(0));
-                        int_info2.T2 = VariableInterval(int_info->T2.Index, clear_root->Get(1));
-                        int_info2.RootState1 = 0;
-                        int_info2.RootState2 = 0;
-                        int_info2.RelativeState1 = 0;
-                        int_info2.RelativeState2 = 0;
-                        int_info2.SameDirState = 0;
-                        int_info2.IsClearRoot = true;
-                        merged_int_infos.Append(int_info2);
+                    if (int_info) {
+                        solver.SetMaxFuzzyRootCount(2);
+                        solver.SetSlowThreshold(0.1);
+                        equations.SetIndex(int_info->T1.Index, int_info->T2.Index);
+                        Curve2dCurve2dIntVariable initial_variable;
+                        initial_variable.Set(0, int_info->T1.Value);
+                        initial_variable.Set(1, int_info->T2.Value);
+                        solver.SetInitialVariable(initial_variable);
+                        const Array<Curve2dCurve2dIntVariable>& fuzzy_roots = solver.GetFuzzyRoots();
+                        const Array<Curve2dCurve2dIntVariable>& clear_roots = solver.GetClearRoots();
+                        for (int k = 0; k < fuzzy_roots.GetCount(); ++k) {
+                            const Curve2dCurve2dIntVariable* fuzzy_root = fuzzy_roots.GetPointer(k);
+                            IntInfo int_info2;
+                            int_info2.SegmentIndex1 = int_info->SegmentIndex1;
+                            int_info2.SegmentIndex2 = int_info->SegmentIndex2;
+                            int_info2.T1 = VariableInterval(int_info->T1.Index, fuzzy_root->Get(0));
+                            int_info2.T2 = VariableInterval(int_info->T2.Index, fuzzy_root->Get(1));
+                            int_info2.RootState1 = 0;
+                            int_info2.RootState2 = 0;
+                            int_info2.RelativeState1 = 0;
+                            int_info2.RelativeState2 = 0;
+                            int_info2.SameDirState = 0;
+                            int_info2.IsClearRoot = false;
+                            merged_int_infos.Append(int_info2);
+                        }
+                        for (int k = 0; k < clear_roots.GetCount(); ++k) {
+                            const Curve2dCurve2dIntVariable* clear_root = clear_roots.GetPointer(k);
+                            IntInfo int_info2;
+                            int_info2.SegmentIndex1 = int_info->SegmentIndex1;
+                            int_info2.SegmentIndex2 = int_info->SegmentIndex2;
+                            int_info2.T1 = VariableInterval(int_info->T1.Index, clear_root->Get(0));
+                            int_info2.T2 = VariableInterval(int_info->T2.Index, clear_root->Get(1));
+                            int_info2.RootState1 = 0;
+                            int_info2.RootState2 = 0;
+                            int_info2.RelativeState1 = 0;
+                            int_info2.RelativeState2 = 0;
+                            int_info2.SameDirState = 0;
+                            int_info2.IsClearRoot = true;
+                            merged_int_infos.Append(int_info2);
+                        }
+                        int_info = nullptr;
                     }
-                    int_info = nullptr;
                 }
                 if (int_info) {
                     merged_int_infos.Append(*int_info);
@@ -1230,385 +1348,7 @@ namespace wgp {
             pre_int_infos.Clear();
             merged_int_infos.Exchange(pre_int_infos);
         }
-
-        /////////////////////////////////////////
-        /*
-        for (int i = 0; i < pre_int_infos.GetCount(); ++i) {
-            IntInfo* int_info1 = pre_int_infos.GetPointer(i);
-            for (int j = i + 1; j < pre_int_infos.GetCount(); ++j) {
-                if (!int_info1->IsClearRoot && int_info1->SideState1 == 2 && int_info1->SideState2 == 2) {
-                    break;
-                }
-                IntInfo* int_info2 = pre_int_infos.GetPointer(j);
-                if (!int_info2->IsClearRoot && int_info2->SideState1 == 2 && int_info2->SideState2 == 2) {
-                    continue;
-                }
-                if (int_info1->SegmentIndex1 == int_info2->SegmentIndex1 &&
-                    int_info1->SegmentIndex2 == int_info2->SegmentIndex2 &&
-                    int_info1->T1.Value.IsIntersected(int_info2->T1.Value, g_double_epsilon) &&
-                    int_info1->T2.Value.IsIntersected(int_info2->T2.Value, g_double_epsilon)) {
-                    if (int_info1->IsClearRoot) {
-                        if (int_info2->IsClearRoot) {
-                            if (int_info2->Ints.GetCount() == 0) {
-                                Curve2dCurve2dInt curve_curve_int2;
-                                curve_curve_int2.Tag1 = segments1.GetPointer(int_info2->SegmentIndex1);
-                                curve_curve_int2.Tag2 = segments2.GetPointer(int_info2->SegmentIndex2);
-                                curve_curve_int2.T1 = Variable(int_info2->T1.Index, int_info2->T1.Value.Center());
-                                curve_curve_int2.T2 = Variable(int_info2->T2.Index, int_info2->T2.Value.Center());
-                                curve_curve_int2.Point = (curve1->CalculateValue(curve_curve_int2.T1.Index, curve_curve_int2.T1.Value) +
-                                    curve2->CalculateValue(curve_curve_int2.T2.Index, curve_curve_int2.T2.Value)) * 0.5;
-                                curve_curve_int2.Type = Curve2dCurve2dIntType::Cross;
-                                int_info2->Ints.Append(curve_curve_int2);
-                            }
-                            if (int_info1->Ints.GetCount() == 0) {
-                                Curve2dCurve2dInt curve_curve_int1;
-                                curve_curve_int1.Tag1 = segments1.GetPointer(int_info1->SegmentIndex1);
-                                curve_curve_int1.Tag2 = segments2.GetPointer(int_info1->SegmentIndex2);
-                                curve_curve_int1.T1 = Variable(int_info1->T1.Index, int_info1->T1.Value.Center());
-                                curve_curve_int1.T2 = Variable(int_info1->T2.Index, int_info1->T2.Value.Center());
-                                curve_curve_int1.Point = (curve1->CalculateValue(curve_curve_int1.T1.Index, curve_curve_int1.T1.Value) +
-                                    curve2->CalculateValue(curve_curve_int1.T2.Index, curve_curve_int1.T2.Value)) * 0.5;
-                                curve_curve_int1.Type = Curve2dCurve2dIntType::Cross;
-                                int_info2->Ints.Append(curve_curve_int1);
-                            }
-                            else {
-                                int_info2->Ints.Append(int_info1->Ints);
-                            }
-                            int_info2->T1.Value.Merge(int_info1->T1.Value);
-                            int_info2->T2.Value.Merge(int_info1->T2.Value);
-                            int_info1 = nullptr;
-                            break;
-                        }
-                        else {
-                            if (int_info1->T1.Value.Center() < int_info2->T1.Value.Center()) {
-                                int_info2->SideState1 = 1;
-                            }
-                            else {
-                                int_info2->SideState2 = 1;
-                            }
-                            if (int_info1->Ints.GetCount() == 0) {
-                                Curve2dCurve2dInt curve_curve_int1;
-                                curve_curve_int1.Tag1 = segments1.GetPointer(int_info1->SegmentIndex1);
-                                curve_curve_int1.Tag2 = segments2.GetPointer(int_info1->SegmentIndex2);
-                                curve_curve_int1.T1 = Variable(int_info1->T1.Index, int_info1->T1.Value.Center());
-                                curve_curve_int1.T2 = Variable(int_info1->T2.Index, int_info1->T2.Value.Center());
-                                curve_curve_int1.Point = (curve1->CalculateValue(curve_curve_int1.T1.Index, curve_curve_int1.T1.Value) +
-                                    curve2->CalculateValue(curve_curve_int1.T2.Index, curve_curve_int1.T2.Value)) * 0.5;
-                                curve_curve_int1.Type = Curve2dCurve2dIntType::Cross;
-                                int_info2->Ints.Append(curve_curve_int1);
-                            }
-                            else {
-                                int_info2->Ints.Append(int_info1->Ints);
-                            }
-                            int_info2->T1.Value.Merge(int_info1->T1.Value);
-                            int_info2->T2.Value.Merge(int_info1->T2.Value);
-                            int_info1 = nullptr;
-                            break;
-                        }
-                    }
-                    else {
-                        if (int_info2->IsClearRoot) {
-                            if (int_info2->Ints.GetCount() == 0) {
-                                Curve2dCurve2dInt curve_curve_int2;
-                                curve_curve_int2.Tag1 = segments1.GetPointer(int_info2->SegmentIndex1);
-                                curve_curve_int2.Tag2 = segments2.GetPointer(int_info2->SegmentIndex2);
-                                curve_curve_int2.T1 = Variable(int_info2->T1.Index, int_info2->T1.Value.Center());
-                                curve_curve_int2.T2 = Variable(int_info2->T2.Index, int_info2->T2.Value.Center());
-                                curve_curve_int2.Point = (curve1->CalculateValue(curve_curve_int2.T1.Index, curve_curve_int2.T1.Value) +
-                                    curve2->CalculateValue(curve_curve_int2.T2.Index, curve_curve_int2.T2.Value)) * 0.5;
-                                curve_curve_int2.Type = Curve2dCurve2dIntType::Cross;
-                                int_info2->Ints.Append(curve_curve_int2);
-                            }
-                            int_info2->Ints.Append(int_info1->Ints);
-                            int_info2->IsClearRoot = false;
-                            if (int_info1->T1.Value.Center() < int_info2->T1.Value.Center()) {
-                                int_info2->SideState1 = int_info1->SideState1;
-                                int_info2->SideState2 = 1;
-                            }
-                            else {
-                                int_info2->SideState1 = 1;
-                                int_info2->SideState2 = int_info1->SideState2;
-                            }
-                            int_info2->T1.Value.Merge(int_info1->T1.Value);
-                            int_info2->T2.Value.Merge(int_info1->T2.Value);
-                            int_info1 = nullptr;
-                            break;
-                        }
-                        else {
-                            if (int_info1->T1.Value.Center() < int_info2->T1.Value.Center()) {
-                                if (int_info1->SideState2 == 0 && int_info2->SideState1 == 0) {
-                                    double t1 = (int_info1->T1.Value.Max + int_info2->T1.Value.Min) * 0.5;
-                                    Vector2d point1 = curve1->CalculateValue(int_info1->T1.Index, t1);
-                                    double t2;
-                                    Vector2d point2;
-                                    if (Intersect(curve2, int_info1->T2, &int_info2->T2, point1, distance_epsilon, t2, point2)) {
-                                        Curve2dCurve2dInt curve_curve_int;
-                                        curve_curve_int.Tag1 = segments1.GetPointer(int_info2->SegmentIndex1);
-                                        curve_curve_int.Tag2 = segments2.GetPointer(int_info2->SegmentIndex2);
-                                        curve_curve_int.T1 = Variable(int_info2->T1.Index, t1);
-                                        curve_curve_int.T2 = Variable(int_info2->T2.Index, t2);
-                                        curve_curve_int.Point = (point1 + point2) * 0.5;
-                                        curve_curve_int.Type = Curve2dCurve2dIntType::Cross;
-                                        int_info2->Ints.Append(curve_curve_int);
-                                        int_info1->SideState2 = 1;
-                                        int_info2->SideState1 = 1;
-                                    }
-                                    else {
-                                        int_info1->SideState2 = 2;
-                                        int_info2->SideState1 = 2;
-                                    }
-                                }
-                                if (int_info1->SideState2 == 2 || int_info2->SideState1 == 2) {
-                                    int_info1->SideState2 = 2;
-                                    int_info2->SideState1 = 2;
-                                }
-                                else {
-                                    int_info2->SideState1 = int_info1->SideState1;
-                                    int_info2->Ints.Append(int_info1->Ints);
-                                    int_info2->T1.Value.Merge(int_info1->T1.Value);
-                                    int_info2->T2.Value.Merge(int_info1->T2.Value);
-                                    int_info1 = nullptr;
-                                    break;
-                                }
-                            }
-                            else {
-                                if (int_info1->SideState1 == 0 && int_info2->SideState2 == 0) {
-                                    double t1 = (int_info1->T1.Value.Min + int_info2->T1.Value.Max) * 0.5;
-                                    Vector2d point1 = curve1->CalculateValue(int_info1->T1.Index, t1);
-                                    double t2;
-                                    Vector2d point2;
-                                    if (Intersect(curve2, int_info1->T2, &int_info2->T2, point1, distance_epsilon, t2, point2)) {
-                                        Curve2dCurve2dInt curve_curve_int;
-                                        curve_curve_int.Tag1 = segments1.GetPointer(int_info2->SegmentIndex1);
-                                        curve_curve_int.Tag2 = segments2.GetPointer(int_info2->SegmentIndex2);
-                                        curve_curve_int.T1 = Variable(int_info2->T1.Index, t1);
-                                        curve_curve_int.T2 = Variable(int_info2->T2.Index, t2);
-                                        curve_curve_int.Point = (point1 + point2) * 0.5;
-                                        curve_curve_int.Type = Curve2dCurve2dIntType::Cross;
-                                        int_info2->Ints.Append(curve_curve_int);
-                                        int_info1->SideState1 = 1;
-                                        int_info2->SideState2 = 1;
-                                    }
-                                    else {
-                                        int_info1->SideState1 = 2;
-                                        int_info2->SideState2 = 2;
-                                    }
-                                }
-                                if (int_info1->SideState1 == 2 || int_info2->SideState2 == 2) {
-                                    int_info1->SideState1 = 2;
-                                    int_info2->SideState2 = 2;
-                                }
-                                else {
-                                    int_info2->SideState2 = int_info1->SideState2;
-                                    int_info2->Ints.Append(int_info1->Ints);
-                                    int_info2->T1.Value.Merge(int_info1->T1.Value);
-                                    int_info2->T2.Value.Merge(int_info1->T2.Value);
-                                    int_info1 = nullptr;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            if (int_info1) {
-                merged_int_infos.Append(*int_info1);
-            }
-        }
-        for (int i = 0; i < merged_int_infos.GetCount(); ++i) {
-            IntInfo* int_info = merged_int_infos.GetPointer(i);
-            if (!int_info->IsClearRoot) {
-                int_info->Ints.Sort(Curve2dCurve2dIntLess());
-            }
-        }
-        Array<Curve2dCurve2dInt> pre_result;
-        int i = 0;
-        while (i < merged_int_infos.GetCount()) {
-            IntInfo* int_info = merged_int_infos.GetPointer(i);
-            if (int_info->IsClearRoot) {
-                if (int_info->Ints.GetCount() == 0) {
-                    Curve2dCurve2dInt curve_curve_int;
-                    curve_curve_int.Tag1 = segments1.GetPointer(int_info->SegmentIndex1);
-                    curve_curve_int.Tag2 = segments2.GetPointer(int_info->SegmentIndex2);
-                    curve_curve_int.T1 = Variable(int_info->T1.Index, int_info->T1.Value.Center());
-                    curve_curve_int.T2 = Variable(int_info->T2.Index, int_info->T2.Value.Center());
-                    curve_curve_int.Point = (curve1->CalculateValue(curve_curve_int.T1.Index, curve_curve_int.T1.Value) +
-                        curve2->CalculateValue(curve_curve_int.T2.Index, curve_curve_int.T2.Value)) * 0.5;
-                    curve_curve_int.Type = Curve2dCurve2dIntType::Cross;
-                    pre_result.Append(curve_curve_int);
-                }
-                else {
-                    int k1 = 0;
-                    int k2 = 0;
-                    for (int j = 0; j < int_info->Ints.GetCount(); ++j) {
-                        if (int_info->Ints.GetPointer(j)->T1.Value < int_info->Ints.GetPointer(k1)->T1.Value) {
-                            k1 = j;
-                        }
-                        if (int_info->Ints.GetPointer(j)->T1.Value > int_info->Ints.GetPointer(k2)->T1.Value) {
-                            k2 = j;
-                        }
-                    }
-                    if (vector2_equals(int_info->Ints.GetPointer(k1)->Point, int_info->Ints.GetPointer(k2)->Point, distance_epsilon)) {
-                        Curve2dCurve2dInt* curve_curve_int1 = int_info->Ints.GetPointer(k1);
-                        Curve2dCurve2dInt* curve_curve_int2 = int_info->Ints.GetPointer(k2);
-                        Curve2dCurve2dInt curve_curve_int;
-                        curve_curve_int.Tag1 = curve_curve_int1->Tag1;
-                        curve_curve_int.Tag2 = curve_curve_int1->Tag2;
-                        curve_curve_int.T1 = Variable(curve_curve_int1->T1.Index,
-                            (curve_curve_int1->T1.Value + curve_curve_int2->T1.Value) * 0.5);
-                        curve_curve_int.T2 = Variable(curve_curve_int1->T2.Index,
-                            (curve_curve_int1->T2.Value + curve_curve_int2->T2.Value) * 0.5);
-                        curve_curve_int.Point = (curve_curve_int1->Point + curve_curve_int2->Point) * 0.5;
-                        curve_curve_int.Type = Curve2dCurve2dIntType::Cross;
-                        pre_result.Append(curve_curve_int);
-                    }
-                    else {
-                        Curve2dCurve2dInt curve_curve_int1 = int_info->Ints.Get(k1);
-                        Curve2dCurve2dInt curve_curve_int2 = int_info->Ints.Get(k2);
-                        curve_curve_int1.Type = Curve2dCurve2dIntType::OverlapBegin;
-                        curve_curve_int2.Type = Curve2dCurve2dIntType::OverlapEnd;
-                        pre_result.Append(curve_curve_int1);
-                        pre_result.Append(curve_curve_int2);
-                    }
-                }
-            }
-            else {
-                if (int_info->SideState1 == 0) {
-                    double t1 = int_info->T1.Value.Min;
-                    Vector2d point1 = curve1->CalculateValue(int_info->T1.Index, t1);
-                    double t2;
-                    Vector2d point2;
-                    if (Intersect(curve2, int_info->T2, nullptr, point1, distance_epsilon, t2, point2)) {
-                        Curve2dCurve2dInt curve_curve_int;
-                        curve_curve_int.Tag1 = segments1.GetPointer(int_info->SegmentIndex1);
-                        curve_curve_int.Tag2 = segments2.GetPointer(int_info->SegmentIndex2);
-                        curve_curve_int.T1 = Variable(int_info->T1.Index, t1);
-                        curve_curve_int.T2 = Variable(int_info->T2.Index, t2);
-                        curve_curve_int.Point = (point1 + point2) * 0.5;
-                        curve_curve_int.Type = Curve2dCurve2dIntType::Cross;
-                        int_info->Ints.Insert(0, curve_curve_int);
-                        int_info->SideState1 = 1;
-                    }
-                    else {
-                        if (int_info->SameDirState == 0) {
-                            Vector2d dt1 = curve1->CalculateDt(int_info->T1.Index, int_info->T1.Value.Center());
-                            Vector2d dt2 = curve2->CalculateDt(int_info->T2.Index, int_info->T2.Value.Center());
-                            if (dt1.Dot(dt2) > 0) {
-                                int_info->SameDirState = 1;
-                            }
-                            else {
-                                int_info->SameDirState = 2;
-                            }
-                        }
-                        if (int_info->SameDirState == 1) {
-                            t2 = int_info->T1.Value.Min;
-                        }
-                        else {
-                            t2 = int_info->T1.Value.Max;
-                        }
-                        point2 = curve2->CalculateValue(int_info->T2.Index, t2);
-                        if (Intersect(curve1, int_info->T1, nullptr, point2, distance_epsilon, t1, point1)) {
-                            Curve2dCurve2dInt curve_curve_int;
-                            curve_curve_int.Tag1 = segments1.GetPointer(int_info->SegmentIndex1);
-                            curve_curve_int.Tag2 = segments2.GetPointer(int_info->SegmentIndex2);
-                            curve_curve_int.T1 = Variable(int_info->T1.Index, t1);
-                            curve_curve_int.T2 = Variable(int_info->T2.Index, t2);
-                            curve_curve_int.Point = (point1 + point2) * 0.5;
-                            curve_curve_int.Type = Curve2dCurve2dIntType::Cross;
-                            int_info->Ints.Insert(0, curve_curve_int);
-                            int_info->SideState1 = 1;
-                        }
-                        else {
-                            int_info->SideState1 = 2;
-                        }    
-                    }
-                }
-                if (int_info->SideState1 == 2) {
-                    if (int_info->SameDirState == 0) {
-                        Vector2d dt1 = curve1->CalculateDt(int_info->T1.Index, int_info->T1.Value.Center());
-                        Vector2d dt2 = curve2->CalculateDt(int_info->T2.Index, int_info->T2.Value.Center());
-                        if (dt1.Dot(dt2) > 0) {
-                            int_info->SameDirState = 1;
-                        }
-                        else {
-                            int_info->SameDirState = 2;
-                        }
-                    }
-                    FuzzyIntersect(curve1, curve2, int_info, distance_epsilon);
-                }
-                if (int_info->SideState2 == 0) {
-                    double t1 = int_info->T1.Value.Max;
-                    Vector2d point1 = curve1->CalculateValue(int_info->T1.Index, t1);
-                    double t2;
-                    Vector2d point2;
-                    if (Intersect(curve2, int_info->T2, nullptr, point1, distance_epsilon, t2, point2)) {
-                        Curve2dCurve2dInt curve_curve_int;
-                        curve_curve_int.Tag1 = segments1.GetPointer(int_info->SegmentIndex1);
-                        curve_curve_int.Tag2 = segments2.GetPointer(int_info->SegmentIndex2);
-                        curve_curve_int.T1 = Variable(int_info->T1.Index, t1);
-                        curve_curve_int.T2 = Variable(int_info->T2.Index, t2);
-                        curve_curve_int.Point = (point1 + point2) * 0.5;
-                        curve_curve_int.Type = Curve2dCurve2dIntType::Cross;
-                        int_info->Ints.Append(curve_curve_int);
-                        int_info->SideState2 = 1;
-                    }
-                    else {
-                        if (int_info->SameDirState == 0) {
-                            Vector2d dt1 = curve1->CalculateDt(int_info->T1.Index, int_info->T1.Value.Center());
-                            Vector2d dt2 = curve2->CalculateDt(int_info->T2.Index, int_info->T2.Value.Center());
-                            if (dt1.Dot(dt2) > 0) {
-                                int_info->SameDirState = 1;
-                            }
-                            else {
-                                int_info->SameDirState = 2;
-                            }
-                        }
-                        if (int_info->SameDirState == 1) {
-                            t2 = int_info->T1.Value.Max;
-                        }
-                        else {
-                            t2 = int_info->T1.Value.Min;
-                        }
-                        point2 = curve2->CalculateValue(int_info->T2.Index, t2);
-                        if (Intersect(curve1, int_info->T1, nullptr, point2, distance_epsilon, t1, point1)) {
-                            Curve2dCurve2dInt curve_curve_int;
-                            curve_curve_int.Tag1 = segments1.GetPointer(int_info->SegmentIndex1);
-                            curve_curve_int.Tag2 = segments2.GetPointer(int_info->SegmentIndex2);
-                            curve_curve_int.T1 = Variable(int_info->T1.Index, t1);
-                            curve_curve_int.T2 = Variable(int_info->T2.Index, t2);
-                            curve_curve_int.Point = (point1 + point2) * 0.5;
-                            curve_curve_int.Type = Curve2dCurve2dIntType::Cross;
-                            int_info->Ints.Append(curve_curve_int);
-                            int_info->SideState2 = 1;
-                        }
-                        else {
-                            int_info->SideState2 = 2;
-                        }
-                    }
-                }
-                if (int_info->SideState2 == 2) {
-                    if (int_info->SameDirState == 0) {
-                        Vector2d dt1 = curve1->CalculateDt(int_info->T1.Index, int_info->T1.Value.Center());
-                        Vector2d dt2 = curve2->CalculateDt(int_info->T2.Index, int_info->T2.Value.Center());
-                        if (dt1.Dot(dt2) > 0) {
-                            int_info->SameDirState = 1;
-                        }
-                        else {
-                            int_info->SameDirState = 2;
-                        }
-                    }
-                    FuzzyIntersect(curve1, curve2, int_info, distance_epsilon);
-                }
-                if (int_info->Ints.GetCount() > 0) {
-                    //todo 采样检测重合
-                    //todo 如果效率可以，加入极值检测
-                }
-            }
-            ++i;
-        }
-        
         //todo
-        */
         result.Append(pre_result);
     }
 

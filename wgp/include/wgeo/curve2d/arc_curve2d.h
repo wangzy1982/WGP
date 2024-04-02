@@ -26,7 +26,11 @@ namespace wgp {
         virtual Interval2d CalculateDt(int index, const Interval& t);
         virtual Interval2d CalculateDt2(int index, const Interval& t);
     public:
+        virtual void CalculateByCircleTransformation(int index, const Interval& t, const Vector2d& center, Interval* d0, Interval* dt);
+    public:
         virtual void RotateForIntersect(Curve2d*& dst, double angle, double cos, double sin);
+    public:
+        static bool Get3PointCircle(const Vector2d& point1, const Vector2d& point2, const Vector2d& point3, Vector2d& center);
     private:
         Vector2d m_center;
         double m_radius;

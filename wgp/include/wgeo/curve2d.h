@@ -28,6 +28,8 @@ namespace wgp {
         virtual Vector2d CalculateDt(int index, double t);
         virtual Vector2d CalculateDt2(int index, double t);
     public:
+        virtual void CalculateByCircleTransformation(int index, const Interval& t, const Vector2d& center, Interval* d0, Interval* dt) = 0;
+    public:
         virtual void RotateForIntersect(Curve2d*& dst, double angle, double cos, double sin) = 0;
     protected:
         VariableDomain* m_t_domain;
