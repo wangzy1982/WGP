@@ -1186,7 +1186,7 @@ namespace wgp {
             }
             pre_int_infos.Clear();
             merged_int_infos.Exchange(pre_int_infos);
-            //divide
+            //exactly solve
             for (int i = 0; i < pre_int_infos.GetCount(); ++i) {
                 IntInfo* int_info = pre_int_infos.GetPointer(i);
                 if (int_info->RootState1 == 2 || int_info->RootState2 == 2) {
