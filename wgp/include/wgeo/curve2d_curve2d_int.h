@@ -17,13 +17,6 @@ namespace wgp {
         OverlapEnd
     };
 
-    enum class Curve2dCurve2dIntRelation {
-        Unknown,
-        FirstIsOut,
-        FirstIsIn,
-        Overlap
-    };
-
     class WGP_API Curve2dCurve2dInt {
     public:
         Curve2dCurve2dIntType Type;
@@ -33,24 +26,22 @@ namespace wgp {
         Variable T2;
         Vector2d Point1;
         Vector2d Point2;
-        Curve2dCurve2dIntRelation PrevRelation;
-        Curve2dCurve2dIntRelation NextRelation;
     };
 
-    class Curve2dCurve2dIntLess {
+    class WGP_API Curve2dCurve2dIntIndex {
     public:
-        bool operator()(const Curve2dCurve2dInt& curve_curve_int1, const Curve2dCurve2dInt& curve_curve_int2) {
-            if (curve_curve_int1.T1.Index < curve_curve_int2.T2.Index) {
-                return true;
-            }
-            if (curve_curve_int1.T1.Index == curve_curve_int2.T2.Index) {
-                return curve_curve_int1.T1.Value == curve_curve_int2.T2.Value;
-            }
-            return false;
-        }
+        Array<Curve2dCurve2dInt>* Array;
+        int StartIndex;
+        int EndIndex;
     };
 
-    WGP_API void Intersect(Curve2d* curve1, Curve2d* curve2, double dist_epsilon, Array<Curve2dCurve2dInt>& result);
+    WGP_API void Intersect(Curve2d* curve1, Curve2d* curve2, void* tag1, void* tag2, double dist_epsilon, Array<Curve2dCurve2dInt>& result);
+
+    typedef int (*CompareTagFunction)(void* tag1, void* tag2);
+
+    WGP_API Array<Curve2dCurve2dIntIndex> SortIntersections(Array<Curve2dCurve2dInt>* int_array_list, int int_array_count, 
+        CompareTagFunction compare_tag_function, bool is_sorted_by_first);
+
 }
 
 #endif
