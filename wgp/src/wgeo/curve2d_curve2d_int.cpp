@@ -1191,8 +1191,10 @@ namespace wgp {
                 prev_same_dir = true;
             }
             else {
-                result.Append(*index->Array->GetPointer(index->StartIndex));
-                prev_int = nullptr;
+                if (!prev_int || !vector2_equals(prev_int->Point1, index->Array->GetPointer(index->StartIndex)->Point1, distance_epsilon)) {
+                    result.Append(*index->Array->GetPointer(index->StartIndex));
+                    prev_int = nullptr;
+                }
             }
         }
     }
