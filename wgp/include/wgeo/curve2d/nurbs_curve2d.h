@@ -2,24 +2,25 @@
     Original Author: Zuoyuan Wang
     Copyright (c) 2024 Zuoyuan Wang
 */
-#ifndef _WGP_GEO_CURVE2D_ARC_
-#define _WGP_GEO_CURVE2D_ARC_
+#ifndef _WGP_GEO_CURVE2D_NURBS_
+#define _WGP_GEO_CURVE2D_NURBS_
 
 #include "wgeo/curve2d.h"
 
 namespace wgp {
 
-    class WGP_API ArcCurve2dType : public GeometryType {
+    class WGP_API NurbsCurve2dType : public GeometryType {
     public:
-        static ArcCurve2dType* Instance();
+        static NurbsCurve2dType* Instance();
     private:
-        static ArcCurve2dType m_Instance;
+        static NurbsCurve2dType m_Instance;
     };
 
-    class WGP_API ArcCurve2d : public Curve2d {
+    class WGP_API NurbsCurve2d : public Curve2d {
     public:
-        ArcCurve2d(const Vector2d& center, double radius, double start_angle, double t_min, double t_max);
-        GeometryType* GetType() const { return ArcCurve2dType::Instance(); }
+        NurbsCurve2d(int degree, int control_point_count, double* knots, Vector2d* control_points, double* weights);
+        virtual ~NurbsCurve2d();
+        GeometryType* GetType() const { return NurbsCurve2dType::Instance(); }
         virtual int GetTPieceCount();
         virtual Interval GetTPiece(int index);
         virtual void SplitFlat(Array<VariableInterval>& segments, double angle_epsilon);
@@ -30,13 +31,12 @@ namespace wgp {
         virtual void CalculateByCircleTransformation(int index, const Interval& t, const Vector2d& center, Interval* d0, Interval* dt);
     public:
         virtual void RotateForIntersect(int index, Curve2d*& dst, double angle, double cos, double sin);
-    public:
-        static bool Get3PointCircle(const Vector2d& point1, const Vector2d& point2, const Vector2d& point3, Vector2d& center);
     private:
-        Vector2d m_center;
-        double m_radius;
-        double m_start_angle;
-        Interval m_t_domain;
+        int m_degree;
+        int m_control_point_count;
+        double* m_knots;
+        Vector2d* m_control_points;
+        double* m_weights;
     };
 }
 

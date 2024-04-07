@@ -6,15 +6,10 @@
 
 namespace wgp {
 
-	Curve2d::Curve2d(VariableDomain* t_domain) : m_t_domain(t_domain) {
+	Curve2d::Curve2d() {
 	}
 
 	Curve2d::~Curve2d() {
-		delete m_t_domain;
-	}
-
-	VariableDomain* Curve2d::TDomain() const {
-		return m_t_domain;
 	}
 
 }

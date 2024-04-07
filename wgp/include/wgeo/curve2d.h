@@ -15,9 +15,10 @@ namespace wgp {
 
     class WGP_API Curve2d : public Geometry {
     public:
-        Curve2d(VariableDomain* t_domain);
+        Curve2d();
         virtual ~Curve2d();
-        VariableDomain* TDomain() const;
+        virtual int GetTPieceCount() = 0;
+        virtual Interval GetTPiece(int index) = 0;
         virtual void SplitFlat(Array<VariableInterval>& segments, double angle_epsilon) = 0;
     public:
         virtual void Calculate(int index, double t, Vector2d* d0, Vector2d* dt, Vector2d* dt2) = 0;
@@ -25,9 +26,7 @@ namespace wgp {
     public:
         virtual void CalculateByCircleTransformation(int index, const Interval& t, const Vector2d& center, Interval* d0, Interval* dt) = 0;
     public:
-        virtual void RotateForIntersect(Curve2d*& dst, double angle, double cos, double sin) = 0;
-    protected:
-        VariableDomain* m_t_domain;
+        virtual void RotateForIntersect(int index, Curve2d*& dst, double angle, double cos, double sin) = 0;
     };
 
 }

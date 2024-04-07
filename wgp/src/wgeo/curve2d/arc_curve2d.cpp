@@ -13,15 +13,23 @@ namespace wgp {
     ArcCurve2dType ArcCurve2dType::m_Instance = ArcCurve2dType();
 
     ArcCurve2d::ArcCurve2d(const Vector2d& center, double radius, double start_angle, double t_min, double t_max) :
-        Curve2d(new VariableDomain(Interval(t_min, t_max))), 
         m_center(center), 
         m_radius(radius),
-        m_start_angle(start_angle) {
+        m_start_angle(start_angle),
+        m_t_domain(t_min, t_max) {
+    }
+
+    int ArcCurve2d::GetTPieceCount() {
+        return 1;
+    }
+
+    Interval ArcCurve2d::GetTPiece(int index) {
+        return m_t_domain;
     }
 
     void ArcCurve2d::SplitFlat(Array<VariableInterval>& segments, double angle_epsilon) {
-        double t0 = m_t_domain->GetKnot(0);
-        double t1 = m_t_domain->GetKnot(1);
+        double t0 = m_t_domain.Min;
+        double t1 = m_t_domain.Max;
         double d = abs(t1 - t0);
         int n = (int)(d / angle_epsilon);
         if (d - n * angle_epsilon > g_unit_epsilon) {
@@ -86,7 +94,7 @@ namespace wgp {
         }
     }
 
-    void ArcCurve2d::RotateForIntersect(Curve2d*& dst, double angle, double cos, double sin) {
+    void ArcCurve2d::RotateForIntersect(int index, Curve2d*& dst, double angle, double cos, double sin) {
         Vector2d center = Vector2d(
             cos * m_center.X - sin * m_center.Y,
             sin * m_center.X + cos * m_center.Y
@@ -97,7 +105,7 @@ namespace wgp {
             arc_dst->m_start_angle = m_start_angle + angle;
         }
         else {
-            dst = new ArcCurve2d(center, m_radius, m_start_angle + angle, m_t_domain->GetKnot(0), m_t_domain->GetKnot(1));
+            dst = new ArcCurve2d(center, m_radius, m_start_angle + angle, m_t_domain.Min, m_t_domain.Max);
         }
     }
 
