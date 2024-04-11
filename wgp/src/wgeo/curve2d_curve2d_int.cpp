@@ -1062,13 +1062,14 @@ namespace wgp {
                                 equations_ex.SetCenter(center);
                                 const int split_count = 3;
                                 double delta_t1 = int_info->T1.Value.Length() / split_count;
-                                int begin_index = 0;
+                                int begin_index = -1;
                                 Curve2dCurve2dIntExVariable begin_root;
                                 bool begin_root_is_clear = false;
-                                int end_index = split_count - 1;
+                                int end_index = split_count;
                                 Curve2dCurve2dIntExVariable end_root;
                                 bool end_root_is_clear = false;
                                 if (int_info->RootState1 == 2) {
+                                    begin_index = 1;
                                     while (begin_index < split_count) {
                                         Curve2dCurve2dIntExVariable initial_variable;
                                         initial_variable.Set(0, Interval(int_info->T1.Value.Min + delta_t1 * begin_index, 
@@ -1091,6 +1092,7 @@ namespace wgp {
                                     }
                                 }
                                 if (int_info->RootState2 == 2) {
+                                    end_index = split_count - 1;
                                     while (end_index > begin_index) {
                                         Curve2dCurve2dIntExVariable initial_variable;
                                         initial_variable.Set(0, Interval(int_info->T1.Value.Min + delta_t1 * end_index,
@@ -1112,36 +1114,64 @@ namespace wgp {
                                         --end_index;
                                     }
                                 }
-                                if (begin_index == split_count) {
+                                if (begin_index == split_count || end_index == -1) {
                                     if (int_info->Ints.GetCount() > 0) {
                                         pre_result.Append(int_info->Ints.Get(0));
                                     }
                                     int_info = nullptr;
                                 }
                                 else if (end_index == begin_index) {
-                                    if (begin_root_is_clear) {
-                                        IntInfo int_info2;
-                                        int_info2.SegmentIndex1 = int_info->SegmentIndex1;
-                                        int_info2.SegmentIndex2 = int_info->SegmentIndex2;
-                                        int_info2.T1 = VariableInterval(int_info->T1.Index, begin_root.Get(0));
-                                        int_info2.T2 = VariableInterval(int_info->T2.Index, begin_root.Get(1));
-                                        int_info2.RootState1 = 0;
-                                        int_info2.RootState2 = 0;
-                                        int_info2.SameDirState = 0;
-                                        int_info2.IsClearRoot = true;
-                                        merged_int_infos.Append(int_info2);
+                                    if (int_info->RootState1 == 2) {
+                                        if (begin_root_is_clear) {
+                                            IntInfo int_info2;
+                                            int_info2.SegmentIndex1 = int_info->SegmentIndex1;
+                                            int_info2.SegmentIndex2 = int_info->SegmentIndex2;
+                                            int_info2.T1 = VariableInterval(int_info->T1.Index, begin_root.Get(0));
+                                            int_info2.T2 = VariableInterval(int_info->T2.Index, begin_root.Get(1));
+                                            int_info2.RootState1 = 0;
+                                            int_info2.RootState2 = 0;
+                                            int_info2.SameDirState = 0;
+                                            int_info2.IsClearRoot = true;
+                                            merged_int_infos.Append(int_info2);
+                                        }
+                                        else {
+                                            IntInfo int_info2;
+                                            int_info2.SegmentIndex1 = int_info->SegmentIndex1;
+                                            int_info2.SegmentIndex2 = int_info->SegmentIndex2;
+                                            int_info2.T1 = VariableInterval(int_info->T1.Index, begin_root.Get(0));
+                                            int_info2.T2 = VariableInterval(int_info->T2.Index, begin_root.Get(1));
+                                            int_info2.RootState1 = 0;
+                                            int_info2.RootState2 = 0;
+                                            int_info2.SameDirState = 0;
+                                            int_info2.IsClearRoot = false;
+                                            merged_int_infos.Append(int_info2);
+                                        }
                                     }
                                     else {
-                                        IntInfo int_info2;
-                                        int_info2.SegmentIndex1 = int_info->SegmentIndex1;
-                                        int_info2.SegmentIndex2 = int_info->SegmentIndex2;
-                                        int_info2.T1 = VariableInterval(int_info->T1.Index, begin_root.Get(0));
-                                        int_info2.T2 = VariableInterval(int_info->T2.Index, begin_root.Get(1));
-                                        int_info2.RootState1 = 0;
-                                        int_info2.RootState2 = 0;
-                                        int_info2.SameDirState = 0;
-                                        int_info2.IsClearRoot = false;
-                                        merged_int_infos.Append(int_info2);
+                                        if (end_root_is_clear) {
+                                            IntInfo int_info2;
+                                            int_info2.SegmentIndex1 = int_info->SegmentIndex1;
+                                            int_info2.SegmentIndex2 = int_info->SegmentIndex2;
+                                            int_info2.T1 = VariableInterval(int_info->T1.Index, end_root.Get(0));
+                                            int_info2.T2 = VariableInterval(int_info->T2.Index, end_root.Get(1));
+                                            int_info2.RootState1 = 0;
+                                            int_info2.RootState2 = 0;
+                                            int_info2.SameDirState = 0;
+                                            int_info2.IsClearRoot = true;
+                                            merged_int_infos.Append(int_info2);
+                                        }
+                                        else {
+                                            IntInfo int_info2;
+                                            int_info2.SegmentIndex1 = int_info->SegmentIndex1;
+                                            int_info2.SegmentIndex2 = int_info->SegmentIndex2;
+                                            int_info2.T1 = VariableInterval(int_info->T1.Index, end_root.Get(0));
+                                            int_info2.T2 = VariableInterval(int_info->T2.Index, end_root.Get(1));
+                                            int_info2.RootState1 = 0;
+                                            int_info2.RootState2 = 0;
+                                            int_info2.SameDirState = 0;
+                                            int_info2.IsClearRoot = false;
+                                            merged_int_infos.Append(int_info2);
+                                        }
                                     }
                                     int_info = nullptr;
                                 }
@@ -1158,12 +1188,12 @@ namespace wgp {
                                         int_info->RootState1 = 0;
                                     }
                                     if (int_info->RootState2 == 2) {
-                                        int_info->T1.Value.Max = begin_root.Get(0).Max;
+                                        int_info->T1.Value.Max = end_root.Get(0).Max;
                                         if (int_info->SameDirState == 1) {
-                                            int_info->T2.Value.Max = begin_root.Get(1).Max;
+                                            int_info->T2.Value.Max = end_root.Get(1).Max;
                                         }
                                         else {
-                                            int_info->T2.Value.Min = begin_root.Get(1).Min;
+                                            int_info->T2.Value.Min = end_root.Get(1).Min;
                                         }
                                         int_info->RootState2 = 0;
                                     }

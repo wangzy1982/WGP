@@ -693,9 +693,6 @@ namespace wgp {
         }
 
         double GetValueEpsilon(int i) {
-            if (i == 2) {
-                return g_double_epsilon;
-            }
             return m_distance_epsilon;
         }
     public:
