@@ -538,7 +538,17 @@ namespace wgp {
 		void Iterate(IteratorRuntime* runtime, EquationsVariable variable, int prev_split_index,
 			Array<SolverHeapItem<EquationsVariable, Real>>& heap) {
 			Real size;
+			//test
+			if (variable.GetDegree() > 1) {
+				int a = 1;
+			}
+			//test
 			SolverIteratedResult r = Iterate(runtime, &variable, size);
+			//test
+			if (variable.GetDegree() > 1) {
+				int a = 1;
+			}
+			//test
 			if (r == SolverIteratedResult::Fuzzy) {
 				bool b = true;
 				for (int i = 0; i < m_equation_system->GetVariableCount(); ++i) {

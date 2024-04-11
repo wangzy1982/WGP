@@ -122,6 +122,14 @@ namespace wgp {
 		void Set(int i, const Interval& value) {
 			m_data[i] = value;
 		}
+
+		void Split(int i, IntervalVector& v1, IntervalVector& v2) {
+			v1 = *this;
+			v2 = *this;
+			double m = m_data[i].Center();
+			v1.m_data[i].Max = m;
+			v2.m_data[i].Min = m;
+		}
 	public:
 		IntervalVector Center() const {
 			IntervalVector vt;
@@ -348,7 +356,7 @@ namespace wgp {
 		virtual int GetSplitIndex(const IntervalVector<variable_count>& variable, int prev_split_index, double size) {
 			bool b = false;
 			int next_split_index = 0;
-			double ves[2] = { 1E-12, 0 };
+			double ves[2] = { g_double_epsilon, 0 };
 			for (int k = 0; k < 2; ++k) {
 				next_split_index = prev_split_index + 1;
 				do {

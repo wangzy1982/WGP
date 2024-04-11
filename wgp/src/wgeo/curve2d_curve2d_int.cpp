@@ -24,10 +24,9 @@ namespace wgp {
 
     bool QuickIntersectCurveBeeline(Curve2d* curve, const VariableInterval& variable, double& t, 
         const Vector2d& point, const Vector2d& direction, double distance_epsilon) {
-        Curve2dBeelineIntEquationSystem equations(curve, point, direction, distance_epsilon);
+        Curve2dBeelineIntEquationSystem equations(curve, variable.Index, point, direction, distance_epsilon);
         NewtonSolver<Curve2dBeelineIntEquationSystem, NewtonVariable<1>, Vector<1>, Vector<1>, Matrix<1, 1>> solver;
         solver.SetEquationSystem(&equations);
-        equations.SetIndex(variable.Index);
         NewtonVariable<1> nv;
         nv.Set(0, t);
         nv.SetInterval(0, variable.Value);
@@ -40,11 +39,10 @@ namespace wgp {
 
     bool IntersectCurveBeeline(Curve2d* curve, const VariableInterval& variable, double& t,
         const Vector2d& point, const Vector2d& direction, double distance_epsilon) {
-        Curve2dBeelineIntEquationSystem equations(curve, point, direction, distance_epsilon);
+        Curve2dBeelineIntEquationSystem equations(curve, variable.Index, point, direction, distance_epsilon);
         Solver<Curve2dBeelineIntEquationSystem, Curve2dBeelineIntVariable, IntervalVector<1>, IntervalVector<1>, IntervalMatrix<1, 1>, Matrix<1, 1>> solver;
         solver.SetEquationSystem(&equations);
         solver.SetMaxFuzzyRootCount(1000);
-        equations.SetIndex(variable.Index);
         Curve2dBeelineIntVariable initial_variable;
         initial_variable.Set(0, variable.Value);
         solver.SetInitialVariable(initial_variable);
@@ -109,7 +107,7 @@ namespace wgp {
         Solver<Curve2dCurve2dIntExEquationSystem, Curve2dCurve2dIntExVariable, IntervalVector<3>,
             IntervalVector<2>, IntervalMatrix<3, 2>, Matrix<2, 2>> solver_ex;
         solver_ex.SetEquationSystem(&equations_ex);
-        solver_ex.SetMaxFuzzyRootCount(16);
+        solver_ex.SetMaxFuzzyRootCount(1);
         solver_ex.SetSlowThreshold(0.1);
         const double flat_angle_epsilon = g_pi / 2;
         Array<VariableInterval> segments1(16);
@@ -543,7 +541,6 @@ namespace wgp {
                         curve2->Calculate(int_info->T2.Index, t2, &point2, nullptr, nullptr);
                     }
                     else {
-                        Vector2d point2;
                         curve2->Calculate(int_info->T2.Index, t2, &point2, nullptr, nullptr);
                         t = t1;
                         if (QuickIntersectCurveBeeline(curve1, int_info->T1, t, point2, vt, distance_epsilon)) {
@@ -606,7 +603,6 @@ namespace wgp {
                         curve2->Calculate(int_info->T2.Index, t2, &point2, nullptr, nullptr);
                     }
                     else {
-                        Vector2d point2;
                         curve2->Calculate(int_info->T2.Index, t2, &point2, nullptr, nullptr);
                         t = t1;
                         if (QuickIntersectCurveBeeline(curve1, int_info->T1, t, point2, vt, distance_epsilon)) {
@@ -1064,6 +1060,119 @@ namespace wgp {
                             if (ArcCurve2d::Get3PointCircle((point11 + point21) * 0.5, (point1 + point2) * 0.5, (point12 + point22) * 0.5, center)) {
                                 equations_ex.SetIndex(int_info->T1.Index, int_info->T2.Index);
                                 equations_ex.SetCenter(center);
+                                const int split_count = 3;
+                                double delta_t1 = int_info->T1.Value.Length() / split_count;
+                                int begin_index = 0;
+                                Curve2dCurve2dIntExVariable begin_root;
+                                bool begin_root_is_clear = false;
+                                int end_index = split_count - 1;
+                                Curve2dCurve2dIntExVariable end_root;
+                                bool end_root_is_clear = false;
+                                if (int_info->RootState1 == 2) {
+                                    while (begin_index < split_count) {
+                                        Curve2dCurve2dIntExVariable initial_variable;
+                                        initial_variable.Set(0, Interval(int_info->T1.Value.Min + delta_t1 * begin_index, 
+                                            int_info->T1.Value.Min + delta_t1 * (begin_index + 1)));
+                                        initial_variable.Set(1, int_info->T2.Value);
+                                        solver_ex.SetInitialVariable(initial_variable);
+                                        const Array<Curve2dCurve2dIntExVariable>& fuzzy_roots = solver_ex.GetFuzzyRoots();
+                                        const Array<Curve2dCurve2dIntExVariable>& clear_roots = solver_ex.GetClearRoots();
+                                        if (fuzzy_roots.GetCount() > 0) {
+                                            begin_root = fuzzy_roots.Get(0);
+                                            begin_root_is_clear = false;
+                                            break;
+                                        }
+                                        else if (clear_roots.GetCount() > 0) {
+                                            begin_root = clear_roots.Get(0);
+                                            begin_root_is_clear = true;
+                                            break;
+                                        }
+                                        ++begin_index;
+                                    }
+                                }
+                                if (int_info->RootState2 == 2) {
+                                    while (end_index > begin_index) {
+                                        Curve2dCurve2dIntExVariable initial_variable;
+                                        initial_variable.Set(0, Interval(int_info->T1.Value.Min + delta_t1 * end_index,
+                                            int_info->T1.Value.Min + delta_t1 * (end_index + 1)));
+                                        initial_variable.Set(1, int_info->T2.Value);
+                                        solver_ex.SetInitialVariable(initial_variable);
+                                        const Array<Curve2dCurve2dIntExVariable>& fuzzy_roots = solver_ex.GetFuzzyRoots();
+                                        const Array<Curve2dCurve2dIntExVariable>& clear_roots = solver_ex.GetClearRoots();
+                                        if (fuzzy_roots.GetCount() > 0) {
+                                            end_root = fuzzy_roots.Get(0);
+                                            end_root_is_clear = false;
+                                            break;
+                                        }
+                                        else if (clear_roots.GetCount() > 0) {
+                                            end_root = clear_roots.Get(0);
+                                            end_root_is_clear = true;
+                                            break;
+                                        }
+                                        --end_index;
+                                    }
+                                }
+                                if (begin_index == split_count) {
+                                    if (int_info->Ints.GetCount() > 0) {
+                                        pre_result.Append(int_info->Ints.Get(0));
+                                    }
+                                    int_info = nullptr;
+                                }
+                                else if (end_index == begin_index) {
+                                    if (begin_root_is_clear) {
+                                        IntInfo int_info2;
+                                        int_info2.SegmentIndex1 = int_info->SegmentIndex1;
+                                        int_info2.SegmentIndex2 = int_info->SegmentIndex2;
+                                        int_info2.T1 = VariableInterval(int_info->T1.Index, begin_root.Get(0));
+                                        int_info2.T2 = VariableInterval(int_info->T2.Index, begin_root.Get(1));
+                                        int_info2.RootState1 = 0;
+                                        int_info2.RootState2 = 0;
+                                        int_info2.SameDirState = 0;
+                                        int_info2.IsClearRoot = true;
+                                        merged_int_infos.Append(int_info2);
+                                    }
+                                    else {
+                                        IntInfo int_info2;
+                                        int_info2.SegmentIndex1 = int_info->SegmentIndex1;
+                                        int_info2.SegmentIndex2 = int_info->SegmentIndex2;
+                                        int_info2.T1 = VariableInterval(int_info->T1.Index, begin_root.Get(0));
+                                        int_info2.T2 = VariableInterval(int_info->T2.Index, begin_root.Get(1));
+                                        int_info2.RootState1 = 0;
+                                        int_info2.RootState2 = 0;
+                                        int_info2.SameDirState = 0;
+                                        int_info2.IsClearRoot = false;
+                                        merged_int_infos.Append(int_info2);
+                                    }
+                                    int_info = nullptr;
+                                }
+                                else {
+                                    double old_length = int_info->T1.Value.Length();
+                                    if (int_info->RootState1 == 2) {
+                                        int_info->T1.Value.Min = begin_root.Get(0).Min;
+                                        if (int_info->SameDirState == 1) {
+                                            int_info->T2.Value.Min = begin_root.Get(1).Min;
+                                        }
+                                        else {
+                                            int_info->T2.Value.Max = begin_root.Get(1).Max;
+                                        }
+                                        int_info->RootState1 = 0;
+                                    }
+                                    if (int_info->RootState2 == 2) {
+                                        int_info->T1.Value.Max = begin_root.Get(0).Max;
+                                        if (int_info->SameDirState == 1) {
+                                            int_info->T2.Value.Max = begin_root.Get(1).Max;
+                                        }
+                                        else {
+                                            int_info->T2.Value.Min = begin_root.Get(1).Min;
+                                        }
+                                        int_info->RootState2 = 0;
+                                    }
+                                    if (int_info->T1.Value.Length() < old_length * 0.618) {
+                                        merged_int_infos.Append(*int_info);
+                                        int_info = nullptr;
+                                    }
+                                }
+                                /*
                                 Curve2dCurve2dIntExVariable initial_variable;
                                 initial_variable.Set(0, int_info->T1.Value);
                                 initial_variable.Set(1, int_info->T2.Value);
@@ -1097,6 +1206,7 @@ namespace wgp {
                                     merged_int_infos.Append(int_info2);
                                 }
                                 int_info = nullptr;
+                                */
                             }
                         }
                     }
@@ -1172,12 +1282,23 @@ namespace wgp {
             }
         }
         Curve2dCurve2dInt* prev_int = nullptr;
-        bool prev_same_dir = true;
+        int prev_same_dir = 3;
         for (int i = 0; i < count; ++i) {
             Curve2dCurve2dIntIndex* index = indices.GetPointer(i);
             if (index->EndIndex != index->StartIndex) {
-                bool same_dir = index->Array->GetPointer(index->EndIndex)->T2.Value > index->Array->GetPointer(index->StartIndex)->T2.Value;
-                if (prev_int && prev_same_dir == same_dir &&
+                int same_dir;
+                double t21 = index->Array->GetPointer(index->StartIndex)->T2.Value;
+                double t22 = index->Array->GetPointer(index->EndIndex)->T2.Value;
+                if (t22 > t21 + g_double_epsilon) {
+                    same_dir = 1;
+                }
+                else if (t22 < t21 - g_double_epsilon) {
+                    same_dir = 2;
+                }
+                else {
+                    same_dir = 3;
+                }
+                if (prev_int && (prev_same_dir & same_dir) != 0 &&
                     vector2_equals(prev_int->Point1, index->Array->GetPointer(index->StartIndex)->Point1, distance_epsilon)) {
                     prev_int->Type = Curve2dCurve2dIntType::OverlapInner;
                 }
@@ -1188,7 +1309,9 @@ namespace wgp {
                     result.Append(*index->Array->GetPointer(j));
                 }
                 prev_int = result.GetPointer(result.GetCount() - 1);
-                prev_same_dir = true;
+                if (same_dir != 3) {
+                    prev_same_dir = same_dir;
+                }
             }
             else {
                 if (!prev_int || !vector2_equals(prev_int->Point1, index->Array->GetPointer(index->StartIndex)->Point1, distance_epsilon)) {

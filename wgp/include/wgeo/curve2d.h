@@ -25,6 +25,8 @@ namespace wgp {
         virtual void Calculate(int index, const Interval& t, Interval2d* d0, Interval2d* dt, Interval2d* dt2) = 0;
     public:
         virtual void CalculateByCircleTransformation(int index, const Interval& t, const Vector2d& center, Interval* d0, Interval* dt) = 0;
+    protected:
+        void GeneralSplitFlat(int index, const Interval& t, Array<VariableInterval>& segments, double angle_epsilon);
     public:
         virtual void RotateForIntersect(int index, Curve2d*& dst, double angle, double cos, double sin) = 0;
     };

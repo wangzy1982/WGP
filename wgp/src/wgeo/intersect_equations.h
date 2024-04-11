@@ -113,7 +113,7 @@ namespace wgp {
         }
 
         double GetVariableEpsilon(int i) {
-            return 1E-12;
+            return g_double_epsilon;
         }
 
         double GetDeltaVariableEpsilon(int i) {
@@ -146,8 +146,8 @@ namespace wgp {
             Interval2d point1;
             Interval2d point2;
             if (m_transformed) {
-                m_curve1->Calculate(m_index1, variable.Get(0), &point1, nullptr, nullptr);
-                m_curve2->Calculate(m_index2, variable.Get(1), &point2, nullptr, nullptr);
+                m_curve1->Calculate(0, variable.Get(0), &point1, nullptr, nullptr);
+                m_curve2->Calculate(0, variable.Get(1), &point2, nullptr, nullptr);
             }
             else {
                 if (variable.m_curves_value_dirty[0]) {
@@ -172,17 +172,23 @@ namespace wgp {
         void CalculatePartialDerivative(const Curve2dCurve2dIntVariable& variable, IntervalMatrix<2, 2>& value) {
             Curve2d* curve1;
             Curve2d* curve2;
+            int index1;
+            int index2;
             if (m_transformed) {
                 curve1 = m_curve1;
                 curve2 = m_curve2;
+                index1 = 0;
+                index2 = 0;
             }
             else {
                 curve1 = m_base_curve1;
                 curve2 = m_base_curve2;
+                index1 = m_index1;
+                index2 = m_index2;
             }
             Interval2d dt_1, dt_2;
-            curve1->Calculate(m_index1, variable.Get(0), nullptr, &dt_1, nullptr);
-            curve2->Calculate(m_index2, variable.Get(1), nullptr, &dt_2, nullptr);
+            curve1->Calculate(index1, variable.Get(0), nullptr, &dt_1, nullptr);
+            curve2->Calculate(index2, variable.Get(1), nullptr, &dt_2, nullptr);
             *value.Get(0, 0) = dt_1.X;
             *value.Get(0, 1) = -dt_2.X;
             *value.Get(1, 0) = dt_1.Y;
@@ -342,7 +348,7 @@ namespace wgp {
         }
 
         double GetVariableEpsilon(int i) {
-            return 1E-12;
+            return g_double_epsilon;
         }
 
         double GetValueEpsilon(int i) {
@@ -353,7 +359,7 @@ namespace wgp {
             Interval2d point1;
             Interval2d point2;
             if (m_transformed) {
-                m_curve->Calculate(m_index, variable.Get(0), &point1, nullptr, nullptr);
+                m_curve->Calculate(0, variable.Get(0), &point1, nullptr, nullptr);
                 point2 = m_point;
             }
             else {
@@ -372,14 +378,17 @@ namespace wgp {
 
         void CalculatePartialDerivative(const Curve2dPointIntVariable& variable, IntervalMatrix<2, 1>& value) {
             Curve2d* curve;
+            int index;
             if (m_transformed) {
                 curve = m_curve;
+                index = 0;
             }
             else {
                 curve = m_base_curve;
+                index = m_index;
             }
             Interval2d dt;
-            curve->Calculate(m_index, variable.Get(0), nullptr, &dt, nullptr);
+            curve->Calculate(index, variable.Get(0), nullptr, &dt, nullptr);
             *value.Get(0, 0) = dt.X;
             *value.Get(1, 0) = dt.Y;
         }
@@ -507,7 +516,7 @@ namespace wgp {
 
     class Curve2dBeelineIntEquationSystem {
     public:
-        Curve2dBeelineIntEquationSystem(Curve2d* curve, const Vector2d& position, const Vector2d& direction, double distance_epsilon) {
+        Curve2dBeelineIntEquationSystem(Curve2d* curve, int index, const Vector2d& position, const Vector2d& direction, double distance_epsilon) {
             double cos = direction.X;
             double sin = -direction.Y;
             double angle = acos_safe(cos);
@@ -515,19 +524,14 @@ namespace wgp {
                 angle = -angle;
             }
             m_curve = nullptr;
-            curve->RotateForIntersect(m_index, m_curve, angle, cos, sin);
+            curve->RotateForIntersect(index, m_curve, angle, cos, sin);
             m_point.X = cos * position.X - sin * position.Y;
             m_point.Y = sin * position.X + cos * position.Y;
             m_distance_epsilon = distance_epsilon;
-            m_index = -1;
         }
 
         virtual ~Curve2dBeelineIntEquationSystem() {
             delete m_curve;
-        }
-
-        void SetIndex(int index) {
-            m_index = index;
         }
 
         int GetEquationCount() {
@@ -539,7 +543,7 @@ namespace wgp {
         }
 
         double GetVariableEpsilon(int i) {
-            return 1E-12;
+            return g_double_epsilon;
         }
 
         double GetDeltaVariableEpsilon(int i) {
@@ -552,25 +556,25 @@ namespace wgp {
     public:
         void CalculateValue(Vector<1>& variable, Vector<1>& value) {
             Vector2d point;
-            m_curve->Calculate(m_index, variable.Get(0), &point, nullptr, nullptr);
+            m_curve->Calculate(0, variable.Get(0), &point, nullptr, nullptr);
             value.Set(0, point.Y - m_point.Y);
         }
 
         void CalculatePartialDerivative(const Vector<1>& variable, Matrix<1, 1>& value) {
             Vector2d dt;
-            m_curve->Calculate(m_index, variable.Get(0), nullptr, &dt, nullptr);
+            m_curve->Calculate(0, variable.Get(0), nullptr, &dt, nullptr);
             *value.Get(0, 0) = dt.Y;
         }
     public:
         void CalculateValue(Curve2dBeelineIntVariable& variable, IntervalVector<1>& value) {
             Interval2d point;
-            m_curve->Calculate(m_index, variable.Get(0), &point, nullptr, nullptr);
+            m_curve->Calculate(0, variable.Get(0), &point, nullptr, nullptr);
             value.Set(0, point.Y - m_point.Y);
         }
 
         void CalculatePartialDerivative(const Curve2dBeelineIntVariable& variable, IntervalMatrix<1, 1>& value) {
             Interval2d dt;
-            m_curve->Calculate(m_index, variable.Get(0), nullptr, &dt, nullptr);
+            m_curve->Calculate(0, variable.Get(0), nullptr, &dt, nullptr);
             *value.Get(0, 0) = dt.Y;
         }
 
@@ -605,7 +609,6 @@ namespace wgp {
         }
     private:
         Curve2d* m_curve;
-        int m_index;
         Vector2d m_point;
         double m_distance_epsilon;
     };
@@ -686,10 +689,13 @@ namespace wgp {
         }
 
         double GetVariableEpsilon(int i) {
-            return 1E-12;
+            return g_double_epsilon;
         }
 
         double GetValueEpsilon(int i) {
+            if (i == 2) {
+                return g_double_epsilon;
+            }
             return m_distance_epsilon;
         }
     public:
@@ -699,10 +705,10 @@ namespace wgp {
             Interval d21;
             Interval d22;
             if (m_transformed) {
-                m_curve1->Calculate(m_index1, variable.Get(0), &point1, nullptr, nullptr);
-                m_curve2->Calculate(m_index2, variable.Get(1), &point2, nullptr, nullptr);
-                m_curve1->CalculateByCircleTransformation(m_index1, variable.Get(0), m_center, &d21, nullptr);
-                m_curve2->CalculateByCircleTransformation(m_index2, variable.Get(1), m_center, &d22, nullptr);
+                m_curve1->Calculate(0, variable.Get(0), &point1, nullptr, nullptr);
+                m_curve2->Calculate(0, variable.Get(1), &point2, nullptr, nullptr);
+                m_curve1->CalculateByCircleTransformation(0, variable.Get(0), m_center, &d21, nullptr);
+                m_curve2->CalculateByCircleTransformation(0, variable.Get(1), m_center, &d22, nullptr);
             }
             else {
                 m_base_curve1->Calculate(m_index1, variable.Get(0), &point1, nullptr, nullptr);
@@ -718,20 +724,26 @@ namespace wgp {
         void CalculatePartialDerivative(const Curve2dCurve2dIntExVariable& variable, IntervalMatrix<3, 2>& value) {
             Curve2d* curve1;
             Curve2d* curve2;
+            int index1;
+            int index2;
             if (m_transformed) {
                 curve1 = m_curve1;
                 curve2 = m_curve2;
+                index1 = 0;
+                index2 = 0;
             }
             else {
                 curve1 = m_base_curve1;
                 curve2 = m_base_curve2;
+                index1 = m_index1;
+                index2 = m_index2;
             }
             Interval2d dt_1, dt_2;
-            curve1->Calculate(m_index1, variable.Get(0), nullptr, &dt_1, nullptr);
-            curve2->Calculate(m_index2, variable.Get(1), nullptr, &dt_2, nullptr);
+            curve1->Calculate(index1, variable.Get(0), nullptr, &dt_1, nullptr);
+            curve2->Calculate(index2, variable.Get(1), nullptr, &dt_2, nullptr);
             Interval dt_21, dt_22;
-            curve1->CalculateByCircleTransformation(m_index1, variable.Get(0), m_center, nullptr, &dt_21);
-            curve2->CalculateByCircleTransformation(m_index2, variable.Get(1), m_center, nullptr, &dt_22);
+            curve1->CalculateByCircleTransformation(index1, variable.Get(0), m_center, nullptr, &dt_21);
+            curve2->CalculateByCircleTransformation(index2, variable.Get(1), m_center, nullptr, &dt_22);
             *value.Get(0, 0) = dt_1.X;
             *value.Get(0, 1) = -dt_2.X;
             *value.Get(1, 0) = dt_1.Y;
