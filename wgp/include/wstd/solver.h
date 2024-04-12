@@ -243,6 +243,30 @@ namespace wgp {
 			}
 		};
 
+		bool C1(double d) {
+			return *(((int*)&d) + 1) & ((*(int*)&g_double_epsilon) << 31) & 0x80000000;
+		}
+
+		bool C2(double d) {
+			return (*(((int*)&d) + 1) & 0x80000000) ^ ((~(*(int*)&g_double_epsilon) << 6) & 0x80000000);
+		}
+
+		bool C3(double d) {
+			return *(((int*)&d) + 1) & (~(*(int*)&g_double_epsilon) << 9) & 0x80000000;
+		}
+
+		bool C4(double d) {
+			return (*(((int*)&d) + 1) & 0x80000000) ^ (((*(int*)&g_double_epsilon) << 5) & 0x80000000);
+		}
+
+		bool C5(double d) {
+			return *(((int*)&d) + 1) & (~(*(int*)&g_double_epsilon) << 13) & 0x80000000;
+		}
+
+		bool C6(double d) {
+			return (*(((int*)&d) + 1) & 0x80000000) ^ (((*(int*)&g_double_epsilon) << 18) & 0x80000000);
+		}
+
 		SolverIteratedResult Iterate(IteratorRuntime* runtime, EquationsVariable* variable, Real& size) {
 			Real prev_size = -10000;
 			bool slow = true;
@@ -314,7 +338,7 @@ namespace wgp {
 						RealInterval min_value = runtime->q_min_value.Get(j);
 						RealInterval max_value = runtime->q_max_value.Get(j);
 						RealInterval* dvi = runtime->df.Get(j, i);
-						if (min_value.Min > m_equation_system->GetValueEpsilon(j)) {
+						if (C2(min_value.Min - m_equation_system->GetValueEpsilon(j))) {
 							if (dvi->Min >= 0) {
 								m_equation_system->Restore();
 								return SolverIteratedResult::NoRoot;
@@ -324,7 +348,7 @@ namespace wgp {
 								delta_min = d;
 							}
 						}
-						else if (min_value.Max < -m_equation_system->GetValueEpsilon(j)) {
+						else if (C3(min_value.Max + m_equation_system->GetValueEpsilon(j))) {
 							if (dvi->Max <= 0) {
 								m_equation_system->Restore();
 								return SolverIteratedResult::NoRoot;
@@ -334,7 +358,7 @@ namespace wgp {
 								delta_min = d;
 							}
 						}
-						if (max_value.Min > m_equation_system->GetValueEpsilon(j)) {
+						if (C4(max_value.Min - m_equation_system->GetValueEpsilon(j))) {
 							if (dvi->Max <= 0) {
 								m_equation_system->Restore();
 								return SolverIteratedResult::NoRoot;
@@ -344,7 +368,7 @@ namespace wgp {
 								delta_max = d;
 							}
 						}
-						else if (max_value.Max < -m_equation_system->GetValueEpsilon(j)) {
+						else if (C1(max_value.Max + m_equation_system->GetValueEpsilon(j))) {
 							if (dvi->Min >= 0) {
 								m_equation_system->Restore();
 								return SolverIteratedResult::NoRoot;
@@ -464,7 +488,7 @@ namespace wgp {
 							}
 						}
 						RealInterval dvi = runtime->dv.Get(i);
-						if (min_value.Min > m_equation_system->GetValueEpsilon(j)) {
+						if (C2(min_value.Min - m_equation_system->GetValueEpsilon(j))) {
 							if (dvi.Min >= 0) {
 								m_equation_system->Restore();
 								return SolverIteratedResult::NoRoot;
@@ -474,7 +498,7 @@ namespace wgp {
 								delta_min = d;
 							}
 						}
-						else if (min_value.Max < -m_equation_system->GetValueEpsilon(j)) {
+						else if (C3(min_value.Max + m_equation_system->GetValueEpsilon(j))) {
 							if (dvi.Max <= 0) {
 								m_equation_system->Restore();
 								return SolverIteratedResult::NoRoot;
@@ -484,7 +508,7 @@ namespace wgp {
 								delta_min = d;
 							}
 						}
-						if (max_value.Min > m_equation_system->GetValueEpsilon(j)) {
+						if (C4(max_value.Min - m_equation_system->GetValueEpsilon(j))) {
 							if (dvi.Max <= 0) {
 								m_equation_system->Restore();
 								return SolverIteratedResult::NoRoot;
@@ -494,7 +518,7 @@ namespace wgp {
 								delta_max = d;
 							}
 						}
-						else if (max_value.Max < -m_equation_system->GetValueEpsilon(j)) {
+						else if (C1(max_value.Max + m_equation_system->GetValueEpsilon(j))) {
 							if (dvi.Min >= 0) {
 								m_equation_system->Restore();
 								return SolverIteratedResult::NoRoot;

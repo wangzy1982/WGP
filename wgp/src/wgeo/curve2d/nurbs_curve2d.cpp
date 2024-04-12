@@ -14,12 +14,20 @@ namespace wgp {
 
     NurbsCurve2dType NurbsCurve2dType::m_Instance = NurbsCurve2dType();
 
-    NurbsCurve2d::NurbsCurve2d(int degree, int control_point_count, double* knots, Vector2d* control_points, double* weights) :
+    NurbsCurve2d::NurbsCurve2d(int degree, int control_point_count, const double* knots, const Vector2d* control_points, const double* weights) :
         m_degree(degree),
-        m_control_point_count(control_point_count),
-        m_knots(knots),
-        m_control_points(control_points),
-        m_weights(weights) {
+        m_control_point_count(control_point_count) {
+        m_knots = new double[degree + control_point_count + 1];
+        memcpy(m_knots, knots, (degree + control_point_count + 1) * sizeof(double));
+        m_control_points = (Vector2d*)malloc(control_point_count * sizeof(Vector2d));
+        memcpy(m_control_points, control_points, control_point_count * sizeof(Vector2d));
+        if (weights) {
+            m_weights = new double[m_control_point_count];
+            memcpy(m_weights, weights, m_control_point_count * sizeof(double));
+        }
+        else {
+            m_weights = nullptr;
+        }
         m_basis_polynomials = new double[(degree + 1) * (degree + 1) * (control_point_count - degree)];
         int n = BSplineBasisCalculator::GetAllBasisPolynomialsSize(degree);
         if (n <= 50) {
@@ -33,13 +41,22 @@ namespace wgp {
         }
     }
 
-    NurbsCurve2d::NurbsCurve2d(int degree, int control_point_count, double* knots, Vector2d* control_points, double* weights, double* basis_polynomials) :
+    NurbsCurve2d::NurbsCurve2d(int degree, int control_point_count, const double* knots, const Vector2d* control_points, const double* weights, const double* basis_polynomials) :
         m_degree(degree),
-        m_control_point_count(control_point_count),
-        m_knots(knots),
-        m_control_points(control_points),
-        m_weights(weights),
-        m_basis_polynomials(basis_polynomials) {
+        m_control_point_count(control_point_count) {
+        m_knots = new double[degree + control_point_count + 1];
+        memcpy(m_knots, knots, (degree + control_point_count + 1) * sizeof(double));
+        m_control_points = (Vector2d*)malloc(control_point_count * sizeof(Vector2d));
+        memcpy(m_control_points, control_points, control_point_count * sizeof(Vector2d));
+        if (weights) {
+            m_weights = new double[m_control_point_count];
+            memcpy(m_weights, weights, m_control_point_count * sizeof(double));
+        }
+        else {
+            m_weights = nullptr;
+        }
+        m_basis_polynomials = new double[(degree + 1) * (degree + 1) * (control_point_count - degree)];
+        memcpy(m_basis_polynomials, basis_polynomials, (degree + 1) * (degree + 1) * (control_point_count - degree) * sizeof(double));
     }
 
     NurbsCurve2d::~NurbsCurve2d() {
@@ -580,25 +597,16 @@ namespace wgp {
             }
         }
         else {
-            double* weights = nullptr;
-            if (m_weights) {
-                weights = new double[m_degree + 1];
-                memcpy(weights, m_weights + index, (m_degree + 1) * sizeof(double));
-            }
-            double* knots = new double[(m_degree + 1) * 2];
-            memcpy(knots, m_knots + index, (m_degree + 1) * 2 * sizeof(double));
             int n = BSplineBasisCalculator::GetBasisPolynomialsSize(m_degree, m_degree);
-            double* basis_polynomials = new double[n];
-            memcpy(basis_polynomials, m_basis_polynomials + (n * index), n * sizeof(double));
-            Vector2d* control_points = new Vector2d[m_degree + 1];
+            dst = new NurbsCurve2d(m_degree, m_degree + 1, m_knots + index, m_control_points + index,
+                m_weights ? m_weights + index : nullptr, m_basis_polynomials + (n * index));
             for (int i = 0; i <= m_degree; ++i) {
                 int j = index + i;
-                control_points[i] = Vector2d(
+                ((NurbsCurve2d*)dst)->m_control_points[i] = Vector2d(
                     cos * m_control_points[j].X - sin * m_control_points[j].Y,
                     sin * m_control_points[j].X + cos * m_control_points[j].Y
                 );
             }
-            dst = new NurbsCurve2d(m_degree, m_degree + 1, knots, control_points, weights, basis_polynomials);
         }
     }
 

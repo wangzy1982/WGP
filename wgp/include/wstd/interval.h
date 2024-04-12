@@ -201,13 +201,12 @@ namespace wgp {
 
     inline Interval Interval::Secure() const {
         if (Min * Max <= 0) {
-            double c = 1 + 1E-15;
-            return Interval(Min * c, Max * c);
+            return Interval(Min + Min * 1.0099995520574283e-15, Max + Max * 1.0099995520574283e-15);
         }
         if (Min < 0) {
-            return Interval(Min * (1 + 1E-15), Max);
+            return Interval(Min + Min * 1.0099995520574283e-15, Max);
         }
-        return Interval(Min, Max * (1 + 1E-15));
+        return Interval(Min, Max + Max * 1.0099995520574283e-15);
     }
 
 }

@@ -18,8 +18,8 @@ namespace wgp {
 
     class WGP_API NurbsCurve2d : public Curve2d {
     public:
-        NurbsCurve2d(int degree, int control_point_count, double* knots, Vector2d* control_points, double* weights);
-        NurbsCurve2d(int degree, int control_point_count, double* knots, Vector2d* control_points, double* weights, double* basis_polynomials);
+        NurbsCurve2d(int degree, int control_point_count, const double* knots, const Vector2d* control_points, const double* weights);
+        NurbsCurve2d(int degree, int control_point_count, const double* knots, const Vector2d* control_points, const double* weights, const double* basis_polynomials);
         virtual ~NurbsCurve2d();
         GeometryType* GetType() const { return NurbsCurve2dType::Instance(); }
         virtual int GetTPieceCount();

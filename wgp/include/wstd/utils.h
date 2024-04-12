@@ -11,7 +11,7 @@
 
 const double g_pi = 3.14159265358979323846;
 
-const double g_double_epsilon = 1E-12;
+const double g_double_epsilon = 1.0997942064494520E-12;
 const double g_unit_epsilon = 1E-6;
 
 inline double acos_safe(double x) {

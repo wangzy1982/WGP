@@ -1197,7 +1197,7 @@ namespace wgp {
                                         }
                                         int_info->RootState2 = 0;
                                     }
-                                    if (int_info->T1.Value.Length() < old_length * 0.618) {
+                                    if (int_info->T1.Value.Length() < old_length * 0.8) {
                                         merged_int_infos.Append(*int_info);
                                         int_info = nullptr;
                                     }
