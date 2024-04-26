@@ -12,9 +12,13 @@ namespace wgp {
 	Curve2d::~Curve2d() {
 	}
 
-	void Curve2d::GeneralSplitFlat(int index, const Interval& t, Array<VariableInterval>& segments, double angle_epsilon) {
+	void Curve2d::GeneralSplitFlat(GeometryHelper* helper, int index, const Interval& t, 
+		Array<VariableInterval>& segments, double angle_epsilon) {
+		if (t.Length() <= g_double_epsilon) {
+			return;
+		}
 		Interval2d dt;
-		Calculate(index, t, nullptr, &dt, nullptr);
+		Calculate(helper, index, t, nullptr, &dt, nullptr);
 		Vector2d vt1, vt2;
 		if (dt.GetVectorBorder(vt1, vt2)) {
 			if (angle_epsilon >= g_pi) {
@@ -39,7 +43,7 @@ namespace wgp {
 			}
 		}
 		double m = t.Center();
-		GeneralSplitFlat(index, Interval(t.Min, m), segments, angle_epsilon);
-		GeneralSplitFlat(index, Interval(m, t.Max), segments, angle_epsilon);
+		GeneralSplitFlat(helper, index, Interval(t.Min, m), segments, angle_epsilon);
+		GeneralSplitFlat(helper, index, Interval(m, t.Max), segments, angle_epsilon);
 	}
 }

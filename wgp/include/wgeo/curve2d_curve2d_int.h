@@ -20,12 +20,9 @@ namespace wgp {
     class WGP_API Curve2dCurve2dInt {
     public:
         Curve2dCurve2dIntType Type;
-        void* Tag1;
-        void* Tag2;
-        Variable T1;
-        Variable T2;
-        Vector2d Point1;
-        Vector2d Point2;
+        void* Tags[2];
+        Variable Ts[2];
+        Vector2d Points[2];
     };
 
     class WGP_API Curve2dCurve2dIntIndex {
@@ -35,7 +32,7 @@ namespace wgp {
         int EndIndex;
     };
 
-    WGP_API void Intersect(Curve2d* curve1, Curve2d* curve2, void* tag1, void* tag2, double dist_epsilon, Array<Curve2dCurve2dInt>& result);
+    WGP_API void Intersect(Curve2d* curve0, Curve2d* curve1, void* tag0, void* tag1, double dist_epsilon, Array<Curve2dCurve2dInt>& result);
 
     typedef int (*CompareTagFunction)(void* tag1, void* tag2);
 

@@ -14,672 +14,301 @@ namespace wgp {
     class Curve2dCurve2dIntVariable {
     public:
         Curve2dCurve2dIntVariable() {
-            m_curves_value_dirty[0] = true;
-            m_curves_value_dirty[1] = true;
+            m_d0_dirty[0] = true;
+            m_d0_dirty[1] = true;
+            m_dt_dirty[0] = true;
+            m_dt_dirty[1] = true;
+            m_is_flat[0] = false;
+            m_is_flat[1] = false;
+            m_same_dir = 0;
         }
-        Curve2dCurve2dIntVariable(int degree) : m_vector(degree) {
-            m_curves_value_dirty[0] = true;
-            m_curves_value_dirty[1] = true;
+
+        Curve2dCurve2dIntVariable(const Interval& t0, const Interval& t1) : Curve2dCurve2dIntVariable() {
+            m_t[0] = t0;
+            m_t[1] = t1;
         }
-        Curve2dCurve2dIntVariable(const Curve2dCurve2dIntVariable& vt) :
-            m_vector(vt.m_vector) {
-            m_curves_value_dirty[0] = vt.m_curves_value_dirty[0];
-            m_curves_value_dirty[1] = vt.m_curves_value_dirty[1];
-            m_curves_value[0] = vt.m_curves_value[0];
-            m_curves_value[1] = vt.m_curves_value[1];
+
+        Curve2dCurve2dIntVariable(int degree) : Curve2dCurve2dIntVariable() {
+            assert(degree == 2);
         }
-        virtual ~Curve2dCurve2dIntVariable() {}
-        int GetDegree() const { return m_vector.GetDegree(); }
-        Curve2dCurve2dIntVariable& operator=(const Curve2dCurve2dIntVariable& vt) {
-            m_vector = vt.m_vector;
-            m_curves_value_dirty[0] = vt.m_curves_value_dirty[0];
-            m_curves_value_dirty[1] = vt.m_curves_value_dirty[1];
-            m_curves_value[0] = vt.m_curves_value[0];
-            m_curves_value[1] = vt.m_curves_value[1];
-            return *this;
+
+        int GetDegree() const { 
+            return 2; 
         }
-        const Interval& Get(int i) const { return m_vector.Get(i); }
+
+        const Interval& Get(int i) const {
+            return m_t[i]; 
+        }
+
         void Set(int i, const Interval& value) {
-            m_vector.Set(i, value);
-            m_curves_value_dirty[i] = true;
+            m_t[i] = value;
+            m_d0_dirty[i] = true;
+            m_dt_dirty[i] = true;
+            if (!value.IsInner(m_t[i])) {
+                m_is_flat[i] = false;
+                m_same_dir = 0;
+            }
         }
-        void Split(int index, Curve2dCurve2dIntVariable& variable1, Curve2dCurve2dIntVariable& variable2) {
+
+        void Set(int i, const Curve2dCurve2dIntVariable& variable) {
+            m_t[i] = variable.m_t[i];
+            m_d0_dirty[i] = variable.m_d0_dirty[i];
+            m_d0[i] = variable.m_d0[i];
+            m_dt_dirty[i] = variable.m_dt_dirty[i];
+            m_dt[i] = variable.m_dt[i];
+            if (!variable.m_t[i].IsInner(m_t[i])) {
+                m_is_flat[i] = variable.m_is_flat[i];
+                m_same_dir = variable.m_same_dir;
+            }
+            else {
+                if (variable.m_is_flat[i]) {
+                    m_is_flat[i] = true;
+                }
+                if (variable.m_same_dir != 0) {
+                    m_same_dir = variable.m_same_dir;
+                }
+            }
+        }
+
+        void Merge(Curve2dCurve2dIntVariable& variable) {
+            m_t[0].Merge(variable.m_t[0]);
+            m_t[1].Merge(variable.m_t[1]);
+            m_d0_dirty[0] = true;
+            m_d0_dirty[1] = true;
+            m_dt_dirty[0] = true;
+            m_dt_dirty[1] = true;
+            m_is_flat[0] = false;
+            m_is_flat[1] = false;
+            if (m_same_dir != variable.m_same_dir) {
+                m_same_dir = 0;
+            }
+        }
+
+        void Split(int index, Curve2dCurve2dIntVariable& variable1, Curve2dCurve2dIntVariable& variable2) const {
             variable1 = *this;
             variable2 = *this;
-            double m = m_vector.Get(index).Center();
-            variable1.m_vector.SetMax(index, m);
-            variable2.m_vector.SetMin(index, m);
-            variable1.m_curves_value_dirty[index] = true;
-            variable2.m_curves_value_dirty[index] = true;
+            double m = m_t[index].Center();
+            variable1.m_t[index].Max = m;
+            variable2.m_t[index].Min = m;
+            variable1.m_d0_dirty[index] = true;
+            variable1.m_dt_dirty[index] = true;
+            variable1.m_is_flat[index] = m_is_flat[index];
+            variable1.m_same_dir = m_same_dir;
+            variable2.m_d0_dirty[index] = true;
+            variable2.m_dt_dirty[index] = true;
+            variable2.m_is_flat[index] = m_is_flat[index];
+            variable2.m_same_dir = m_same_dir;
         }
-    public:
-        void SetCurveValue(int index, const Interval2d& value) {
-            m_curves_value_dirty[index] = false;
-            m_curves_value[index] = value;
-        }
-    public:
-        void Center(Curve2dCurve2dIntVariable& vt) const {
-            m_vector.Center(vt.m_vector);
-            vt.m_curves_value_dirty[0] = true;
-            vt.m_curves_value_dirty[1] = true;
-        }
-        void Min(Curve2dCurve2dIntVariable& vt) const {
-            m_vector.Min(vt.m_vector);
-            vt.m_curves_value_dirty[0] = true;
-            vt.m_curves_value_dirty[1] = true;
-        }
-        void Max(Curve2dCurve2dIntVariable& vt) const {
-            m_vector.Max(vt.m_vector);
-            vt.m_curves_value_dirty[0] = true;
-            vt.m_curves_value_dirty[1] = true;
-        }
-    private:
-        IntervalVector<2> m_vector;
-    private:
-        friend class Curve2dCurve2dIntEquationSystem;
-        bool m_curves_value_dirty[2];
-        Interval2d m_curves_value[2];
+    protected:
+        friend class Curve2dCurve2dIntHelper;
+        Interval m_t[2];
+        mutable bool m_d0_dirty[2];
+        mutable Interval2d m_d0[2];
+        mutable bool m_dt_dirty[2];
+        mutable Interval2d m_dt[2];
+        mutable bool m_is_flat[2];
+        mutable int m_same_dir;     //0-Unknown  1-Yes  2-No
     };
 
-    class Curve2dCurve2dIntEquationSystem {
+    class Curve2dCurve2dIntHelper {
     public:
-        Curve2dCurve2dIntEquationSystem(Curve2d* curve1, Curve2d* curve2, double distance_epsilon) :
-            m_base_curve1(curve1),
-            m_curve1(nullptr),
-            m_index1(-1),
-            m_base_curve2(curve2),
-            m_curve2(nullptr),
-            m_index2(-1),
-            m_transformed(false),
-            m_distance_epsilon(distance_epsilon) {
+        Curve2dCurve2dIntHelper(Curve2d* curve0, Curve2d* curve1) {
+            m_curve[0] = curve0;
+            m_curve[1] = curve1;
+            m_index[0] = -1;
+            m_index[1] = -1;
+            m_calculators[0] = nullptr;
+            m_calculators[1] = nullptr;
         }
 
-        virtual ~Curve2dCurve2dIntEquationSystem() {
-            delete m_curve1;
-            delete m_curve2;
-        }
-
-        void SetIndex(int index1, int index2) {
-            m_index1 = index1;
-            m_index2 = index2;
-        }
-
-        int GetEquationCount() {
-            return 2;
-        }
-
-        int GetVariableCount() {
-            return 2;
-        }
-
-        double GetVariableEpsilon(int i) {
-            return g_double_epsilon;
-        }
-
-        double GetDeltaVariableEpsilon(int i) {
-            return 1E-5;
-        }
-
-        double GetValueEpsilon(int i) {
-            return m_distance_epsilon;
-        }
-    public:
-        void CalculateValue(Vector<2>& variable, Vector<2>& value) {
-            Vector2d point1, point2;
-            m_base_curve1->Calculate(m_index1, variable.Get(0), &point1, nullptr, nullptr);
-            m_base_curve2->Calculate(m_index2, variable.Get(1), &point2, nullptr, nullptr);
-            value.Set(0, point1.X - point2.X);
-            value.Set(1, point1.Y - point2.Y);
-        }
-
-        void CalculatePartialDerivative(const Vector<2>& variable, Matrix<2, 2>& value) {
-            Vector2d dt_1, dt_2;
-            m_base_curve1->Calculate(m_index1, variable.Get(0), nullptr, &dt_1, nullptr);
-            m_base_curve2->Calculate(m_index2, variable.Get(1), nullptr, &dt_2, nullptr);
-            *value.Get(0, 0) = dt_1.X;
-            *value.Get(0, 1) = -dt_2.X;
-            *value.Get(1, 0) = dt_1.Y;
-            *value.Get(1, 1) = -dt_2.Y;
-        }
-    public:
-        void CalculateValue(Curve2dCurve2dIntVariable& variable, IntervalVector<2>& value) {
-            Interval2d point1;
-            Interval2d point2;
-            if (m_transformed) {
-                m_curve1->Calculate(0, variable.Get(0), &point1, nullptr, nullptr);
-                m_curve2->Calculate(0, variable.Get(1), &point2, nullptr, nullptr);
+        virtual ~Curve2dCurve2dIntHelper() {
+            for (int k = 0; k <= 1; ++k) {
+                if (m_calculators[k]) {
+                    for (int i = 0; i < m_curve[k]->GetTPieceCount(); ++i) {
+                        delete m_calculators[k][i];
+                    }
+                    delete[] m_calculators[k];
+                }
             }
-            else {
-                if (variable.m_curves_value_dirty[0]) {
-                    m_base_curve1->Calculate(m_index1, variable.Get(0), &point1, nullptr, nullptr);
-                    variable.SetCurveValue(0, point1);
+        }
+
+        void SetIndex(int index0, int index1) {
+            m_index[0] = index0;
+            m_index[1] = index1;
+        }
+
+        Curve2dIntervalCalculator* GetCalculator(int index) {
+            if (!m_calculators[index]) {
+                m_calculators[index] = new Curve2dIntervalCalculator * [m_curve[index]->GetTPieceCount()];
+                memset(m_calculators[index], 0, m_curve[index]->GetTPieceCount() * sizeof(Curve2dIntervalCalculator*));
+            }
+            if (!m_calculators[index][m_index[index]]) {
+                m_calculators[index][m_index[index]] = m_curve[index]->NewCalculator(m_index[index], m_curve[index]->GetTPiece(m_index[index]));
+            }
+            return m_calculators[index][m_index[index]];
+        }
+
+        Interval2d CalculateD0(const Curve2dCurve2dIntVariable& variable, int index) {
+            if (variable.m_d0_dirty[index]) {
+                Curve2dIntervalCalculator* calculator = GetCalculator(index);
+                Interval2d d0;
+                calculator->Calculate(variable.m_t[index], &d0, nullptr, nullptr);
+                variable.m_d0_dirty[index] = false;
+                variable.m_d0[index] = d0;
+            }
+            return variable.m_d0[index];
+        }
+
+        Interval2d CalculateDt(const Curve2dCurve2dIntVariable& variable, int index) {
+            if (variable.m_dt_dirty[index]) {
+                Curve2dIntervalCalculator* calculator = GetCalculator(index);
+                Interval2d dt;
+                calculator->Calculate(variable.m_t[index], nullptr, &dt, nullptr);
+                variable.m_dt_dirty[index] = false;
+                variable.m_dt[index] = dt;
+            }
+            return variable.m_dt[index];
+        }
+
+        void CalculateIsFlat(const Curve2dCurve2dIntVariable& variable, int index) {
+            if (!variable.m_is_flat[index]) {
+                const double flat_epsilon = g_pi / 2;
+                Interval2d dt = CalculateDt(variable, index);
+                if (dt.Normalize().DiagonalLength() <= flat_epsilon) {
+                    variable.m_is_flat[index] = true;
+                }
+            }
+        }
+
+        bool GetIsFlat(const Curve2dCurve2dIntVariable& variable, int index) {
+            return variable.m_is_flat[index];
+        }
+
+        int GetSameDir(const Curve2dCurve2dIntVariable& variable) {
+            if (variable.m_same_dir != 0) {
+                return variable.m_same_dir;
+            }
+            CalculateIsFlat(variable, 0);
+            CalculateIsFlat(variable, 1);
+            if (GetIsFlat(variable, 0) && GetIsFlat(variable, 1)) {
+                Interval2d dt_0 = CalculateDt(variable, 0);
+                Interval2d dt_1 = CalculateDt(variable, 1);
+                if (dt_0.Center().Dot(dt_1.Center()) > 0) {
+                    variable.m_same_dir = 1;
                 }
                 else {
-                    point1 = variable.m_curves_value[0];
-                }
-                if (variable.m_curves_value_dirty[1]) {
-                    m_base_curve2->Calculate(m_index2, variable.Get(1), &point2, nullptr, nullptr);
-                    variable.SetCurveValue(1, point2);
-                }
-                else {
-                    point2 = variable.m_curves_value[1];
+                    variable.m_same_dir = 2;
                 }
             }
-            value.Set(0, point1.X - point2.X);
-            value.Set(1, point1.Y - point2.Y);
+            return variable.m_same_dir;
         }
 
-        void CalculatePartialDerivative(const Curve2dCurve2dIntVariable& variable, IntervalMatrix<2, 2>& value) {
-            Curve2d* curve1;
-            Curve2d* curve2;
-            int index1;
-            int index2;
-            if (m_transformed) {
-                curve1 = m_curve1;
-                curve2 = m_curve2;
-                index1 = 0;
-                index2 = 0;
-            }
-            else {
-                curve1 = m_base_curve1;
-                curve2 = m_base_curve2;
-                index1 = m_index1;
-                index2 = m_index2;
-            }
-            Interval2d dt_1, dt_2;
-            curve1->Calculate(index1, variable.Get(0), nullptr, &dt_1, nullptr);
-            curve2->Calculate(index2, variable.Get(1), nullptr, &dt_2, nullptr);
-            *value.Get(0, 0) = dt_1.X;
-            *value.Get(0, 1) = -dt_2.X;
-            *value.Get(1, 0) = dt_1.Y;
-            *value.Get(1, 1) = -dt_2.Y;
+        bool CheckQuickIterate(const Curve2dCurve2dIntVariable& variable) {
+            Interval2d dt_0 = CalculateDt(variable, 0);
+            Interval2d dt_1 = CalculateDt(variable, 1);
+            return !dt_0.Cross(dt_1).IsIntersected(0, g_double_epsilon);
         }
 
-        void Transform(Curve2dCurve2dIntVariable& variable, IntervalVector<2>& value,
-            IntervalMatrix<2, 2>& partial_derivative, bool& recheck_value, bool& use_default_transform) {
-            double d;
-            Vector2d vt = Vector2d(partial_derivative.Get(0, 0)->Center(), partial_derivative.Get(1, 0)->Center()).Normalize(d);
-            if (d > g_double_epsilon) {
-                m_transformed = true;
-                double cos = vt.X;
-                double sin = -vt.Y;
-                double angle = acos_safe(cos);
-                if (sin < 0) {
-                    angle = -angle;
+        bool QuickIterate(const Curve2dCurve2dIntVariable& variable, double distance_epsilon, double& t0, double& t1) {
+            bool b = false;
+            if (CheckQuickIterate(variable)) {
+                t0 = variable.Get(0).Center();
+                t1 = variable.Get(1).Center();
+                Vector2d pt0, pt1, vt0, vt1;
+                m_curve[0]->Calculate(m_index[0], t0, &pt0, &vt0, nullptr);
+                m_curve[1]->Calculate(m_index[1], t1, &pt1, &vt1, nullptr);
+                Vector2d vt = pt0 - pt1;
+                double dist = vt.Length();
+                for (int i = 0; i < 10000; ++i) {
+                    double a = vt0.Cross(vt1);
+                    if (a == 0) {
+                        break;
+                    }
+                    double delta0 = vt1.Cross(vt) / a;
+                    double delta1 = vt0.Cross(vt) / a;
+                    double nt0 = t0 + delta0;
+                    double nt1 = t1 + delta1;
+                    if (nt0 > variable.Get(0).Max) {
+                        nt0 = variable.Get(0).Max;
+                        delta0 = nt0 - t0;
+                    }
+                    else if (nt0 < variable.Get(0).Min) {
+                        nt0 = variable.Get(0).Min;
+                        delta0 = nt0 - t0;
+                    }
+                    if (nt1 > variable.Get(1).Max) {
+                        nt1 = variable.Get(1).Max;
+                        delta1 = nt1 - t1;
+                    }
+                    else if (nt1 < variable.Get(1).Min) {
+                        nt1 = variable.Get(1).Min;
+                        delta1 = nt1 - t1;
+                    }
+                    Vector2d npt0, npt1, nvt0, nvt1;
+                    m_curve[0]->Calculate(m_index[0], nt0, &npt0, &nvt0, nullptr);
+                    m_curve[1]->Calculate(m_index[1], nt1, &npt1, &nvt1, nullptr);
+                    Vector2d nvt = npt0 - npt1;
+                    double ndist = nvt.Length();
+                    while (ndist > dist) {
+                        delta0 = delta0 * 0.1;
+                        delta1 = delta1 * 0.1;
+                        if (is_zero(delta0, g_double_epsilon) && is_zero(delta1, g_double_epsilon)) {
+                            break;
+                        }
+                        nt0 = t0 + delta0;
+                        nt1 = t1 + delta1;
+                        m_curve[0]->Calculate(m_index[0], nt0, &npt0, &nvt0, nullptr);
+                        m_curve[1]->Calculate(m_index[1], nt1, &npt1, &nvt1, nullptr);
+                        nvt = npt0 - npt1;
+                        ndist = nvt.Length();
+                    }
+                    if (ndist <= dist) {
+                        t0 = nt0;
+                        t1 = nt1;
+                        pt0 = npt0;
+                        pt1 = npt1;
+                        vt0 = nvt0;
+                        vt1 = nvt1;
+                        vt = nvt;
+                        dist = ndist;
+                    }
+                    if (is_zero(vt.X, distance_epsilon) && is_zero(vt.Y, distance_epsilon)) {
+                        if (is_zero(vt0.Length() * delta0, distance_epsilon) && is_zero(vt1.Length() * delta1, distance_epsilon)) {
+                            b = true;
+                            break;
+                        }
+                    }
+                    if (ndist > dist) {
+                        break;
+                    }
                 }
-                m_base_curve1->RotateForIntersect(m_index1, m_curve1, angle, cos, sin);
-                m_base_curve2->RotateForIntersect(m_index2, m_curve2, angle, cos, sin);
-                CalculateValue(variable, value);
-                CalculatePartialDerivative(variable, partial_derivative);
-                recheck_value = true;
-                use_default_transform = false;
             }
-            else {
-                recheck_value = false;
-                use_default_transform = true;
-                m_transformed = false;
-            }
+            return b;
         }
 
-        void Restore() {
-            m_transformed = false;
+        Curve2d* GetCurve(int index) const {
+            return m_curve[index];
         }
 
-        int GetSplitIndex(const Curve2dCurve2dIntVariable& variable, int prev_split_index, double size) {
-            return 0;
+        int GetIndex(int index) const {
+            return m_index[index];
         }
-
-        int CompareIteratePriority(const Curve2dCurve2dIntVariable& variable1, double size1,
-            const Curve2dCurve2dIntVariable& variable2, double size2) {
-            double len1 = variable1.Get(0).Length();
-            double len2 = variable2.Get(0).Length();
-            if (len1 < len2) {
-                return -1;
-            }
-            if (len1 > len2) {
-                return 1;
-            }
-            return 0;
-        }
-
-        virtual bool SpeciallySolve(Curve2dCurve2dIntVariable* variable, SolverIteratedResult& result, double& size) {
-            return false;
-        }
-    private:
-        Curve2d* m_base_curve1;
-        Curve2d* m_curve1;
-        int m_index1;
-        Curve2d* m_base_curve2;
-        Curve2d* m_curve2;
-        int m_index2;
-        bool m_transformed;
-        double m_distance_epsilon;
+    protected:
+        Curve2d* m_curve[2];
+        int m_index[2];
+        Curve2dIntervalCalculator** m_calculators[2];
     };
 
-    class Curve2dPointIntVariable {
+    class Curve2dCurve2dIntBaseEquationSystem {
     public:
-        Curve2dPointIntVariable() {
-            m_curves_value_dirty = true;
-        }
-        Curve2dPointIntVariable(int degree) {
-            m_curves_value_dirty = true;
-        }
-        Curve2dPointIntVariable(const Curve2dPointIntVariable& vt) :
-            m_variable(vt.m_variable) {
-            m_curves_value_dirty = vt.m_curves_value_dirty;
-            m_curves_value = vt.m_curves_value;
-        }
-        virtual ~Curve2dPointIntVariable() {}
-        int GetDegree() const { return 1; }
-        Curve2dPointIntVariable& operator=(const Curve2dPointIntVariable& vt) {
-            m_variable = vt.m_variable;
-            m_curves_value_dirty = vt.m_curves_value_dirty;
-            m_curves_value = vt.m_curves_value;
-            return *this;
-        }
-        const Interval& Get(int i) const { return m_variable; }
-        void Set(int i, const Interval& value) {
-            m_variable = value;
-            m_curves_value_dirty = true;
-        }
-        void Split(int index, Curve2dPointIntVariable& variable1, Curve2dPointIntVariable& variable2) {
-            variable1 = *this;
-            variable2 = *this;
-            double m = m_variable.Center();
-            variable1.m_variable.Max = m;
-            variable2.m_variable.Min = m;
-            variable1.m_curves_value_dirty = true;
-        }
-    public:
-        void SetCurveValue(int index, const Interval2d& value) {
-            m_curves_value_dirty = false;
-            m_curves_value = value;
-        }
-    public:
-        void Center(Curve2dPointIntVariable& vt) const {
-            vt.m_variable = m_variable.Center();
-            vt.m_curves_value_dirty = true;
-        }
-        void Min(Curve2dPointIntVariable& vt) const {
-            vt.m_variable = m_variable.Min;
-            vt.m_curves_value_dirty = true;
-        }
-        void Max(Curve2dPointIntVariable& vt) const {
-            vt.m_variable = m_variable.Max;
-            vt.m_curves_value_dirty = true;
-        }
-    private:
-        Interval m_variable;
-    private:
-        friend class Curve2dPointIntEquationSystem;
-        bool m_curves_value_dirty;
-        Interval2d m_curves_value;
-    };
-
-    class Curve2dPointIntEquationSystem {
-    public:
-        Curve2dPointIntEquationSystem(Curve2d* curve, const Vector2d& point, double distance_epsilon) :
-            m_base_curve(curve),
-            m_curve(nullptr),
-            m_index(-1),
-            m_base_point(point),
-            m_transformed(false),
-            m_distance_epsilon(distance_epsilon) {
-        }
-
-        virtual ~Curve2dPointIntEquationSystem() {
-            delete m_curve;
-        }
-
-        void SetIndex(int index) {
-            m_index = index;
-        }
-
-        void SetPoint(const Vector2d& point) {
-            m_base_point = point;
-        }
-
-        int GetEquationCount() {
-            return 2;
-        }
-
-        int GetVariableCount() {
-            return 1;
-        }
-
-        double GetVariableEpsilon(int i) {
-            return g_double_epsilon;
-        }
-
-        double GetValueEpsilon(int i) {
-            return m_distance_epsilon;
-        }
-
-        void CalculateValue(Curve2dPointIntVariable& variable, IntervalVector<2>& value) {
-            Interval2d point1;
-            Interval2d point2;
-            if (m_transformed) {
-                m_curve->Calculate(0, variable.Get(0), &point1, nullptr, nullptr);
-                point2 = m_point;
-            }
-            else {
-                if (variable.m_curves_value_dirty) {
-                    m_base_curve->Calculate(m_index, variable.Get(0), &point1, nullptr, nullptr);
-                    variable.SetCurveValue(0, point1);
-                }
-                else {
-                    point1 = variable.m_curves_value;
-                }
-                point2 = m_base_point;
-            }
-            value.Set(0, point1.X - point2.X);
-            value.Set(1, point1.Y - point2.Y);
-        }
-
-        void CalculatePartialDerivative(const Curve2dPointIntVariable& variable, IntervalMatrix<2, 1>& value) {
-            Curve2d* curve;
-            int index;
-            if (m_transformed) {
-                curve = m_curve;
-                index = 0;
-            }
-            else {
-                curve = m_base_curve;
-                index = m_index;
-            }
-            Interval2d dt;
-            curve->Calculate(index, variable.Get(0), nullptr, &dt, nullptr);
-            *value.Get(0, 0) = dt.X;
-            *value.Get(1, 0) = dt.Y;
-        }
-
-        void Transform(Curve2dPointIntVariable& variable, IntervalVector<2>& value,
-            IntervalMatrix<2, 1>& partial_derivative, bool& recheck_value, bool& use_default_transform) {
-            double d;
-            Vector2d vt = Vector2d(partial_derivative.Get(0, 0)->Center(), partial_derivative.Get(1, 0)->Center()).Normalize(d);
-            if (d > g_double_epsilon) {
-                m_transformed = true;
-                double cos = vt.X;
-                double sin = -vt.Y;
-                double angle = acos_safe(cos);
-                if (sin < 0) {
-                    angle = -angle;
-                }
-                m_base_curve->RotateForIntersect(m_index, m_curve, angle, cos, sin);
-                m_point.X = cos * m_base_point.X - sin * m_base_point.Y;
-                m_point.Y = sin * m_base_point.X + cos * m_base_point.Y;
-                CalculateValue(variable, value);
-                CalculatePartialDerivative(variable, partial_derivative);
-                recheck_value = true;
-                use_default_transform = false;
-            }
-            else {
-                recheck_value = false;
-                use_default_transform = true;
-                m_transformed = false;
-            }
-        }
-
-        void Restore() {
-            m_transformed = false;
-        }
-
-        int GetSplitIndex(const Curve2dPointIntVariable& variable, int prev_split_index, double size) {
-            return 0;
-        }
-
-        int CompareIteratePriority(const Curve2dPointIntVariable& variable1, double size1,
-            const Curve2dPointIntVariable& variable2, double size2) {
-            double len1 = variable1.Get(0).Length();
-            double len2 = variable2.Get(0).Length();
-            if (len1 < len2) {
-                return -1;
-            }
-            if (len1 > len2) {
-                return 1;
-            }
-            return 0;
-        }
-
-        virtual bool SpeciallySolve(Curve2dPointIntVariable* variable, SolverIteratedResult& result, double& size) {
-            return false;
-        }
-    private:
-        Curve2d* m_base_curve;
-        Curve2d* m_curve;
-        int m_index;
-        Vector2d m_base_point;
-        Vector2d m_point;
-        bool m_transformed;
-        double m_distance_epsilon;
-    };
-
-    class Curve2dBeelineIntVariable {
-    public:
-        Curve2dBeelineIntVariable() {
-            m_curves_value_dirty = true;
-        }
-        Curve2dBeelineIntVariable(int degree) {
-            m_curves_value_dirty = true;
-        }
-        Curve2dBeelineIntVariable(const Curve2dBeelineIntVariable& vt) :
-            m_variable(vt.m_variable) {
-            m_curves_value_dirty = vt.m_curves_value_dirty;
-            m_curves_value = vt.m_curves_value;
-        }
-        virtual ~Curve2dBeelineIntVariable() {}
-        int GetDegree() const { return 1; }
-        Curve2dBeelineIntVariable& operator=(const Curve2dBeelineIntVariable& vt) {
-            m_variable = vt.m_variable;
-            m_curves_value_dirty = vt.m_curves_value_dirty;
-            m_curves_value = vt.m_curves_value;
-            return *this;
-        }
-        const Interval& Get(int i) const { return m_variable; }
-        void Set(int i, const Interval& value) {
-            m_variable = value;
-            m_curves_value_dirty = true;
-        }
-        void Split(int index, Curve2dBeelineIntVariable& variable1, Curve2dBeelineIntVariable& variable2) {
-            variable1 = *this;
-            variable2 = *this;
-            double m = m_variable.Center();
-            variable1.m_variable.Max = m;
-            variable2.m_variable.Min = m;
-            variable1.m_curves_value_dirty = true;
-        }
-    public:
-        void SetCurveValue(int index, const Interval2d& value) {
-            m_curves_value_dirty = false;
-            m_curves_value = value;
-        }
-    public:
-        void Center(Curve2dBeelineIntVariable& vt) const {
-            vt.m_variable = m_variable.Center();
-            vt.m_curves_value_dirty = true;
-        }
-        void Min(Curve2dBeelineIntVariable& vt) const {
-            vt.m_variable = m_variable.Min;
-            vt.m_curves_value_dirty = true;
-        }
-        void Max(Curve2dBeelineIntVariable& vt) const {
-            vt.m_variable = m_variable.Max;
-            vt.m_curves_value_dirty = true;
-        }
-    private:
-        Interval m_variable;
-    private:
-        friend class Curve2dBeelineIntEquationSystem;
-        bool m_curves_value_dirty;
-        Interval2d m_curves_value;
-    };
-
-    class Curve2dBeelineIntEquationSystem {
-    public:
-        Curve2dBeelineIntEquationSystem(Curve2d* curve, int index, const Vector2d& position, const Vector2d& direction, double distance_epsilon) {
-            double cos = direction.X;
-            double sin = -direction.Y;
-            double angle = acos_safe(cos);
-            if (sin < 0) {
-                angle = -angle;
-            }
-            m_curve = nullptr;
-            curve->RotateForIntersect(index, m_curve, angle, cos, sin);
-            m_point.X = cos * position.X - sin * position.Y;
-            m_point.Y = sin * position.X + cos * position.Y;
+        Curve2dCurve2dIntBaseEquationSystem(Curve2dCurve2dIntHelper* helper, double distance_epsilon) {
+            m_helper = helper;
             m_distance_epsilon = distance_epsilon;
         }
 
-        virtual ~Curve2dBeelineIntEquationSystem() {
-            delete m_curve;
-        }
-
-        int GetEquationCount() {
-            return 1;
-        }
-
-        int GetVariableCount() {
-            return 1;
-        }
-
-        double GetVariableEpsilon(int i) {
-            return g_double_epsilon;
-        }
-
-        double GetDeltaVariableEpsilon(int i) {
-            return 1E-5;
-        }
-
-        double GetValueEpsilon(int i) {
-            return m_distance_epsilon;
+        virtual ~Curve2dCurve2dIntBaseEquationSystem() {
         }
     public:
-        void CalculateValue(Vector<1>& variable, Vector<1>& value) {
-            Vector2d point;
-            m_curve->Calculate(0, variable.Get(0), &point, nullptr, nullptr);
-            value.Set(0, point.Y - m_point.Y);
-        }
-
-        void CalculatePartialDerivative(const Vector<1>& variable, Matrix<1, 1>& value) {
-            Vector2d dt;
-            m_curve->Calculate(0, variable.Get(0), nullptr, &dt, nullptr);
-            *value.Get(0, 0) = dt.Y;
-        }
-    public:
-        void CalculateValue(Curve2dBeelineIntVariable& variable, IntervalVector<1>& value) {
-            Interval2d point;
-            m_curve->Calculate(0, variable.Get(0), &point, nullptr, nullptr);
-            value.Set(0, point.Y - m_point.Y);
-        }
-
-        void CalculatePartialDerivative(const Curve2dBeelineIntVariable& variable, IntervalMatrix<1, 1>& value) {
-            Interval2d dt;
-            m_curve->Calculate(0, variable.Get(0), nullptr, &dt, nullptr);
-            *value.Get(0, 0) = dt.Y;
-        }
-
-        void Transform(Curve2dBeelineIntVariable& variable, IntervalVector<1>& value,
-            IntervalMatrix<1, 1>& partial_derivative, bool& recheck_value, bool& use_default_transform) {
-            recheck_value = false;
-            use_default_transform = false;
-        }
-
-        void Restore() {
-        }
-
-        int GetSplitIndex(const Curve2dBeelineIntVariable& variable, int prev_split_index, double size) {
-            return 0;
-        }
-
-        int CompareIteratePriority(const Curve2dBeelineIntVariable& variable1, double size1,
-            const Curve2dBeelineIntVariable& variable2, double size2) {
-            double len1 = variable1.Get(0).Length();
-            double len2 = variable2.Get(0).Length();
-            if (len1 < len2) {
-                return -1;
-            }
-            if (len1 > len2) {
-                return 1;
-            }
-            return 0;
-        }
-
-        virtual bool SpeciallySolve(Curve2dBeelineIntVariable* variable, SolverIteratedResult& result, double& size) {
-            return false;
-        }
-    private:
-        Curve2d* m_curve;
-        Vector2d m_point;
-        double m_distance_epsilon;
-    };
-
-    class Curve2dCurve2dIntExVariable {
-    public:
-        Curve2dCurve2dIntExVariable() {
-        }
-        Curve2dCurve2dIntExVariable(int degree) : m_vector(degree) {
-        }
-        Curve2dCurve2dIntExVariable(const Curve2dCurve2dIntExVariable& vt) :
-            m_vector(vt.m_vector) {
-        }
-        virtual ~Curve2dCurve2dIntExVariable() {}
-        int GetDegree() const { return m_vector.GetDegree(); }
-        Curve2dCurve2dIntExVariable& operator=(const Curve2dCurve2dIntExVariable& vt) {
-            m_vector = vt.m_vector;
-            return *this;
-        }
-        const Interval& Get(int i) const { return m_vector.Get(i); }
-        void Set(int i, const Interval& value) {
-            m_vector.Set(i, value);
-        }
-        void Split(int index, Curve2dCurve2dIntExVariable& variable1, Curve2dCurve2dIntExVariable& variable2) {
-            variable1 = *this;
-            variable2 = *this;
-            double m = m_vector.Get(index).Center();
-            variable1.m_vector.SetMax(index, m);
-            variable2.m_vector.SetMin(index, m);
-        }
-    public:
-        void Center(Curve2dCurve2dIntExVariable& vt) const {
-            m_vector.Center(vt.m_vector);
-        }
-        void Min(Curve2dCurve2dIntExVariable& vt) const {
-            m_vector.Min(vt.m_vector);
-        }
-        void Max(Curve2dCurve2dIntExVariable& vt) const {
-            m_vector.Max(vt.m_vector);
-        }
-    private:
-        IntervalVector<2> m_vector;
-    };
-
-    class Curve2dCurve2dIntExEquationSystem {
-    public:
-        Curve2dCurve2dIntExEquationSystem(Curve2d* curve1, Curve2d* curve2, double distance_epsilon) :
-            m_base_curve1(curve1),
-            m_curve1(nullptr),
-            m_index1(-1),
-            m_base_curve2(curve2),
-            m_curve2(nullptr),
-            m_index2(-1),
-            m_transformed(false),
-            m_distance_epsilon(distance_epsilon) {
-        }
-
-        virtual ~Curve2dCurve2dIntExEquationSystem() {
-            delete m_curve1;
-            delete m_curve2;
-        }
-
-        void SetIndex(int index1, int index2) {
-            m_index1 = index1;
-            m_index2 = index2;
-        }
-
-        void SetCenter(const Vector2d& center) {
-            m_center = center;
-        }
-
         int GetEquationCount() {
             return 3;
         }
@@ -692,123 +321,444 @@ namespace wgp {
             return g_double_epsilon;
         }
 
-        double GetValueEpsilon(int i) {
+        virtual double GetValueEpsilon(int i, bool is_checking) {
             return m_distance_epsilon;
         }
-    public:
-        void CalculateValue(Curve2dCurve2dIntExVariable& variable, IntervalVector<3>& value) {
-            Interval2d point1;
-            Interval2d point2;
-            Interval d21;
-            Interval d22;
-            if (m_transformed) {
-                m_curve1->Calculate(0, variable.Get(0), &point1, nullptr, nullptr);
-                m_curve2->Calculate(0, variable.Get(1), &point2, nullptr, nullptr);
-                m_curve1->CalculateByCircleTransformation(0, variable.Get(0), m_center, &d21, nullptr);
-                m_curve2->CalculateByCircleTransformation(0, variable.Get(1), m_center, &d22, nullptr);
-            }
-            else {
-                m_base_curve1->Calculate(m_index1, variable.Get(0), &point1, nullptr, nullptr);
-                m_base_curve2->Calculate(m_index2, variable.Get(1), &point2, nullptr, nullptr);
-                m_base_curve1->CalculateByCircleTransformation(m_index1, variable.Get(0), m_center, &d21, nullptr);
-                m_base_curve2->CalculateByCircleTransformation(m_index2, variable.Get(1), m_center, &d22, nullptr);
-            }
-            value.Set(0, point1.X - point2.X);
-            value.Set(1, point1.Y - point2.Y);
-            value.Set(2, d21 - d22);
+
+        virtual void CalculateValue(const Curve2dCurve2dIntVariable& variable, IntervalVector<3>& value) {
+            assert(false);
         }
 
-        void CalculatePartialDerivative(const Curve2dCurve2dIntExVariable& variable, IntervalMatrix<3, 2>& value) {
-            Curve2d* curve1;
-            Curve2d* curve2;
-            int index1;
-            int index2;
-            if (m_transformed) {
-                curve1 = m_curve1;
-                curve2 = m_curve2;
-                index1 = 0;
-                index2 = 0;
-            }
-            else {
-                curve1 = m_base_curve1;
-                curve2 = m_base_curve2;
-                index1 = m_index1;
-                index2 = m_index2;
-            }
-            Interval2d dt_1, dt_2;
-            curve1->Calculate(index1, variable.Get(0), nullptr, &dt_1, nullptr);
-            curve2->Calculate(index2, variable.Get(1), nullptr, &dt_2, nullptr);
-            Interval dt_21, dt_22;
-            curve1->CalculateByCircleTransformation(index1, variable.Get(0), m_center, nullptr, &dt_21);
-            curve2->CalculateByCircleTransformation(index2, variable.Get(1), m_center, nullptr, &dt_22);
-            *value.Get(0, 0) = dt_1.X;
-            *value.Get(0, 1) = -dt_2.X;
-            *value.Get(1, 0) = dt_1.Y;
-            *value.Get(1, 1) = -dt_2.Y;
-            *value.Get(2, 0) = dt_21;
-            *value.Get(2, 1) = -dt_22;
+        virtual void CalculatePartialDerivative(const Curve2dCurve2dIntVariable& variable, IntervalMatrix<3, 2>& value) {
+            assert(false);
         }
 
-        void Transform(Curve2dCurve2dIntExVariable& variable, IntervalVector<3>& value,
-            IntervalMatrix<3, 2>& partial_derivative, bool& recheck_value, bool& use_default_transform) {
-            double d;
-            Vector2d vt = Vector2d(partial_derivative.Get(0, 0)->Center(), partial_derivative.Get(1, 0)->Center()).Normalize(d);
-            if (d > g_double_epsilon) {
-                m_transformed = true;
-                double cos = vt.X;
-                double sin = -vt.Y;
-                double angle = acos_safe(cos);
-                if (sin < 0) {
-                    angle = -angle;
-                }
-                m_base_curve1->RotateForIntersect(m_index1, m_curve1, angle, cos, sin);
-                m_base_curve2->RotateForIntersect(m_index2, m_curve2, angle, cos, sin);
-                CalculateValue(variable, value);
-                CalculatePartialDerivative(variable, partial_derivative);
-                recheck_value = true;
-                use_default_transform = false;
-            }
-            else {
-                recheck_value = false;
-                use_default_transform = true;
-                m_transformed = false;
-            }
+        virtual bool PreIterate(Curve2dCurve2dIntVariable* variable, SolverIteratedResult& result, double& size) {
+            return false;
         }
 
-        void Restore() {
-            m_transformed = false;
-        }
-
-        int GetSplitIndex(const Curve2dCurve2dIntExVariable& variable, int prev_split_index, double size) {
+        virtual int GetSplitIndex(const Curve2dCurve2dIntVariable& variable, int prev_split_index, double size) {
             return 0;
         }
 
-        int CompareIteratePriority(const Curve2dCurve2dIntExVariable& variable1, double size1,
-            const Curve2dCurve2dIntExVariable& variable2, double size2) {
-            double len1 = variable1.Get(0).Length();
-            double len2 = variable2.Get(0).Length();
-            if (len1 < len2) {
+        virtual int CompareIteratePriority(const Curve2dCurve2dIntVariable& variable1, double size1,
+            const Curve2dCurve2dIntVariable& variable2, double size2) {
+            if (size1 < size2) {
                 return -1;
             }
-            if (len1 > len2) {
+            if (size1 > size2) {
                 return 1;
             }
             return 0;
         }
 
-        virtual bool SpeciallySolve(Curve2dCurve2dIntExVariable* variable, SolverIteratedResult& result, double& size) {
+        virtual bool CheckFinished(const Array<SolverHeapItem<Curve2dCurve2dIntVariable>>& heap) {
+            assert(false);
+            return true;
+        }
+    protected:
+        Curve2dCurve2dIntHelper* m_helper;
+        double m_distance_epsilon;
+    };
+
+    class Curve2dCurve2dIntFormulaEquationSystem : public Curve2dCurve2dIntBaseEquationSystem {
+    public:
+        Curve2dCurve2dIntFormulaEquationSystem(Curve2dCurve2dIntHelper* helper, double distance_epsilon) : 
+            Curve2dCurve2dIntBaseEquationSystem(helper, distance_epsilon) {
+        }
+    public:
+        bool PreIterate(Curve2dCurve2dIntVariable* variable, SolverIteratedResult& result, double& size) {
+            //todo 
+            //todo 重合需要指定same_dir
+            size = 2014;
+            result = SolverIteratedResult::Fuzzy;
+            return true;
+        }
+
+        virtual bool CheckFinished(const Array<SolverHeapItem<Curve2dCurve2dIntVariable>>& heap) {
+            return true;
+        }
+    };
+
+    class Curve2dCurve2dIntSplitEquationSystem : public Curve2dCurve2dIntBaseEquationSystem {
+    public:
+        Curve2dCurve2dIntSplitEquationSystem(Curve2dCurve2dIntHelper* helper, double distance_epsilon) : 
+            Curve2dCurve2dIntBaseEquationSystem(helper, distance_epsilon) {
+        }
+    public:
+        virtual bool PreIterate(Curve2dCurve2dIntVariable* variable, SolverIteratedResult& result, double& size) {
+            Interval2d d0_0 = m_helper->CalculateD0(*variable, 0);
+            Interval2d d0_1 = m_helper->CalculateD0(*variable, 1);
+            if (!d0_0.X.IsIntersected(d0_1.X, m_distance_epsilon) || !d0_0.Y.IsIntersected(d0_1.Y, m_distance_epsilon)) {
+                size = 0;
+                result = SolverIteratedResult::NoRoot;
+                return true;
+            }
+            m_helper->CalculateIsFlat(*variable, 0);
+            m_helper->CalculateIsFlat(*variable, 1);
+            size = 0;
+            result = SolverIteratedResult::Fuzzy;
+            return true;
+        }
+
+        virtual int GetSplitIndex(const Curve2dCurve2dIntVariable& variable, int prev_split_index, double size) {
+            if (m_helper->GetIsFlat(variable, 0)) {
+                return 1;
+            }
+            return 0;
+        }
+
+        virtual int CompareIteratePriority(const Curve2dCurve2dIntVariable& variable1, double size1,
+            const Curve2dCurve2dIntVariable& variable2, double size2) {
+            bool b1 = m_helper->GetIsFlat(variable1, 0) && m_helper->GetIsFlat(variable1, 1);
+            bool b2 = m_helper->GetIsFlat(variable2, 0) && m_helper->GetIsFlat(variable2, 1);
+            if (b1 == b2) {
+                return 0;
+            }
+            return b1 ? -1 : 1;
+        }
+
+        virtual bool CheckFinished(const Array<SolverHeapItem<Curve2dCurve2dIntVariable>>& heap) {
+            return m_helper->GetIsFlat(heap.Get(0).Variable, 0) && m_helper->GetIsFlat(heap.Get(0).Variable, 1);
+        }
+    };
+
+    class Curve2dCurve2dIntTrimEquationSystem : public Curve2dCurve2dIntBaseEquationSystem {
+    public:
+        Curve2dCurve2dIntTrimEquationSystem(Curve2dCurve2dIntHelper* helper, double distance_epsilon) :
+            Curve2dCurve2dIntBaseEquationSystem(helper, distance_epsilon) {
+        }
+    public:
+        virtual bool PreIterate(Curve2dCurve2dIntVariable* variable, SolverIteratedResult& result, double& size) {
             return false;
         }
+
+        virtual void CalculateValue(const Curve2dCurve2dIntVariable& variable, IntervalVector<3>& value) {
+            Interval2d d0_0 = m_helper->CalculateD0(variable, 0);
+            Interval2d d0_1 = m_helper->CalculateD0(variable, 1);
+            value.Set(0, d0_0.X - d0_1.X);
+            value.Set(1, d0_0.Y - d0_1.Y);
+            value.Set(2, Interval(-2014, 2014));
+        }
+
+        virtual void CalculatePartialDerivative(const Curve2dCurve2dIntVariable& variable, IntervalMatrix<3, 2>& value) {
+            Interval2d dt_0 = m_helper->CalculateDt(variable, 0);
+            Interval2d dt_1 = m_helper->CalculateDt(variable, 1);
+            *value.Get(0, 0) = dt_0.X;
+            *value.Get(0, 1) = -dt_1.X;
+            *value.Get(1, 0) = dt_0.Y;
+            *value.Get(1, 1) = -dt_1.Y;
+            *value.Get(2, 0) = 0;
+            *value.Get(2, 1) = 0;
+        }
+
+        virtual int GetSplitIndex(const Curve2dCurve2dIntVariable& variable, int prev_split_index, double size) {
+            return 0;
+        }
+
+        virtual int CompareIteratePriority(const Curve2dCurve2dIntVariable& variable1, double size1,
+            const Curve2dCurve2dIntVariable& variable2, double size2) {
+            if (size1 < size2) {
+                return -1;
+            }
+            if (size1 > size2) {
+                return 1;
+            }
+            return 0;
+        }
+
+        virtual bool CheckFinished(const Array<SolverHeapItem<Curve2dCurve2dIntVariable>>& heap) {
+            return heap.GetCount() >= 1;
+        }
+    };
+    /*
+    class Curve2dCurve2dIntStandardEquationSystem : public Curve2dCurve2dIntBaseEquationSystem {
+    public:
+        Curve2dCurve2dIntStandardEquationSystem(Curve2dCurve2dIntHelper* helper, double distance_epsilon) :
+            Curve2dCurve2dIntBaseEquationSystem(helper, distance_epsilon) {
+            m_max_fuzzy_count = 1;
+            m_calculator[0] = nullptr;
+            m_calculator[1] = nullptr;
+        }
+
+        ~Curve2dCurve2dIntStandardEquationSystem() {
+            delete m_calculator[0];
+            delete m_calculator[1];
+        }
+    public:
+        void SetMaxFuzzyCount(int max_fuzzy_count) {
+            m_max_fuzzy_count = max_fuzzy_count;
+        }
+
+        void SetCenter(const Vector2d& center) {
+            if (!vector2_equals(m_center, center, g_double_epsilon)) {
+                m_center = center;
+                delete m_calculator[0];
+                m_calculator[0] = nullptr;
+                delete m_calculator[1];
+                m_calculator[1] = nullptr;
+            }
+        }
+
+        Curve2dProjectionIntervalCalculator* GetCalculator(int index) {
+            if (!m_calculator[index]) {
+                m_calculator[index] = m_helper->GetCurve(index)->NewCalculatorByCircleTransformation(
+                    m_helper->GetIndex(index), m_helper->GetCurve(index)->GetTPiece(m_helper->GetIndex(index)), m_center);
+            }
+            return m_calculator[index];
+        }
+    public:
+        virtual bool PreIterate(Curve2dCurve2dIntVariable* variable, SolverIteratedResult& result, double& size) {
+            Interval2d d0_0 = m_helper->CalculateD0(*variable, 0);
+            Interval2d d0_1 = m_helper->CalculateD0(*variable, 1);
+            if (!d0_0.X.IsIntersected(d0_1.X, m_distance_epsilon) || !d0_0.Y.IsIntersected(d0_1.Y, m_distance_epsilon)) {
+                size = 0;
+                result = SolverIteratedResult::NoRoot;
+                return true;
+            }
+            double t0, t1;
+            if (m_helper->QuickIterate(*variable, m_distance_epsilon, t0, t1)) {
+                variable->Set(0, Interval(t0));
+                variable->Set(1, Interval(t1));
+                size = 0;
+                result = SolverIteratedResult::OnClearRoot;
+                return true;
+            }
+            return false;
+        }
+
+        virtual void CalculateValue(const Curve2dCurve2dIntVariable& variable, IntervalVector<3>& value) {
+            Interval2d d0_0 = m_helper->CalculateD0(variable, 0);
+            Interval2d d0_1 = m_helper->CalculateD0(variable, 1);
+            Interval c0_0, c0_1;
+            GetCalculator(0)->Calculate(variable.Get(0), &c0_0, nullptr);
+            GetCalculator(1)->Calculate(variable.Get(1), &c0_1, nullptr);
+            value.Set(0, d0_0.X - d0_1.X);
+            value.Set(1, d0_0.Y - d0_1.Y);
+            value.Set(2, c0_0 - c0_1);
+        }
+
+        virtual void CalculatePartialDerivative(const Curve2dCurve2dIntVariable& variable, IntervalMatrix<3, 2>& value) {
+            Interval2d dt_0 = m_helper->CalculateDt(variable, 0);
+            Interval2d dt_1 = m_helper->CalculateDt(variable, 1);
+            Interval ct_0, ct_1;
+            GetCalculator(0)->Calculate(variable.Get(0), nullptr, &ct_0);
+            GetCalculator(1)->Calculate(variable.Get(1), nullptr, &ct_1);
+            *value.Get(0, 0) = dt_0.X;
+            *value.Get(0, 1) = -dt_1.X;
+            *value.Get(1, 0) = dt_0.Y;
+            *value.Get(1, 1) = -dt_1.Y;
+            *value.Get(2, 0) = ct_0;
+            *value.Get(2, 1) = -ct_1;
+        }
+
+        virtual int GetSplitIndex(const Curve2dCurve2dIntVariable& variable, int prev_split_index, double size) {
+            return 0;
+        }
+
+        virtual int CompareIteratePriority(const Curve2dCurve2dIntVariable& variable1, double size1,
+            const Curve2dCurve2dIntVariable& variable2, double size2) {
+            if (size1 < size2) {
+                return -1;
+            }
+            if (size1 > size2) {
+                return 1;
+            }
+            return 0;
+        }
+
+        virtual bool CheckFinished(const Array<SolverHeapItem<Curve2dCurve2dIntVariable>>& heap) {
+            return heap.GetCount() >= m_max_fuzzy_count;
+        }
     private:
-        Curve2d* m_base_curve1;
-        Curve2d* m_curve1;
-        int m_index1;
-        Curve2d* m_base_curve2;
-        Curve2d* m_curve2;
-        int m_index2;
+        int m_max_fuzzy_count;
         Vector2d m_center;
-        bool m_transformed;
-        double m_distance_epsilon;
+        Curve2dProjectionIntervalCalculator* m_calculator[2];
+    };
+    */
+
+    class Curve2dCurve2dIntCorrespondingPointEquationSystem : public Curve2dCurve2dIntBaseEquationSystem {
+    public:
+        Curve2dCurve2dIntCorrespondingPointEquationSystem(Curve2dCurve2dIntHelper* helper, double distance_epsilon) :
+            Curve2dCurve2dIntBaseEquationSystem(helper, distance_epsilon) {
+            m_base_index = -1;
+            m_corresponding_index = -1;
+        }
+    public:
+        void SetBaseIndex(int base_index) {
+            m_base_index = base_index;
+            m_corresponding_index = m_base_index ^ 1;
+        }
+
+        void SetBaseVt(const Vector2d& vt) {
+            m_base_vt = vt;
+        }
+    public:
+        virtual double GetValueEpsilon(int i, bool is_checking) {
+            if (i == 2) {
+                return g_double_epsilon;
+            }
+            return m_distance_epsilon;
+        }
+
+        virtual bool PreIterate(Curve2dCurve2dIntVariable* variable, SolverIteratedResult& result, double& size) {
+            assert(is_zero(variable->Get(m_base_index).Length(), g_double_epsilon));
+            Interval2d d0_0 = m_helper->CalculateD0(*variable, 0);
+            Interval2d d0_1 = m_helper->CalculateD0(*variable, 1);
+            if (!d0_0.X.IsIntersected(d0_1.X, m_distance_epsilon) || !d0_0.Y.IsIntersected(d0_1.Y, m_distance_epsilon)) {
+                size = 0;
+                result = SolverIteratedResult::NoRoot;
+                return true;
+            }
+            //todo 快速求交
+            return false;
+        }
+
+        virtual void CalculateValue(const Curve2dCurve2dIntVariable& variable, IntervalVector<3>& value) {
+            Interval2d d0_0 = m_helper->CalculateD0(variable, 0);
+            Interval2d d0_1 = m_helper->CalculateD0(variable, 1);
+            value.Set(0, d0_0.X - d0_1.X);
+            value.Set(1, d0_0.Y - d0_1.Y);
+            value.Set(2, (d0_1.X - d0_0.X) * m_base_vt.Y - (d0_1.Y - d0_0.Y) * m_base_vt.X);
+        }
+
+        virtual void CalculatePartialDerivative(const Curve2dCurve2dIntVariable& variable, IntervalMatrix<3, 2>& value) {
+            Interval2d dt_0 = m_helper->CalculateDt(variable, 0);
+            Interval2d dt_1 = m_helper->CalculateDt(variable, 1);
+            *value.Get(0, 0) = dt_0.X;
+            *value.Get(0, 1) = -dt_1.X;
+            *value.Get(1, 0) = dt_0.Y;
+            *value.Get(1, 1) = -dt_1.Y;
+            *value.Get(2, 0) = dt_0.Y * m_base_vt.X - dt_0.X * m_base_vt.Y;
+            *value.Get(2, 1) = dt_1.X * m_base_vt.Y - dt_1.Y * m_base_vt.X;
+        }
+
+        virtual int GetSplitIndex(const Curve2dCurve2dIntVariable& variable, int prev_split_index, double size) {
+            return m_corresponding_index;
+        }
+
+        virtual int CompareIteratePriority(const Curve2dCurve2dIntVariable& variable1, double size1,
+            const Curve2dCurve2dIntVariable& variable2, double size2) {
+            if (size1 < size2) {
+                return -1;
+            }
+            if (size1 > size2) {
+                return 1;
+            }
+            return 0;
+        }
+
+        virtual bool CheckFinished(const Array<SolverHeapItem<Curve2dCurve2dIntVariable>>& heap) {
+            return heap.GetCount() >= 100;
+        }
+    private:
+        int m_base_index;
+        int m_corresponding_index;
+        Vector2d m_base_vt;
+    };
+
+    class Curve2dCurve2dIntHighPrecisionEquationSystem : public Curve2dCurve2dIntBaseEquationSystem {
+    public:
+        Curve2dCurve2dIntHighPrecisionEquationSystem(Curve2dCurve2dIntHelper* helper, double distance_epsilon) :
+            Curve2dCurve2dIntBaseEquationSystem(helper, distance_epsilon) {
+            m_max_fuzzy_count = 1;
+            m_calculator[0] = nullptr;
+            m_calculator[1] = nullptr;
+        }
+
+        ~Curve2dCurve2dIntHighPrecisionEquationSystem() {
+            delete m_calculator[0];
+            delete m_calculator[1];
+        }
+    public:
+        void SetMaxFuzzyCount(int max_fuzzy_count) {
+            m_max_fuzzy_count = max_fuzzy_count;
+        }
+
+        void SetCenter(const Vector2d& center) {
+            if (!vector2_equals(m_center, center, g_double_epsilon)) {
+                m_center = center;
+                delete m_calculator[0];
+                m_calculator[0] = nullptr;
+                delete m_calculator[1];
+                m_calculator[1] = nullptr;
+            }
+        }
+
+        Curve2dProjectionIntervalCalculator* GetCalculator(int index) {
+            if (!m_calculator[index]) {
+                m_calculator[index] = m_helper->GetCurve(index)->NewCalculatorByCircleTransformation(
+                    m_helper->GetIndex(index), m_helper->GetCurve(index)->GetTPiece(m_helper->GetIndex(index)), m_center);
+            }
+            return m_calculator[index];
+        }
+    public:
+        virtual bool PreIterate(Curve2dCurve2dIntVariable* variable, SolverIteratedResult& result, double& size) {
+            Interval2d d0_0 = m_helper->CalculateD0(*variable, 0);
+            Interval2d d0_1 = m_helper->CalculateD0(*variable, 1);
+            if (!d0_0.X.IsIntersected(d0_1.X, m_distance_epsilon) || !d0_0.Y.IsIntersected(d0_1.Y, m_distance_epsilon)) {
+                size = 0;
+                result = SolverIteratedResult::NoRoot;
+                return true;
+            }
+            double t0, t1;
+            if (m_helper->QuickIterate(*variable, m_distance_epsilon, t0, t1)) {
+                variable->Set(0, Interval(t0));
+                variable->Set(1, Interval(t1));
+                size = 0;
+                result = SolverIteratedResult::OnClearRoot;
+                return true;
+            }
+            return false;
+        }
+
+        virtual void CalculateValue(const Curve2dCurve2dIntVariable& variable, IntervalVector<3>& value) {
+            Interval2d d0_0 = m_helper->CalculateD0(variable, 0);
+            Interval2d d0_1 = m_helper->CalculateD0(variable, 1);
+            Interval c0_0, c0_1;
+            GetCalculator(0)->Calculate(variable.Get(0), &c0_0, nullptr);
+            GetCalculator(1)->Calculate(variable.Get(1), &c0_1, nullptr);
+            value.Set(0, d0_0.X - d0_1.X);
+            value.Set(1, d0_0.Y - d0_1.Y);
+            value.Set(2, c0_0 - c0_1);
+        }
+
+        virtual void CalculatePartialDerivative(const Curve2dCurve2dIntVariable& variable, IntervalMatrix<3, 2>& value) {
+            Interval2d dt_0 = m_helper->CalculateDt(variable, 0);
+            Interval2d dt_1 = m_helper->CalculateDt(variable, 1);
+            Interval ct_0, ct_1;
+            GetCalculator(0)->Calculate(variable.Get(0), nullptr, &ct_0);
+            GetCalculator(1)->Calculate(variable.Get(1), nullptr, &ct_1);
+            *value.Get(0, 0) = dt_0.X;
+            *value.Get(0, 1) = -dt_1.X;
+            *value.Get(1, 0) = dt_0.Y;
+            *value.Get(1, 1) = -dt_1.Y;
+            *value.Get(2, 0) = ct_0;
+            *value.Get(2, 1) = -ct_1;
+        }
+
+        virtual int GetSplitIndex(const Curve2dCurve2dIntVariable& variable, int prev_split_index, double size) {
+            return 0;
+        }
+
+        virtual int CompareIteratePriority(const Curve2dCurve2dIntVariable& variable1, double size1,
+            const Curve2dCurve2dIntVariable& variable2, double size2) {
+            if (size1 < size2) {
+                return -1;
+            }
+            if (size1 > size2) {
+                return 1;
+            }
+            return 0;
+        }
+
+        virtual bool CheckFinished(const Array<SolverHeapItem<Curve2dCurve2dIntVariable>>& heap) {
+            return heap.GetCount() >= m_max_fuzzy_count;
+        }
+    private:
+        int m_max_fuzzy_count;
+        Vector2d m_center;
+        Curve2dProjectionIntervalCalculator* m_calculator[2];
     };
 
 }

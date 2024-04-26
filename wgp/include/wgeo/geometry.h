@@ -12,6 +12,12 @@ namespace wgp {
     class WGP_API GeometryType {
     };
 
+    class WGP_API GeometryHelper {
+    public:
+        virtual ~GeometryHelper() {}
+        virtual void Reset() {}
+    };
+
     class WGP_API Geometry {
     public:
         virtual ~Geometry() {}

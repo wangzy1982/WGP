@@ -282,7 +282,10 @@ inline wgp::Interval pow(const wgp::Interval& x, int y) {
     }
     double a = pow(x.Min, y);
     double b = pow(x.Max, y);
-    return a < b ? wgp::Interval(0, b).Secure() : wgp::Interval(0, a).Secure();
+    if (x.Min * x.Max < 0) {
+        return a < b ? wgp::Interval(0, b).Secure() : wgp::Interval(0, a).Secure();
+    }
+    return a < b ? wgp::Interval(a, b).Secure() : wgp::Interval(b, a).Secure();
 }
 
 inline wgp::Interval pow(const wgp::Interval& x, const wgp::Interval& y) {

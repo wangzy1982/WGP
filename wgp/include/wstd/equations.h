@@ -85,16 +85,14 @@ namespace wgp {
 		virtual int GetEquationCount() = 0;
 		virtual int GetVariableCount() = 0;
 		virtual double GetVariableEpsilon(int i) = 0;
-		virtual double GetValueEpsilon(int i) = 0;
+		virtual double GetValueEpsilon(int i, bool is_checking) = 0;
 		virtual void CalculateValue(const StandardIntervalVector& variable, StandardIntervalVector& value) = 0;
 		virtual void CalculatePartialDerivative(const StandardIntervalVector& variable, StandardIntervalMatrix& value) = 0;
-		virtual void Transform(const StandardIntervalVector& variable, StandardIntervalVector& value,
-			StandardIntervalMatrix& partial_derivative, bool& recheck_value, bool& use_default_transform);
-		virtual void Restore();
 		virtual int GetSplitIndex(const StandardIntervalVector& variable, int prev_split_index, double size);
 		virtual int CompareIteratePriority(const StandardIntervalVector& variable1, double size1,
 			const StandardIntervalVector& variable2, double size2);
-		virtual bool SpeciallySolve(StandardIntervalVector* variable, SolverIteratedResult& result, double& size);
+		virtual bool PreIterate(StandardIntervalVector* variable, SolverIteratedResult& result, double& size);
+		virtual bool CheckFinished(const Array<SolverHeapItem<StandardIntervalVector>>& heap);
 	};
 
 	template<int degree>
@@ -341,18 +339,11 @@ namespace wgp {
 		int GetEquationCount() { return equation_count; }
 		int GetVariableCount() { return variable_count; }
 		virtual double GetVariableEpsilon(int i) = 0;
-		virtual double GetValueEpsilon(int i) = 0;
+		virtual double GetValueEpsilon(int i, bool is_checking) = 0;
 		virtual void CalculateValue(const IntervalVector<variable_count>& variable,
 			IntervalVector<equation_count>& value) = 0;
 		virtual void CalculatePartialDerivative(const IntervalVector<variable_count>& variable,
 			IntervalMatrix<equation_count, variable_count>& value) = 0;
-		virtual void Transform(const IntervalVector<variable_count>& variable, IntervalVector<equation_count>& value,
-			IntervalMatrix<equation_count, variable_count>& partial_derivative, 
-			bool& recheck_value, bool& use_default_transform) { 
-			recheck_value = false;
-			use_default_transform = true;
-		}
-		virtual void Restore() {}
 		virtual int GetSplitIndex(const IntervalVector<variable_count>& variable, int prev_split_index, double size) {
 			bool b = false;
 			int next_split_index = 0;
@@ -388,8 +379,12 @@ namespace wgp {
 			}
 			return 0;
 		}
-		virtual bool SpeciallySolve(IntervalVector<variable_count>* variable, SolverIteratedResult& result, double& size) {
+		virtual bool PreIterate(IntervalVector<variable_count>* variable, SolverIteratedResult& result, double& size) {
 			return false;
+		}
+
+		virtual bool CheckFinished(const Array<SolverHeapItem<IntervalVector<variable_count>>>& heap) {
+			return heap.GetCount() > 128;
 		}
 	};
 

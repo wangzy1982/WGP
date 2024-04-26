@@ -6,6 +6,7 @@
 #define _WGP_GEO_VARIABLE_
 
 #include <memory>
+#include <assert.h>
 #include "wstd/interval.h"
 
 #pragma warning(push)

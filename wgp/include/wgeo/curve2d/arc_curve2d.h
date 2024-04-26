@@ -22,12 +22,21 @@ namespace wgp {
         GeometryType* GetType() const { return ArcCurve2dType::Instance(); }
         virtual int GetTPieceCount();
         virtual Interval GetTPiece(int index);
+        virtual GeometryHelper* NewHelper();
         virtual void SplitFlat(Array<VariableInterval>& segments, double angle_epsilon);
     public:
         virtual void Calculate(int index, double t, Vector2d* d0, Vector2d* dt, Vector2d* dt2);
-        virtual void Calculate(int index, const Interval& t, Interval2d* d0, Interval2d* dt, Interval2d* dt2);
     public:
-        virtual void CalculateByCircleTransformation(int index, const Interval& t, const Vector2d& center, Interval* d0, Interval* dt);
+        virtual Curve2dIntervalCalculator* NewCalculator(int index, const Interval& t);
+    public:
+        virtual Curve2dProjectionIntervalCalculator* NewCalculatorByCircleTransformation(
+            int index, const Interval& t, const Vector2d& center);
+    public:
+        virtual void Calculate(GeometryHelper* helper, int index, const Interval& t, 
+            Interval2d* d0, Interval2d* dt, Interval2d* dt2);
+    public:
+        virtual void CalculateByCircleTransformation(GeometryHelper* helper, int index, const Interval& t, 
+            const Vector2d& center, Interval* d0, Interval* dt);
     public:
         virtual void RotateForIntersect(int index, Curve2d*& dst, double angle, double cos, double sin);
     public:
@@ -37,6 +46,9 @@ namespace wgp {
         double m_radius;
         double m_start_angle;
         Interval m_t_domain;
+    private:
+        friend class ArcCurve2dIntervalCalculator;
+        friend class ArcCurve2dIntervalCalculatorByCircleTransformation;
     };
 }
 

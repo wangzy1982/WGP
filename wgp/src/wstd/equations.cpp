@@ -270,15 +270,6 @@ namespace wgp {
 		}
 	}
 
-	void StandardEquationSystem::Transform(const StandardIntervalVector& variable, StandardIntervalVector& value,
-		StandardIntervalMatrix& partial_derivative, bool& recheck_value, bool& use_default_transform) {
-		recheck_value = false;
-		use_default_transform = true;
-	}
-
-	void StandardEquationSystem::Restore() {
-	}
-
 	int StandardEquationSystem::GetSplitIndex(const StandardIntervalVector& variable, int prev_split_index, double size) {
 		bool b = false;
 		int next_split_index = 0;
@@ -316,8 +307,12 @@ namespace wgp {
 		return 0;
 	}
 
-	bool StandardEquationSystem::SpeciallySolve(StandardIntervalVector* variable, SolverIteratedResult& result, double& size) {
+	bool StandardEquationSystem::PreIterate(StandardIntervalVector* variable, SolverIteratedResult& result, double& size) {
 		return false;
+	}
+
+	bool StandardEquationSystem::CheckFinished(const Array<SolverHeapItem<StandardIntervalVector>>& heap) {
+		return heap.GetCount() > 128;
 	}
 
 }

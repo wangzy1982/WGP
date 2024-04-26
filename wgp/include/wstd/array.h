@@ -166,6 +166,13 @@ namespace wgp {
 			}
 		}
 
+		void Append(const Array& arr, int start, int count) {
+			//todo optimize
+			for (int i = start; i < count; ++i) {
+				Append(arr.Get(i));
+			}
+		}
+
 		void Insert(int i, const T& item) {
 			if (m_start == 0) {
 				if (m_count + m_start == m_capacity) {

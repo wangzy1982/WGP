@@ -6,6 +6,238 @@
 
 namespace wgp {
 
+    class ArcCurve2dIntervalCalculator : public Curve2dIntervalCalculator {
+    public:
+        ArcCurve2dIntervalCalculator(ArcCurve2d* arc) : m_arc(arc) {
+        }
+
+        virtual void Calculate(const Interval& t, Interval2d* d0, Interval2d* dt, Interval2d* dt2) {
+            double t0 = t.Min + m_arc->m_start_angle;
+            double t1 = t.Max + m_arc->m_start_angle;
+            double sin0, cos0, sin1, cos1;
+            sincos(t0, &sin0, &cos0);
+            sincos(t1, &sin1, &cos1);
+            if (d0) {
+                d0->X = cos0;
+                d0->Y = sin0;
+                d0->X.Merge(cos1);
+                d0->Y.Merge(sin1);
+            }
+            if (dt) {
+                dt->X = -sin0;
+                dt->Y = cos0;
+                dt->X.Merge(-sin1);
+                dt->Y.Merge(cos1);
+            }
+            if (dt2) {
+                dt2->X = -cos0;
+                dt2->Y = -sin0;
+                dt2->X.Merge(-cos1);
+                dt2->Y.Merge(-sin1);
+            }
+            double d = -g_pi * 2;
+            while (d < t0) {
+                d += g_pi * 2;
+            }
+            if (d < t1) {
+                if (d0) {
+                    d0->X.Merge(1);
+                    d0->Y.Merge(0);
+                }
+                if (dt) {
+                    dt->X.Merge(0);
+                    dt->Y.Merge(1);
+                }
+                if (dt2) {
+                    dt2->X.Merge(-1);
+                    dt2->Y.Merge(0);
+                }
+            }
+            d = -g_pi * 3.5;
+            while (d < t0) {
+                d += g_pi * 2;
+            }
+            if (d < t1) {
+                if (d0) {
+                    d0->X.Merge(0);
+                    d0->Y.Merge(1);
+                }
+                if (dt) {
+                    dt->X.Merge(-1);
+                    dt->Y.Merge(0);
+                }
+                if (dt2) {
+                    dt2->X.Merge(0);
+                    dt2->Y.Merge(-1);
+                }
+            }
+            d = -g_pi * 3;
+            while (d < t0) {
+                d += g_pi * 2;
+            }
+            if (d < t1) {
+                if (d0) {
+                    d0->X.Merge(-1);
+                    d0->Y.Merge(0);
+                }
+                if (dt) {
+                    dt->X.Merge(0);
+                    dt->Y.Merge(-1);
+                }
+                if (dt2) {
+                    dt2->X.Merge(1);
+                    dt2->Y.Merge(0);
+                }
+            }
+            d = -g_pi * 2.5;
+            while (d < t0) {
+                d += g_pi * 2;
+            }
+            if (d < t1) {
+                if (d0) {
+                    d0->X.Merge(0);
+                    d0->Y.Merge(-1);
+                }
+                if (dt) {
+                    dt->X.Merge(1);
+                    dt->Y.Merge(0);
+                }
+                if (dt2) {
+                    dt2->X.Merge(0);
+                    dt2->Y.Merge(1);
+                }
+            }
+            if (d0) {
+                *d0 = *d0 * m_arc->m_radius + m_arc->m_center;
+            }
+            if (dt) {
+                *dt = *dt * m_arc->m_radius;
+            }
+            if (dt2) {
+                *dt2 = *dt2 * m_arc->m_radius;
+            }
+        }
+    private:
+        ArcCurve2d* m_arc;
+    };
+
+    class ArcCurve2dIntervalCalculatorByCircleTransformation : public Curve2dProjectionIntervalCalculator {
+    public:
+        ArcCurve2dIntervalCalculatorByCircleTransformation(ArcCurve2d* arc, const Vector2d& center) : 
+            m_arc(arc), m_center(center) {
+        }
+
+        virtual void Calculate(const Interval& t, Interval* d0, Interval* dt) {
+            double a = m_arc->m_center.X - m_center.X;
+            double b = m_arc->m_center.Y - m_center.Y;
+            double a1 = 2 * a * m_arc->m_radius;
+            double a2 = 2 * b * m_arc->m_radius;
+            double a3 = m_arc->m_radius * m_arc->m_radius + a * a + b * b;
+            double t0 = t.Min + m_arc->m_start_angle;
+            double t1 = t.Max + m_arc->m_start_angle;
+            double sin0, cos0, sin1, cos1;
+            sincos(t0, &sin0, &cos0);
+            sincos(t1, &sin1, &cos1);
+            if (d0) {
+                *d0 = a1 * cos0 + a2 * sin0 + a3;
+                d0->Merge(a1 * cos1 + a2 * sin1 + a3);
+                if (a1 == 0) {
+                    if (a2 != 0) {
+                        double d = -2.5 * g_pi;
+                        while (d < t0) {
+                            d += g_pi * 2;
+                        }
+                        if (d < t1) {
+                            double sin, cos;
+                            sincos(d, &sin, &cos);
+                            d0->Merge(a1 * cos + a2 * sin + a3);
+                        }
+                        d = -3.5 * g_pi;
+                        while (d < t0) {
+                            d += g_pi * 2;
+                        }
+                        if (d < t1) {
+                            double sin, cos;
+                            sincos(d, &sin, &cos);
+                            d0->Merge(a1 * cos + a2 * sin + a3);
+                        }
+                    }
+                }
+                else {
+                    double o = atan(a2 / a1);
+                    double d = -2 * g_pi + o;
+                    while (d < t0) {
+                        d += g_pi * 2;
+                    }
+                    if (d < t1) {
+                        double sin, cos;
+                        sincos(d, &sin, &cos);
+                        d0->Merge(a1 * cos + a2 * sin + a3);
+                    }
+                    d = -3 * g_pi + o;
+                    while (d < t0) {
+                        d += g_pi * 2;
+                    }
+                    if (d < t1) {
+                        double sin, cos;
+                        sincos(d, &sin, &cos);
+                        d0->Merge(a1 * cos + a2 * sin + a3);
+                    }
+                }
+            }
+            if (dt) {
+                *dt = -a1 * sin0 + a2 * cos0;
+                dt->Merge(-a1 * sin1 + a2 * cos1);
+                if (a2 == 0) {
+                    if (a1 != 0) {
+                        double d = -2.5 * g_pi;
+                        while (d < t0) {
+                            d += g_pi * 2;
+                        }
+                        if (d < t1) {
+                            double sin, cos;
+                            sincos(d, &sin, &cos);
+                            dt->Merge(-a1 * sin + a2 * cos);
+                        }
+                        d = -3.5 * g_pi;
+                        while (d < t0) {
+                            d += g_pi * 2;
+                        }
+                        if (d < t1) {
+                            double sin, cos;
+                            sincos(d, &sin, &cos);
+                            dt->Merge(-a1 * sin + a2 * cos);
+                        }
+                    }
+                }
+                else {
+                    double o = atan(-a1 / a2);
+                    double d = -2 * g_pi + o;
+                    while (d < t0) {
+                        d += g_pi * 2;
+                    }
+                    if (d < t1) {
+                        double sin, cos;
+                        sincos(d, &sin, &cos);
+                        dt->Merge(-a1 * sin + a2 * cos);
+                    }
+                    d = -3 * g_pi + o;
+                    while (d < t0) {
+                        d += g_pi * 2;
+                    }
+                    if (d < t1) {
+                        double sin, cos;
+                        sincos(d, &sin, &cos);
+                        dt->Merge(-a1 * sin + a2 * cos);
+                    }
+                }
+            }
+        }
+    private:
+        ArcCurve2d* m_arc;
+        Vector2d m_center;
+    };
+
     ArcCurve2dType* ArcCurve2dType::Instance() {
         return &m_Instance;
     }
@@ -25,6 +257,10 @@ namespace wgp {
 
     Interval ArcCurve2d::GetTPiece(int index) {
         return m_t_domain;
+    }
+
+    GeometryHelper* ArcCurve2d::NewHelper() {
+        return new GeometryHelper();
     }
 
     void ArcCurve2d::SplitFlat(Array<VariableInterval>& segments, double angle_epsilon) {
@@ -64,33 +300,228 @@ namespace wgp {
         }
     }
 
-    void ArcCurve2d::Calculate(int index, const Interval& t, Interval2d* d0, Interval2d* dt, Interval2d* dt2) {
-        Interval cos, sin;
-        sincos(t + m_start_angle, &sin, &cos);
+    Curve2dIntervalCalculator* ArcCurve2d::NewCalculator(int index, const Interval& t) {
+        return new ArcCurve2dIntervalCalculator(this);
+    }
+
+    Curve2dProjectionIntervalCalculator* ArcCurve2d::NewCalculatorByCircleTransformation(
+        int index, const Interval& t, const Vector2d& center) {
+        return new ArcCurve2dIntervalCalculatorByCircleTransformation(this, center);
+    }
+
+    void ArcCurve2d::Calculate(GeometryHelper* helper, int index, const Interval& t, 
+        Interval2d* d0, Interval2d* dt, Interval2d* dt2) {
+        double t0 = t.Min + m_start_angle;
+        double t1 = t.Max + m_start_angle;
+        double sin0, cos0, sin1, cos1;
+        sincos(t0, &sin0, &cos0);
+        sincos(t1, &sin1, &cos1);
         if (d0) {
-            *d0 = Interval2d(m_radius * cos, m_radius * sin) + m_center;
+            d0->X = cos0;
+            d0->Y = sin0;
+            d0->X.Merge(cos1);
+            d0->Y.Merge(sin1);
         }
         if (dt) {
-            *dt = Interval2d(-m_radius * sin, m_radius * cos);
+            dt->X = -sin0;
+            dt->Y = cos0;
+            dt->X.Merge(-sin1);
+            dt->Y.Merge(cos1);
         }
         if (dt2) {
-            *dt2 = Interval2d(-m_radius * cos, -m_radius * sin);
+            dt2->X = -cos0;
+            dt2->Y = -sin0;
+            dt2->X.Merge(-cos1);
+            dt2->Y.Merge(-sin1);
+        }
+        double d = -g_pi * 2;
+        while (d < t0) {
+            d += g_pi * 2;
+        }
+        if (d < t1) {
+            if (d0) {
+                d0->X.Merge(1);
+                d0->Y.Merge(0);
+            }
+            if (dt) {
+                dt->X.Merge(0);
+                dt->Y.Merge(1);
+            }
+            if (dt2) {
+                dt2->X.Merge(-1);
+                dt2->Y.Merge(0);
+            }
+        }
+        d = -g_pi * 3.5;
+        while (d < t0) {
+            d += g_pi * 2;
+        }
+        if (d < t1) {
+            if (d0) {
+                d0->X.Merge(0);
+                d0->Y.Merge(1);
+            }
+            if (dt) {
+                dt->X.Merge(-1);
+                dt->Y.Merge(0);
+            }
+            if (dt2) {
+                dt2->X.Merge(0);
+                dt2->Y.Merge(-1);
+            }
+        }
+        d = -g_pi * 3;
+        while (d < t0) {
+            d += g_pi * 2;
+        }
+        if (d < t1) {
+            if (d0) {
+                d0->X.Merge(-1);
+                d0->Y.Merge(0);
+            }
+            if (dt) {
+                dt->X.Merge(0);
+                dt->Y.Merge(-1);
+            }
+            if (dt2) {
+                dt2->X.Merge(1);
+                dt2->Y.Merge(0);
+            }
+        }
+        d = -g_pi * 2.5;
+        while (d < t0) {
+            d += g_pi * 2;
+        }
+        if (d < t1) {
+            if (d0) {
+                d0->X.Merge(0);
+                d0->Y.Merge(-1);
+            }
+            if (dt) {
+                dt->X.Merge(1);
+                dt->Y.Merge(0);
+            }
+            if (dt2) {
+                dt2->X.Merge(0);
+                dt2->Y.Merge(1);
+            }
+        }
+        if (d0) {
+            *d0 = *d0 * m_radius + m_center;
+        }
+        if (dt) {
+            *dt = *dt * m_radius;
+        }
+        if (dt2) {
+            *dt2 = *dt2 * m_radius;
         }
     }
 
-    void ArcCurve2d::CalculateByCircleTransformation(int index, const Interval& t, const Vector2d& center, Interval* d0, Interval* dt) {
+    void ArcCurve2d::CalculateByCircleTransformation(GeometryHelper* helper, int index, const Interval& t, 
+        const Vector2d& center, Interval* d0, Interval* dt) {
         double a = m_center.X - center.X;
         double b = m_center.Y - center.Y;
         double a1 = 2 * a * m_radius;
         double a2 = 2 * b * m_radius;
         double a3 = m_radius * m_radius + a * a + b * b;
-        Interval cos, sin;
-        sincos(t + m_start_angle, &sin, &cos);
+        double t0 = t.Min + m_start_angle;
+        double t1 = t.Max + m_start_angle;
+        double sin0, cos0, sin1, cos1;
+        sincos(t0, &sin0, &cos0);
+        sincos(t1, &sin1, &cos1);
         if (d0) {
-            *d0 = a1 * cos + a2 * sin + a3;
+            *d0 = a1 * cos0 + a2 * sin0 + a3;
+            d0->Merge(a1 * cos1 + a2 * sin1 + a3);
+            if (a1 == 0) {
+                if (a2 != 0) {
+                    double d = -2.5 * g_pi;
+                    while (d < t0) {
+                        d += g_pi * 2;
+                    }
+                    if (d < t1) {
+                        double sin, cos;
+                        sincos(d, &sin, &cos);
+                        d0->Merge(a1 * cos + a2 * sin + a3);
+                    }
+                    d = -3.5 * g_pi;
+                    while (d < t0) {
+                        d += g_pi * 2;
+                    }
+                    if (d < t1) {
+                        double sin, cos;
+                        sincos(d, &sin, &cos);
+                        d0->Merge(a1 * cos + a2 * sin + a3);
+                    }
+                }
+            }
+            else {
+                double o = atan(a2 / a1);
+                double d = -2 * g_pi + o;
+                while (d < t0) {
+                    d += g_pi * 2;
+                }
+                if (d < t1) {
+                    double sin, cos;
+                    sincos(d, &sin, &cos);
+                    d0->Merge(a1 * cos + a2 * sin + a3);
+                }
+                d = -3 * g_pi + o;
+                while (d < t0) {
+                    d += g_pi * 2;
+                }
+                if (d < t1) {
+                    double sin, cos;
+                    sincos(d, &sin, &cos);
+                    d0->Merge(a1 * cos + a2 * sin + a3);
+                }
+            }
         }
         if (dt) {
-            *dt = -a1 * sin + a2 * cos;
+            *dt = -a1 * sin0 + a2 * cos0;
+            dt->Merge(-a1 * sin1 + a2 * cos1);
+            if (a2 == 0) {
+                if (a1 != 0) {
+                    double d = -2.5 * g_pi;
+                    while (d < t0) {
+                        d += g_pi * 2;
+                    }
+                    if (d < t1) {
+                        double sin, cos;
+                        sincos(d, &sin, &cos);
+                        dt->Merge(-a1 * sin + a2 * cos);
+                    }
+                    d = -3.5 * g_pi;
+                    while (d < t0) {
+                        d += g_pi * 2;
+                    }
+                    if (d < t1) {
+                        double sin, cos;
+                        sincos(d, &sin, &cos);
+                        dt->Merge(-a1 * sin + a2 * cos);
+                    }
+                }
+            }
+            else {
+                double o = atan(-a1 / a2);
+                double d = -2 * g_pi + o;
+                while (d < t0) {
+                    d += g_pi * 2;
+                }
+                if (d < t1) {
+                    double sin, cos;
+                    sincos(d, &sin, &cos);
+                    dt->Merge(-a1 * sin + a2 * cos);
+                }
+                d = -3 * g_pi + o;
+                while (d < t0) {
+                    d += g_pi * 2;
+                }
+                if (d < t1) {
+                    double sin, cos;
+                    sincos(d, &sin, &cos);
+                    dt->Merge(-a1 * sin + a2 * cos);
+                }
+            }
         }
     }
 
