@@ -42,7 +42,7 @@ namespace wgp {
 	class Solver {
 	public:
 		Solver() {
-			m_slow_threshold = 0.01;
+			m_slow_threshold = 0.1;
 			m_root_is_dirty = true;
 			m_equation_system = nullptr;
 		}
