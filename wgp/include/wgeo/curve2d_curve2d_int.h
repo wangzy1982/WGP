@@ -11,7 +11,7 @@
 namespace wgp {
 
     enum class Curve2dCurve2dIntType {
-        Cross,
+        Normal,
         OverlapBegin,
         OverlapInner,
         OverlapEnd

@@ -438,7 +438,7 @@ namespace wgp {
             Interval2d d0_1 = m_helper->CalculateD0(variable, 1);
             value.Set(0, d0_0.X - d0_1.X);
             value.Set(1, d0_0.Y - d0_1.Y);
-            value.Set(2, Interval(-2014, 2014));
+            value.Set(2, Interval(0, 0));
         }
 
         virtual void CalculatePartialDerivative(const Curve2dCurve2dIntVariable& variable, IntervalMatrix<3, 2>& value) {
@@ -471,111 +471,6 @@ namespace wgp {
             return heap.GetCount() >= 1;
         }
     };
-    /*
-    class Curve2dCurve2dIntStandardEquationSystem : public Curve2dCurve2dIntBaseEquationSystem {
-    public:
-        Curve2dCurve2dIntStandardEquationSystem(Curve2dCurve2dIntHelper* helper, double distance_epsilon) :
-            Curve2dCurve2dIntBaseEquationSystem(helper, distance_epsilon) {
-            m_max_fuzzy_count = 1;
-            m_calculator[0] = nullptr;
-            m_calculator[1] = nullptr;
-        }
-
-        ~Curve2dCurve2dIntStandardEquationSystem() {
-            delete m_calculator[0];
-            delete m_calculator[1];
-        }
-    public:
-        void SetMaxFuzzyCount(int max_fuzzy_count) {
-            m_max_fuzzy_count = max_fuzzy_count;
-        }
-
-        void SetCenter(const Vector2d& center) {
-            if (!vector2_equals(m_center, center, g_double_epsilon)) {
-                m_center = center;
-                delete m_calculator[0];
-                m_calculator[0] = nullptr;
-                delete m_calculator[1];
-                m_calculator[1] = nullptr;
-            }
-        }
-
-        Curve2dProjectionIntervalCalculator* GetCalculator(int index) {
-            if (!m_calculator[index]) {
-                m_calculator[index] = m_helper->GetCurve(index)->NewCalculatorByCircleTransformation(
-                    m_helper->GetIndex(index), m_helper->GetCurve(index)->GetTPiece(m_helper->GetIndex(index)), m_center);
-            }
-            return m_calculator[index];
-        }
-    public:
-        virtual bool PreIterate(Curve2dCurve2dIntVariable* variable, SolverIteratedResult& result, double& size) {
-            Interval2d d0_0 = m_helper->CalculateD0(*variable, 0);
-            Interval2d d0_1 = m_helper->CalculateD0(*variable, 1);
-            if (!d0_0.X.IsIntersected(d0_1.X, m_distance_epsilon) || !d0_0.Y.IsIntersected(d0_1.Y, m_distance_epsilon)) {
-                size = 0;
-                result = SolverIteratedResult::NoRoot;
-                return true;
-            }
-            double t0, t1;
-            if (m_helper->QuickIterate(*variable, m_distance_epsilon, t0, t1)) {
-                variable->Set(0, Interval(t0));
-                variable->Set(1, Interval(t1));
-                size = 0;
-                result = SolverIteratedResult::OnClearRoot;
-                return true;
-            }
-            return false;
-        }
-
-        virtual void CalculateValue(const Curve2dCurve2dIntVariable& variable, IntervalVector<3>& value) {
-            Interval2d d0_0 = m_helper->CalculateD0(variable, 0);
-            Interval2d d0_1 = m_helper->CalculateD0(variable, 1);
-            Interval c0_0, c0_1;
-            GetCalculator(0)->Calculate(variable.Get(0), &c0_0, nullptr);
-            GetCalculator(1)->Calculate(variable.Get(1), &c0_1, nullptr);
-            value.Set(0, d0_0.X - d0_1.X);
-            value.Set(1, d0_0.Y - d0_1.Y);
-            value.Set(2, c0_0 - c0_1);
-        }
-
-        virtual void CalculatePartialDerivative(const Curve2dCurve2dIntVariable& variable, IntervalMatrix<3, 2>& value) {
-            Interval2d dt_0 = m_helper->CalculateDt(variable, 0);
-            Interval2d dt_1 = m_helper->CalculateDt(variable, 1);
-            Interval ct_0, ct_1;
-            GetCalculator(0)->Calculate(variable.Get(0), nullptr, &ct_0);
-            GetCalculator(1)->Calculate(variable.Get(1), nullptr, &ct_1);
-            *value.Get(0, 0) = dt_0.X;
-            *value.Get(0, 1) = -dt_1.X;
-            *value.Get(1, 0) = dt_0.Y;
-            *value.Get(1, 1) = -dt_1.Y;
-            *value.Get(2, 0) = ct_0;
-            *value.Get(2, 1) = -ct_1;
-        }
-
-        virtual int GetSplitIndex(const Curve2dCurve2dIntVariable& variable, int prev_split_index, double size) {
-            return 0;
-        }
-
-        virtual int CompareIteratePriority(const Curve2dCurve2dIntVariable& variable1, double size1,
-            const Curve2dCurve2dIntVariable& variable2, double size2) {
-            if (size1 < size2) {
-                return -1;
-            }
-            if (size1 > size2) {
-                return 1;
-            }
-            return 0;
-        }
-
-        virtual bool CheckFinished(const Array<SolverHeapItem<Curve2dCurve2dIntVariable>>& heap) {
-            return heap.GetCount() >= m_max_fuzzy_count;
-        }
-    private:
-        int m_max_fuzzy_count;
-        Vector2d m_center;
-        Curve2dProjectionIntervalCalculator* m_calculator[2];
-    };
-    */
 
     class Curve2dCurve2dIntCorrespondingPointEquationSystem : public Curve2dCurve2dIntBaseEquationSystem {
     public:
@@ -685,10 +580,21 @@ namespace wgp {
             }
         }
 
+        void SetDomain(const Interval& domain0, const Interval& domain1) {
+            if (!domain0.IsInner(m_domain[0]) || !domain1.IsInner(m_domain[1])) {
+                delete m_calculator[0];
+                m_calculator[0] = nullptr;
+                delete m_calculator[1];
+                m_calculator[1] = nullptr;
+            }
+            m_domain[0] = domain0;
+            m_domain[1] = domain1;
+        }
+
         Curve2dProjectionIntervalCalculator* GetCalculator(int index) {
             if (!m_calculator[index]) {
                 m_calculator[index] = m_helper->GetCurve(index)->NewCalculatorByCircleTransformation(
-                    m_helper->GetIndex(index), m_helper->GetCurve(index)->GetTPiece(m_helper->GetIndex(index)), m_center);
+                    m_helper->GetIndex(index), m_domain[index], m_center);
             }
             return m_calculator[index];
         }
@@ -758,6 +664,7 @@ namespace wgp {
     private:
         int m_max_fuzzy_count;
         Vector2d m_center;
+        Interval m_domain[2];
         Curve2dProjectionIntervalCalculator* m_calculator[2];
     };
 

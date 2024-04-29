@@ -296,12 +296,12 @@ namespace wgp {
         }
     }
 
-    Curve2dIntervalCalculator* ArcCurve2d::NewCalculator(int index, const Interval& t) {
+    Curve2dIntervalCalculator* ArcCurve2d::NewCalculator(int index, const Interval& t_domain) {
         return new ArcCurve2dIntervalCalculator(this);
     }
 
     Curve2dProjectionIntervalCalculator* ArcCurve2d::NewCalculatorByCircleTransformation(
-        int index, const Interval& t, const Vector2d& center) {
+        int index, const Interval& t_domain, const Vector2d& center) {
         return new ArcCurve2dIntervalCalculatorByCircleTransformation(this, center);
     }
 

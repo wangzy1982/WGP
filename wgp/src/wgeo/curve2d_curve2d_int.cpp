@@ -303,6 +303,49 @@ namespace wgp {
         return center;
     }
 
+    void AppendOverlapIntersections(Array<Curve2dCurve2dInt>& result, Curve2dCurve2dIntHelper& helper, Array<Curve2dCurve2dInt>& samples, double distance_epsilon) {
+        Curve2dCurve2dInt* sample1 = samples.GetPointer(0);
+        Curve2dCurve2dInt* sample2 = samples.GetPointer(samples.GetCount() - 1);
+        if (vector2_equals(sample1->Points[0], sample2->Points[0], distance_epsilon) ||
+            vector2_equals(sample1->Points[1], sample2->Points[1], distance_epsilon)) {
+            double d0 = sample2->Ts[0].Value - sample1->Ts[0].Value;
+            double d1 = abs(sample2->Ts[1].Value - sample1->Ts[1].Value);
+            if (d0 <= g_double_epsilon || d1 <= g_double_epsilon ||
+                d0 <= helper.GetCurve(0)->GetTPiece(helper.GetIndex(0)).Length() * 0.8 ||
+                d1 <= helper.GetCurve(1)->GetTPiece(helper.GetIndex(1)).Length() * 0.8) {
+                double d = (sample1->Points[1] - sample1->Points[0]).Length();
+                for (int i = 1; i < samples.GetCount(); ++i) {
+                    sample2 = samples.GetPointer(i);
+                    double d2 = (sample2->Points[1] - sample2->Points[0]).Length();
+                    if (d2 < d) {
+                        d = d2;
+                        sample1 = sample2;
+                    }
+                }
+                sample1->Type = Curve2dCurve2dIntType::Normal;
+                result.Append(*sample1);
+                return;
+            }
+        }
+        sample1->Type = Curve2dCurve2dIntType::OverlapBegin;
+        result.Append(*sample1);
+        for (int i = 1; i < samples.GetCount() - 1; ++i) {
+            Curve2dCurve2dInt* sample = samples.GetPointer(i);
+            if (vector2_equals(sample2->Points[0], sample->Points[0], distance_epsilon) ||
+                vector2_equals(sample2->Points[1], sample->Points[1], distance_epsilon)) {
+                break;
+            }
+            if (!vector2_equals(sample1->Points[0], sample->Points[0], distance_epsilon) &&
+                !vector2_equals(sample1->Points[1], sample->Points[1], distance_epsilon)) {
+                sample->Type = Curve2dCurve2dIntType::OverlapInner;
+                result.Append(*sample);
+                sample1 = sample;
+            }
+        }
+        sample2->Type = Curve2dCurve2dIntType::OverlapEnd;
+        result.Append(*sample2);
+    }
+
     void Intersect(Curve2d* curve0, Curve2d* curve1, void* tag0, void* tag1, double distance_epsilon, Array<Curve2dCurve2dInt>& result) {
         Array<Curve2dCurve2dInt> pre_result;
         Array<Curve2dCurve2dInt> samples;
@@ -324,7 +367,7 @@ namespace wgp {
                 solver.SetInitialVariable(Curve2dCurve2dIntVariable(curve0->GetTPiece(index0), curve1->GetTPiece(index1)));
                 for (int i = 0; i < solver.GetClearRoots().GetCount(); ++i) {
                     const Curve2dCurve2dIntVariable* root = solver.GetClearRoots().GetPointer(i);
-                    pre_result.Append(NewIntersection(helper, tag0, tag1, root->Get(0).Center(), root->Get(1).Center(), Curve2dCurve2dIntType::Cross));
+                    pre_result.Append(NewIntersection(helper, tag0, tag1, root->Get(0).Center(), root->Get(1).Center(), Curve2dCurve2dIntType::Normal));
                 }
                 for (int i = 0; i < solver.GetIntervalRoots().GetCount(); ++i) {
                     const Curve2dCurve2dIntVariable* root = solver.GetIntervalRoots().GetPointer(i);
@@ -352,7 +395,7 @@ namespace wgp {
                 if (solver.GetFuzzyRoots().GetCount() == 0) {
                     for (int i = 0; i < solver.GetClearRoots().GetCount(); ++i) {
                         const Curve2dCurve2dIntVariable* root = solver.GetClearRoots().GetPointer(i);
-                        pre_result.Append(NewIntersection(helper, tag0, tag1, root->Get(0).Center(), root->Get(1).Center(), Curve2dCurve2dIntType::Cross));
+                        pre_result.Append(NewIntersection(helper, tag0, tag1, root->Get(0).Center(), root->Get(1).Center(), Curve2dCurve2dIntType::Normal));
                     }
                     continue;
                 }
@@ -441,26 +484,29 @@ namespace wgp {
                             if (int_info1) {
                                 if (int_info1->ClearState == 1) {
                                     pre_result.Append(NewIntersection(helper, tag0, tag1, int_info1->Variable.Get(0).Center(), 
-                                        int_info1->Variable.Get(1).Center(), Curve2dCurve2dIntType::Cross));
+                                        int_info1->Variable.Get(1).Center(), Curve2dCurve2dIntType::Normal));
                                 }
                                 else {
-                                    double t0 = int_info1->Variable.Get(0).Min;
-                                    double t1;
+                                    double t10 = int_info1->Variable.Get(0).Min;
+                                    double t11;
                                     if (same_dir == 1) {
-                                        t1 = int_info1->Variable.Get(1).Min;
+                                        t11 = int_info1->Variable.Get(1).Min;
                                     }
                                     else {
-                                        t1 = int_info1->Variable.Get(1).Max;
+                                        t11 = int_info1->Variable.Get(1).Max;
                                     }
-                                    pre_result.Append(NewIntersection(helper, tag0, tag1, t0, t1, Curve2dCurve2dIntType::OverlapBegin));
-                                    t0 = int_info1->Variable.Get(0).Max;
+                                    samples.Append(NewIntersection(helper, tag0, tag1, t10, t11, Curve2dCurve2dIntType::OverlapInner));
+                                    double t20 = int_info1->Variable.Get(0).Max;
+                                    double t21;
                                     if (same_dir == 1) {
-                                        t1 = int_info1->Variable.Get(1).Max;
+                                        t21 = int_info1->Variable.Get(1).Max;
                                     }
                                     else {
-                                        t1 = int_info1->Variable.Get(1).Min;
+                                        t21 = int_info1->Variable.Get(1).Min;
                                     }
-                                    pre_result.Append(NewIntersection(helper, tag0, tag1, t0, t1, Curve2dCurve2dIntType::OverlapEnd));
+                                    samples.Append(NewIntersection(helper, tag0, tag1, t20, t21, Curve2dCurve2dIntType::OverlapInner));
+                                    AppendOverlapIntersections(pre_result, helper, samples, distance_epsilon);
+                                    samples.Clear();
                                 }
                                 int_info1 = nullptr;
                             }
@@ -571,17 +617,7 @@ namespace wgp {
                             }
                             else {
                                 if (helper.CheckQuickIterate(int_info->Variable)) {
-                                    Curve2dCurve2dInt* sample = int_info->Samples.GetPointer(0);
-                                    sample->Type = Curve2dCurve2dIntType::OverlapBegin;
-                                    pre_result.Append(*sample);
-                                    for (int k = 1; k < int_info->Samples.GetCount() - 1; ++k) {
-                                        sample = int_info->Samples.GetPointer(k);
-                                        sample->Type = Curve2dCurve2dIntType::OverlapInner;
-                                        pre_result.Append(*sample);
-                                    }
-                                    sample = int_info->Samples.GetPointer(int_info->Samples.GetCount() - 1);
-                                    sample->Type = Curve2dCurve2dIntType::OverlapEnd;
-                                    pre_result.Append(*sample);
+                                    AppendOverlapIntersections(pre_result, helper, int_info->Samples, distance_epsilon);
                                 }
                                 else {
                                     while (true) {
@@ -603,26 +639,11 @@ namespace wgp {
                                         }
                                         const int overlap_sample_count = 10;
                                         if (n > overlap_sample_count) {
-                                            Curve2dCurve2dInt* sample = int_info->Samples.GetPointer(0);
-                                            sample->Type = Curve2dCurve2dIntType::OverlapBegin;
-                                            pre_result.Append(*sample);
-                                            for (int k = 1; k < int_info->Samples.GetCount() - 1; ++k) {
-                                                sample = int_info->Samples.GetPointer(k);
-                                                sample->Type = Curve2dCurve2dIntType::OverlapInner;
-                                                pre_result.Append(*sample);
-                                            }
-                                            sample = int_info->Samples.GetPointer(int_info->Samples.GetCount() - 1);
-                                            sample->Type = Curve2dCurve2dIntType::OverlapEnd;
-                                            pre_result.Append(*sample);
+                                            AppendOverlapIntersections(pre_result, helper, int_info->Samples, distance_epsilon);
                                             break;
                                         }
                                         else if (max_index == -1) {
-                                            Curve2dCurve2dInt* sample = int_info->Samples.GetPointer(0);
-                                            sample->Type = Curve2dCurve2dIntType::OverlapBegin;
-                                            pre_result.Append(*sample);
-                                            sample = int_info->Samples.GetPointer(int_info->Samples.GetCount() - 1);
-                                            sample->Type = Curve2dCurve2dIntType::OverlapEnd;
-                                            pre_result.Append(*sample);
+                                            AppendOverlapIntersections(pre_result, helper, int_info->Samples, distance_epsilon);
                                             break;
                                         }
                                         else if (!CalculateSample(helper, solver, corresponding_point_equation_system, int_info, max_index, tag0, tag1)) {
@@ -696,26 +717,27 @@ namespace wgp {
                             solver.SetInitialVariable(int_info->Variable);
                             solver.SetEquationSystem(&high_precision_equation_system);
                             high_precision_equation_system.SetCenter(CalculateHighPrecisionCenter(helper, int_info->Variable));
+                            high_precision_equation_system.SetDomain(int_info->Variable.Get(0), int_info->Variable.Get(1));
                             high_precision_equation_system.SetMaxFuzzyCount(1);
                             if (solver.GetClearRoots().GetCount() > 0) {
                                 const Curve2dCurve2dIntVariable* root = solver.GetClearRoots().GetPointer(0);
                                 if (int_info->BeginState == 1) {
                                     int_info->EndState = 1;
                                     int_info->Samples.Append(NewIntersection(helper, tag0, tag1, root->Get(0).Center(),
-                                        root->Get(1).Center(), Curve2dCurve2dIntType::Cross));
+                                        root->Get(1).Center(), Curve2dCurve2dIntType::Normal));
                                     ResetVariableInterval(helper, int_info);
                                     int_infos.Append(*int_info);
                                 }
                                 else if (int_info->EndState == 1) {
                                     int_info->BeginState = 1;
                                     int_info->Samples.Insert(0, NewIntersection(helper, tag0, tag1, root->Get(0).Center(),
-                                        root->Get(1).Center(), Curve2dCurve2dIntType::Cross));
+                                        root->Get(1).Center(), Curve2dCurve2dIntType::Normal));
                                     ResetVariableInterval(helper, int_info);
                                     int_infos.Append(*int_info);
                                 }
                                 else {
                                     pre_result.Append(NewIntersection(helper, tag0, tag1, root->Get(0).Center(), 
-                                        root->Get(1).Center(), Curve2dCurve2dIntType::Cross));
+                                        root->Get(1).Center(), Curve2dCurve2dIntType::Normal));
                                 }
                             }
                             else if (solver.GetFuzzyRoots().GetCount() > 0) {
@@ -727,6 +749,7 @@ namespace wgp {
                                     initial_variables.Append(variable1);
                                     initial_variables.Append(variable2);
                                     solver.SetInitialVariables(initial_variables);
+                                    initial_variables.Clear();
                                     solver.SetEquationSystem(&trim_equation_system);
                                 }
                                 for (int i = 0; i < solver.GetClearRoots().GetCount(); ++i) {
@@ -739,7 +762,7 @@ namespace wgp {
                                 }
                                 for (int i = 0; i < solver.GetFuzzyRoots().GetCount(); ++i) {
                                     IntInfo int_info1;
-                                    int_info1.Variable = solver.GetClearRoots().Get(i);
+                                    int_info1.Variable = solver.GetFuzzyRoots().Get(i);
                                     int_info1.BeginState = 0;
                                     int_info1.EndState = 0;
                                     int_info1.ClearState = 0;
@@ -768,6 +791,10 @@ namespace wgp {
                 Curve2dCurve2dIntIndex* index2 = indices.GetPointer(j);
                 if (!vector2_equals(index->Array->GetPointer(index->StartIndex)->Points[0],
                     index2->Array->GetPointer(index2->StartIndex)->Points[0], distance_epsilon)) {
+                    break;
+                }
+                if ((index->Array->GetPointer(index->EndIndex)->Ts[1].Value - index->Array->GetPointer(index->StartIndex)->Ts[1].Value) *
+                    (index2->Array->GetPointer(index2->EndIndex)->Ts[1].Value - index2->Array->GetPointer(index2->StartIndex)->Ts[1].Value) < 0) {
                     break;
                 }
                 if (index->Array->GetPointer(index->EndIndex)->Ts[0].Value < index2->Array->GetPointer(index2->EndIndex)->Ts[0].Value) {
@@ -882,7 +909,7 @@ namespace wgp {
         for (int i = 0; i < int_array_count; ++i) {
             for (int j = 0; j < int_array_list[i].GetCount(); ++j) {
                 Curve2dCurve2dInt* intersection = int_array_list[i].GetPointer(j);
-                if (intersection->Type == Curve2dCurve2dIntType::Cross) {
+                if (intersection->Type == Curve2dCurve2dIntType::Normal) {
                     current_index.Array = int_array_list + i;
                     current_index.StartIndex = j;
                     current_index.EndIndex = j;

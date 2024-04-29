@@ -25,9 +25,9 @@ namespace wgp {
         virtual void SplitFlat(Array<VariableInterval>& segments, double angle_epsilon);
     public:
         virtual void Calculate(int index, double t, Vector2d* d0, Vector2d* dt, Vector2d* dt2);
-        virtual Curve2dIntervalCalculator* NewCalculator(int index, const Interval& t);
+        virtual Curve2dIntervalCalculator* NewCalculator(int index, const Interval& t_domain);
         virtual Curve2dProjectionIntervalCalculator* NewCalculatorByCircleTransformation(
-            int index, const Interval& t, const Vector2d& center);
+            int index, const Interval& t_domain, const Vector2d& center);
     public:
         static bool Get3PointCircle(const Vector2d& point1, const Vector2d& point2, const Vector2d& point3, Vector2d& center);
     private:

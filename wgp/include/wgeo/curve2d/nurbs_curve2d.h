@@ -27,21 +27,15 @@ namespace wgp {
         virtual void SplitFlat(Array<VariableInterval>& segments, double angle_epsilon);
     public:
         virtual void Calculate(int index, double t, Vector2d* d0, Vector2d* dt, Vector2d* dt2);
-        virtual Curve2dIntervalCalculator* NewCalculator(int index, const Interval& t) {
-            //todo
-            return nullptr;
-        }
+        virtual Curve2dIntervalCalculator* NewCalculator(int index, const Interval& t_domain);
         virtual Curve2dProjectionIntervalCalculator* NewCalculatorByCircleTransformation(
-            int index, const Interval& t, const Vector2d& center) {
-            //todo
-            return nullptr;
-        }
+            int index, const Interval& t_domain, const Vector2d& center);
     public:
         static NurbsCurve2d* CreateByArc(const Vector2d& center, double radius, double start_angle, double end_angle);
     private:
         void BuildBasisPolynomials(double* temp_all_polynomials, int all_polynomial_size);
-        void BuildXYPolynomials(int index, double* x_polynomials, double* y_polynomials);
-        void BuildWXYPolynomials(int index, double* w_polynomials, double* x_polynomials, double* y_polynomials);
+        void BuildXYPolynomials(int index, double* x_polynomial, double* y_polynomial);
+        void BuildWXYPolynomials(int index, double* w_polynomial, double* x_polynomial, double* y_polynomial);
         void CalculateByCircleTransformation(int index, const Interval& t, const Vector2d& center, 
             double* x_polynomial, double* y_polynomial, double* polynomial, double* d_polynomial, Interval* d0, Interval* dt);
         void CalculateByCircleTransformation(int index, const Interval& t, const Vector2d& center,
@@ -56,27 +50,8 @@ namespace wgp {
         double* m_weights;
         double* m_basis_polynomials;
     private:
-        void InitializeCache();
-        void FreeCache();
-    private:
-        Interval* m_ts_at_extreme_x;
-        int m_ts_at_extreme_x_count;
-        Interval* m_ts_at_extreme_y;
-        int m_ts_at_extreme_y_count;
-        Interval* m_ts_at_extreme_c;
-        int m_ts_at_extreme_c_count;
-
-        Interval* m_ts_at_extreme_x_dt;
-        int m_ts_at_extreme_x_dt_count;
-        Interval* m_ts_at_extreme_y_dt;
-        int m_ts_at_extreme_y_dt_count;
-        Interval* m_ts_at_extreme_c_dt;
-        int m_ts_at_extreme_c_dt_count;
-
-        Interval* m_ts_at_extreme_x_dt2;
-        int m_ts_at_extreme_x_dt2_count;
-        Interval* m_ts_at_extreme_y_dt2;
-        int m_ts_at_extreme_y_dt2_count;
+        friend class NurbsCurve2dWithoutWeightIntervalCalculator;
+        friend class NurbsCurve2dWithoutWeightIntervalCalculatorByCircleTransformation;
     };
 }
 

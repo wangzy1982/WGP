@@ -25,9 +25,9 @@ namespace wgp {
         virtual void SplitFlat(Array<VariableInterval>& segments, double angle_epsilon) = 0;
     public:
         virtual void Calculate(int index, double t, Vector2d* d0, Vector2d* dt, Vector2d* dt2) = 0;
-        virtual Curve2dIntervalCalculator* NewCalculator(int index, const Interval& t) = 0;
+        virtual Curve2dIntervalCalculator* NewCalculator(int index, const Interval& t_domain) = 0;
         virtual Curve2dProjectionIntervalCalculator* NewCalculatorByCircleTransformation(
-            int index, const Interval& t, const Vector2d& center) = 0;
+            int index, const Interval& t_domain, const Vector2d& center) = 0;
     };
 
     class Curve2dIntervalCalculator {

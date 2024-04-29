@@ -49,7 +49,7 @@ namespace wgp {
 			return m_total_time.count() * 1E-9;
 		}
 
-		double GetTotalCount() {
+		int GetTotalCount() {
 			if (m_is_running) {
 				throw;
 			}
@@ -60,7 +60,19 @@ namespace wgp {
 		int m_total_count;
 		std::chrono::steady_clock::time_point m_start_time;
 		std::chrono::nanoseconds m_total_time;
+	public:
+		static Stopwatch Instance0;
+		static Stopwatch Instance1;
+		static Stopwatch Instance2;
+		static Stopwatch Instance3;
+		static Stopwatch Instance4;
+		static Stopwatch Instance5;
+		static Stopwatch Instance6;
+		static Stopwatch Instance7;
+		static Stopwatch Instance8;
+		static Stopwatch Instance9;
 	};
+
 }
 
 #endif
