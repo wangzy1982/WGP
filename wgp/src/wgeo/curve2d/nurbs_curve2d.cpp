@@ -303,8 +303,7 @@ namespace wgp {
             m_t_domain(t_domain), 
             m_center(center),
             m_c0_extreme_count(-1),
-            m_ct_extreme_count(-1),
-            m_ct2_extreme_count(-1) {
+            m_ct_extreme_count(-1) {
         }
 
         virtual void Calculate(const Interval& t, Interval* d0, Interval* dt) {
@@ -408,8 +407,6 @@ namespace wgp {
         double m_c0_extreme[g_nurbs_polynomial_size * 2];
         int m_ct_extreme_count;
         double m_ct_extreme[g_nurbs_polynomial_size * 2];
-        int m_ct2_extreme_count;
-        double m_ct2_extreme[g_nurbs_polynomial_size * 2];
     };
 
     NurbsCurve2dType* NurbsCurve2dType::Instance() {

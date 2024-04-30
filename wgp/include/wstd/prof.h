@@ -71,6 +71,17 @@ namespace wgp {
 		static Stopwatch Instance7;
 		static Stopwatch Instance8;
 		static Stopwatch Instance9;
+	public:
+		static int State0;
+		static int State1;
+		static int State2;
+		static int State3;
+		static int State4;
+		static int State5;
+		static int State6;
+		static int State7;
+		static int State8;
+		static int State9;
 	};
 
 }

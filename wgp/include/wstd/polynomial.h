@@ -9,9 +9,7 @@
 #include "solver.h"
 #include "equations.h"
 
-//test
-#include "prof.h"
-//test
+#include <assert.h>
 
 namespace wgp {
 	
@@ -313,6 +311,9 @@ namespace wgp {
 		bool PreIterate(UnivariablePolynomialVariable* variable, SolverIteratedResult& result, double& size);
 		bool CheckFinished(const Array<SolverHeapItem<UnivariablePolynomialVariable, double>>& heap);
 	private:
+		Interval CalculateD0(const UnivariablePolynomialVariable& variable);
+		Interval CalculateDt(const UnivariablePolynomialVariable& variable);
+	private:
 		int m_degree;
 		double* m_polynomial;
 		double* m_d_polynomial;
@@ -344,18 +345,12 @@ namespace wgp {
 		return is_checking ? 1E-6 : 1E-12;
 	}
 
-	inline void UnivariablePolynomialEquation::CalculateValue(const UnivariablePolynomialVariable& variable, IntervalVector<1>& value) {
-		if (variable.m_d0_dirty) {
-			variable.m_d0 = estimate_univariate_polynomial_interval(m_degree, m_polynomial, variable.m_t);
-		}
-		value.Set(0, variable.m_d0);
+	inline void UnivariablePolynomialEquation::CalculateValue(const UnivariablePolynomialVariable& variable, IntervalVector<1>& value) {		
+		value.Set(0, CalculateD0(variable));
 	}
 
-	inline void UnivariablePolynomialEquation::CalculatePartialDerivative(const UnivariablePolynomialVariable& variable, IntervalMatrix<1, 1>& value) {
-		if (variable.m_dt_dirty) {
-			variable.m_dt = estimate_univariate_polynomial_interval(m_degree - 1, m_d_polynomial, variable.m_t);
-		}
-		*value.Get(0, 0) = variable.m_dt;
+	inline void UnivariablePolynomialEquation::CalculatePartialDerivative(const UnivariablePolynomialVariable& variable, IntervalMatrix<1, 1>& value) {		
+		*value.Get(0, 0) = CalculateDt(variable);
 	}
 
 	inline int UnivariablePolynomialEquation::GetSplitIndex(const UnivariablePolynomialVariable& variable, int prev_split_index, double size) {
@@ -374,12 +369,25 @@ namespace wgp {
 	}
 
 	inline bool UnivariablePolynomialEquation::PreIterate(UnivariablePolynomialVariable* variable, SolverIteratedResult& result, double& size) {
-		//todo
 		return false;
 	}
 
 	inline bool UnivariablePolynomialEquation::CheckFinished(const Array<SolverHeapItem<UnivariablePolynomialVariable>>& heap) {
 		return heap.GetCount() >= m_degree;
+	}
+
+	inline Interval UnivariablePolynomialEquation::CalculateD0(const UnivariablePolynomialVariable& variable) {
+		if (variable.m_d0_dirty) {
+			variable.m_d0 = estimate_univariate_polynomial_interval(m_degree, m_polynomial, variable.m_t);
+		}
+		return variable.m_d0;
+	}
+
+	inline Interval UnivariablePolynomialEquation::CalculateDt(const UnivariablePolynomialVariable& variable) {
+		if (variable.m_dt_dirty) {
+			variable.m_dt = estimate_univariate_polynomial_interval(m_degree - 1, m_d_polynomial, variable.m_t);
+		}
+		return variable.m_dt;
 	}
 
 
