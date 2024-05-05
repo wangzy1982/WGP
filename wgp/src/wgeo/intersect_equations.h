@@ -143,7 +143,8 @@ namespace wgp {
                 memset(m_calculators[index], 0, m_curve[index]->GetTPieceCount() * sizeof(Curve2dIntervalCalculator*));
             }
             if (!m_calculators[index][m_index[index]]) {
-                m_calculators[index][m_index[index]] = m_curve[index]->NewCalculator(m_index[index], m_curve[index]->GetTPiece(m_index[index]));
+                m_calculators[index][m_index[index]] = m_curve[index]->NewCalculator(
+                    m_index[index], m_curve[index]->GetTPiece(m_index[index]), true, true, false);
             }
             return m_calculators[index][m_index[index]];
         }
@@ -594,7 +595,7 @@ namespace wgp {
         Curve2dProjectionIntervalCalculator* GetCalculator(int index) {
             if (!m_calculator[index]) {
                 m_calculator[index] = m_helper->GetCurve(index)->NewCalculatorByCircleTransformation(
-                    m_helper->GetIndex(index), m_domain[index], m_center);
+                    m_helper->GetIndex(index), m_domain[index], m_center, true, true);
             }
             return m_calculator[index];
         }
