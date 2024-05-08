@@ -346,13 +346,22 @@ namespace wgp {
         result.Append(*sample2);
     }
 
-    void Intersect(Curve2d* curve0, Curve2d* curve1, void* tag0, void* tag1, double distance_epsilon, Array<Curve2dCurve2dInt>& result) {
+    void Intersect(Curve2d* curve0, Curve2d* curve1, void* tag0, void* tag1, double dist_epsilon, Array<Curve2dCurve2dInt>& result) {
+        Curve2dIntervalCalculator** calculators0 = curve0->NewCalculators(true, true, false);
+        Curve2dIntervalCalculator** calculators1 = curve1->NewCalculators(true, true, false);
+        Intersect(curve0, curve1, tag0, tag1, dist_epsilon, calculators0, calculators1, result);
+        curve0->FreeCalculators(calculators0);
+        curve1->FreeCalculators(calculators1);
+    }
+
+    void Intersect(Curve2d* curve0, Curve2d* curve1, void* tag0, void* tag1, double distance_epsilon,
+        Curve2dIntervalCalculator** calculators0, Curve2dIntervalCalculator** calculators1, Array<Curve2dCurve2dInt>& result) {
         Array<Curve2dCurve2dInt> pre_result;
         Array<Curve2dCurve2dInt> samples;
         Array<IntInfo> pre_int_infos;
         Array<IntInfo> int_infos;
         Array<Curve2dCurve2dIntVariable> initial_variables;
-        Curve2dCurve2dIntHelper helper(curve0, curve1);
+        Curve2dCurve2dIntHelper helper(curve0, calculators0, curve1, calculators1);
         Solver<Curve2dCurve2dIntBaseEquationSystem, Curve2dCurve2dIntVariable, IntervalVector<3>, IntervalVector<3>, IntervalMatrix<3, 2>> solver;
         Curve2dCurve2dIntFormulaEquationSystem formula_equation_system(&helper, distance_epsilon);
         Curve2dCurve2dIntSplitEquationSystem split_equation_system(&helper, distance_epsilon);

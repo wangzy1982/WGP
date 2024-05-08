@@ -9,7 +9,10 @@
 #include "wstd/vector2d.h"
 #include "wstd/interval2d.h"
 #include "wstd/quaternion.h"
+#include "wstd/thread.h"
 #include "geometry.h"
+#include <atomic>
+#include <thread>
 
 namespace wgp {
 
@@ -28,6 +31,8 @@ namespace wgp {
         virtual Curve2dIntervalCalculator* NewCalculator(int index, const Interval& t_domain, bool d0, bool dt, bool dt2) = 0;
         virtual Curve2dProjectionIntervalCalculator* NewCalculatorByCircleTransformation(
             int index, const Interval& t_domain, const Vector2d& center, bool d0, bool dt) = 0;
+        Curve2dIntervalCalculator** NewCalculators(bool d0, bool dt, bool dt2);
+        void FreeCalculators(Curve2dIntervalCalculator** calculators);
     };
 
     class Curve2dIntervalCalculator {

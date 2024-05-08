@@ -14,8 +14,10 @@ namespace wgp {
 
     class NurbsCurve2dWithoutWeightIntervalCalculator : public Curve2dIntervalCalculator {
     public:
-        NurbsCurve2dWithoutWeightIntervalCalculator(NurbsCurve2d* nurbs, int index, const Interval& t_domain, bool d0, bool dt, bool dt2) :
-            m_nurbs(nurbs), m_index(index) {
+        NurbsCurve2dWithoutWeightIntervalCalculator(NurbsCurve2d* nurbs, int index, const Interval& t_domain, bool d0, bool dt, bool dt2) {
+            UnivariablePolynomialEquationSolver solver;
+            m_nurbs = nurbs;
+            m_index = index;
             m_nurbs->BuildXYPolynomials(m_index, m_x_polynomial, m_y_polynomial);
             univariate_polynomial_dx(m_nurbs->m_degree, m_x_polynomial, m_dx_polynomial);
             univariate_polynomial_dx(m_nurbs->m_degree, m_y_polynomial, m_dy_polynomial);
@@ -48,7 +50,6 @@ namespace wgp {
                 }
                 return;
             }
-            UnivariablePolynomialEquationSolver solver;
             if (d0) {
                 UnivariablePolynomialEquation equation1(m_nurbs->m_degree - 1, m_dx_polynomial, m_dx2_polynomial);
                 solver.SetEquationSystem(&equation1);
@@ -277,7 +278,10 @@ namespace wgp {
     class NurbsCurve2dWithoutWeightIntervalCalculatorByCircleTransformation : public Curve2dProjectionIntervalCalculator {
     public:
         NurbsCurve2dWithoutWeightIntervalCalculatorByCircleTransformation(NurbsCurve2d* nurbs, int index, const Vector2d& center, 
-            const Interval& t_domain, bool d0, bool dt) : m_nurbs(nurbs), m_index(index) {
+            const Interval& t_domain, bool d0, bool dt) {
+            UnivariablePolynomialEquationSolver solver;
+            m_nurbs = nurbs;
+            m_index = index;
             double x_polynomial[g_nurbs_polynomial_size];
             double y_polynomial[g_nurbs_polynomial_size];
             m_nurbs->BuildXYPolynomials(m_index, x_polynomial, y_polynomial);
@@ -286,7 +290,6 @@ namespace wgp {
             mul_univariate_polynomial(m_nurbs->m_degree, x_polynomial, m_nurbs->m_degree, x_polynomial, m_c_polynomial);
             add_mul_univariate_polynomial(m_c_polynomial, m_nurbs->m_degree, y_polynomial, m_nurbs->m_degree, y_polynomial);
             univariate_polynomial_dx(m_nurbs->m_degree * 2, m_c_polynomial, m_dc_polynomial);
-            UnivariablePolynomialEquationSolver solver;
             double dc2_polynomial[g_nurbs_polynomial_size * 2];
             univariate_polynomial_dx(m_nurbs->m_degree * 2 - 1, m_dc_polynomial, dc2_polynomial);
             if (d0) {
@@ -536,18 +539,22 @@ namespace wgp {
     }
 
     Curve2dIntervalCalculator* NurbsCurve2d::NewCalculator(int index, const Interval& t_domain, bool d0, bool dt, bool dt2) {
-        if (!m_weights) {
+        if (m_weights) {
+            //todo
+        }
+        else {
             return new NurbsCurve2dWithoutWeightIntervalCalculator(this, index, t_domain, d0, dt, dt2);
         }
-        return nullptr;
     }
 
     Curve2dProjectionIntervalCalculator* NurbsCurve2d::NewCalculatorByCircleTransformation(
         int index, const Interval& t_domain, const Vector2d& center, bool d0, bool dt) {
-        if (!m_weights) {
+        if (m_weights) {
+            //todo
+        }
+        else {
             return new NurbsCurve2dWithoutWeightIntervalCalculatorByCircleTransformation(this, index, center, t_domain, d0, dt);
         }
-        return nullptr;
     }
 
     NurbsCurve2d* NurbsCurve2d::CreateByArc(const Vector2d& center, double radius, double start_angle, double end_angle) {

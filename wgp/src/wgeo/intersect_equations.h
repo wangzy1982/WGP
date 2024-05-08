@@ -112,24 +112,16 @@ namespace wgp {
 
     class Curve2dCurve2dIntHelper {
     public:
-        Curve2dCurve2dIntHelper(Curve2d* curve0, Curve2d* curve1) {
+        Curve2dCurve2dIntHelper(Curve2d* curve0, Curve2dIntervalCalculator** calculators0, Curve2d* curve1, Curve2dIntervalCalculator** calculators1) {
             m_curve[0] = curve0;
             m_curve[1] = curve1;
             m_index[0] = -1;
             m_index[1] = -1;
-            m_calculators[0] = nullptr;
-            m_calculators[1] = nullptr;
+            m_calculators[0] = calculators0;
+            m_calculators[1] = calculators1;
         }
 
         virtual ~Curve2dCurve2dIntHelper() {
-            for (int k = 0; k <= 1; ++k) {
-                if (m_calculators[k]) {
-                    for (int i = 0; i < m_curve[k]->GetTPieceCount(); ++i) {
-                        delete m_calculators[k][i];
-                    }
-                    delete[] m_calculators[k];
-                }
-            }
         }
 
         void SetIndex(int index0, int index1) {
@@ -138,14 +130,6 @@ namespace wgp {
         }
 
         Curve2dIntervalCalculator* GetCalculator(int index) {
-            if (!m_calculators[index]) {
-                m_calculators[index] = new Curve2dIntervalCalculator * [m_curve[index]->GetTPieceCount()];
-                memset(m_calculators[index], 0, m_curve[index]->GetTPieceCount() * sizeof(Curve2dIntervalCalculator*));
-            }
-            if (!m_calculators[index][m_index[index]]) {
-                m_calculators[index][m_index[index]] = m_curve[index]->NewCalculator(
-                    m_index[index], m_curve[index]->GetTPiece(m_index[index]), true, true, false);
-            }
             return m_calculators[index][m_index[index]];
         }
 
@@ -594,8 +578,7 @@ namespace wgp {
 
         Curve2dProjectionIntervalCalculator* GetCalculator(int index) {
             if (!m_calculator[index]) {
-                m_calculator[index] = m_helper->GetCurve(index)->NewCalculatorByCircleTransformation(
-                    m_helper->GetIndex(index), m_domain[index], m_center, true, true);
+                m_calculator[index] = m_helper->GetCurve(index)->NewCalculatorByCircleTransformation(m_helper->GetIndex(index), m_domain[index], m_center, true, true);
             }
             return m_calculator[index];
         }
