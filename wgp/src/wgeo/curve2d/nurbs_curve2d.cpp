@@ -371,6 +371,436 @@ namespace wgp {
         double m_ct_extreme[g_nurbs_polynomial_size * 2];
     };
 
+    class NurbsCurve2dIntervalCalculator : public Curve2dIntervalCalculator {
+    public:
+        NurbsCurve2dIntervalCalculator(NurbsCurve2d* nurbs, int index, const Interval& t_domain, bool d0, bool dt, bool dt2) {
+            UnivariablePolynomialEquationSolver solver;
+            m_nurbs = nurbs;
+            m_index = index;
+            m_nurbs->BuildWXYPolynomials(m_index, m_w_polynomial, m_x_polynomial, m_y_polynomial);
+            univariate_polynomial_dx(m_nurbs->m_degree, m_x_polynomial, m_dx_polynomial);
+            univariate_polynomial_dx(m_nurbs->m_degree, m_y_polynomial, m_dy_polynomial);
+            univariate_polynomial_dx(m_nurbs->m_degree, m_w_polynomial, m_dw_polynomial);
+            univariate_polynomial_dx(m_nurbs->m_degree - 1, m_dx_polynomial, m_dx2_polynomial);
+            univariate_polynomial_dx(m_nurbs->m_degree - 1, m_dy_polynomial, m_dy2_polynomial);
+            univariate_polynomial_dx(m_nurbs->m_degree - 1, m_dw_polynomial, m_dw2_polynomial);
+            double a_x_polynomial[g_nurbs_polynomial_size * 2];
+            double a_y_polynomial[g_nurbs_polynomial_size * 2];
+            mul_univariate_polynomial(m_nurbs->m_degree - 1, m_dx_polynomial, m_nurbs->m_degree, m_w_polynomial, a_x_polynomial);
+            sub_mul_univariate_polynomial(a_x_polynomial, m_nurbs->m_degree, m_x_polynomial, m_nurbs->m_degree - 1, m_dw_polynomial);
+            mul_univariate_polynomial(m_nurbs->m_degree - 1, m_dy_polynomial, m_nurbs->m_degree, m_w_polynomial, a_y_polynomial);
+            sub_mul_univariate_polynomial(a_y_polynomial, m_nurbs->m_degree, m_y_polynomial, m_nurbs->m_degree - 1, m_dw_polynomial);
+            double da_x_polynomial[g_nurbs_polynomial_size * 2];
+            double da_y_polynomial[g_nurbs_polynomial_size * 2];
+            univariate_polynomial_dx(m_nurbs->m_degree * 2 - 1, a_x_polynomial, da_x_polynomial);
+            univariate_polynomial_dx(m_nurbs->m_degree * 2 - 1, a_y_polynomial, da_y_polynomial);
+            if (d0) {
+                UnivariablePolynomialEquation equation1(m_nurbs->m_degree * 2 - 1, a_x_polynomial, da_x_polynomial);
+                solver.SetEquationSystem(&equation1);
+                UnivariablePolynomialVariable variable1;
+                variable1.Set(0, t_domain);
+                solver.SetInitialVariable(variable1);
+                m_x0_extreme_count = 0;
+                for (int i = 0; i < solver.GetClearRoots().GetCount(); ++i) {
+                    const UnivariablePolynomialVariable* root = solver.GetClearRoots().GetPointer(i);
+                    m_x0_extreme[m_x0_extreme_count++] = root->Get(0).Center();
+                }
+                for (int i = 0; i < solver.GetFuzzyRoots().GetCount(); ++i) {
+                    const UnivariablePolynomialVariable* root = solver.GetFuzzyRoots().GetPointer(i);
+                    m_x0_extreme[m_x0_extreme_count++] = root->Get(0).Center();
+                }
+                UnivariablePolynomialEquation equation2(m_nurbs->m_degree * 2 - 1, a_y_polynomial, da_y_polynomial);
+                solver.SetEquationSystem(&equation2);
+                UnivariablePolynomialVariable variable2;
+                variable2.Set(0, t_domain);
+                solver.SetInitialVariable(variable2);
+                m_y0_extreme_count = 0;
+                for (int i = 0; i < solver.GetClearRoots().GetCount(); ++i) {
+                    const UnivariablePolynomialVariable* root = solver.GetClearRoots().GetPointer(i);
+                    m_y0_extreme[m_y0_extreme_count++] = root->Get(0).Center();
+                }
+                for (int i = 0; i < solver.GetFuzzyRoots().GetCount(); ++i) {
+                    const UnivariablePolynomialVariable* root = solver.GetFuzzyRoots().GetPointer(i);
+                    m_y0_extreme[m_y0_extreme_count++] = root->Get(0).Center();
+                }
+            }
+            else {
+                m_x0_extreme_count = -1;
+                m_y0_extreme_count = -1;
+            }
+            if (dt || dt2) {
+                double b_x_polynomial[g_nurbs_polynomial_size * 3];
+                double b_y_polynomial[g_nurbs_polynomial_size * 3];
+                mul_univariate_polynomial(m_nurbs->m_degree * 2 - 2, da_x_polynomial, m_nurbs->m_degree, m_w_polynomial, b_x_polynomial);
+                add_mul_univariate_polynomial(b_x_polynomial, m_nurbs->m_degree * 2 - 1, a_x_polynomial, m_nurbs->m_degree - 1, m_dw_polynomial, -2);
+                mul_univariate_polynomial(m_nurbs->m_degree * 2 - 2, da_y_polynomial, m_nurbs->m_degree, m_w_polynomial, b_y_polynomial);
+                add_mul_univariate_polynomial(b_y_polynomial, m_nurbs->m_degree * 2 - 1, a_y_polynomial, m_nurbs->m_degree - 1, m_dw_polynomial, -2);
+                double db_x_polynomial[g_nurbs_polynomial_size * 3];
+                double db_y_polynomial[g_nurbs_polynomial_size * 3];
+                univariate_polynomial_dx(m_nurbs->m_degree * 3 - 2, b_x_polynomial, db_x_polynomial);
+                univariate_polynomial_dx(m_nurbs->m_degree * 3 - 2, b_y_polynomial, db_y_polynomial);
+                if (dt) {
+                    UnivariablePolynomialEquation equation1(m_nurbs->m_degree * 3 - 2, b_x_polynomial, db_x_polynomial);
+                    solver.SetEquationSystem(&equation1);
+                    UnivariablePolynomialVariable variable1;
+                    variable1.Set(0, t_domain);
+                    solver.SetInitialVariable(variable1);
+                    m_xt_extreme_count = 0;
+                    for (int i = 0; i < solver.GetClearRoots().GetCount(); ++i) {
+                        const UnivariablePolynomialVariable* root = solver.GetClearRoots().GetPointer(i);
+                        m_xt_extreme[m_xt_extreme_count++] = root->Get(0).Center();
+                    }
+                    for (int i = 0; i < solver.GetFuzzyRoots().GetCount(); ++i) {
+                        const UnivariablePolynomialVariable* root = solver.GetFuzzyRoots().GetPointer(i);
+                        m_xt_extreme[m_xt_extreme_count++] = root->Get(0).Center();
+                    }
+                    UnivariablePolynomialEquation equation2(m_nurbs->m_degree * 3 - 2, b_y_polynomial, db_y_polynomial);
+                    solver.SetEquationSystem(&equation2);
+                    UnivariablePolynomialVariable variable2;
+                    variable2.Set(0, t_domain);
+                    solver.SetInitialVariable(variable2);
+                    m_yt_extreme_count = 0;
+                    for (int i = 0; i < solver.GetClearRoots().GetCount(); ++i) {
+                        const UnivariablePolynomialVariable* root = solver.GetClearRoots().GetPointer(i);
+                        m_yt_extreme[m_yt_extreme_count++] = root->Get(0).Center();
+                    }
+                    for (int i = 0; i < solver.GetFuzzyRoots().GetCount(); ++i) {
+                        const UnivariablePolynomialVariable* root = solver.GetFuzzyRoots().GetPointer(i);
+                        m_yt_extreme[m_yt_extreme_count++] = root->Get(0).Center();
+                    }
+                }
+                if (dt2) {
+                    double c_x_polynomial[g_nurbs_polynomial_size * 4];
+                    double c_y_polynomial[g_nurbs_polynomial_size * 4];
+                    mul_univariate_polynomial(m_nurbs->m_degree * 3 - 3, db_x_polynomial, m_nurbs->m_degree, m_w_polynomial, c_x_polynomial);
+                    add_mul_univariate_polynomial(c_x_polynomial, m_nurbs->m_degree * 3 - 2, b_x_polynomial, m_nurbs->m_degree - 1, m_dw_polynomial, -3);
+                    mul_univariate_polynomial(m_nurbs->m_degree * 3 - 3, db_y_polynomial, m_nurbs->m_degree, m_w_polynomial, c_y_polynomial);
+                    add_mul_univariate_polynomial(c_y_polynomial, m_nurbs->m_degree * 3 - 2, b_y_polynomial, m_nurbs->m_degree - 1, m_dw_polynomial, -3);
+                    double dc_x_polynomial[g_nurbs_polynomial_size * 4];
+                    double dc_y_polynomial[g_nurbs_polynomial_size * 4];
+                    univariate_polynomial_dx(m_nurbs->m_degree * 4 - 3, c_x_polynomial, dc_x_polynomial);
+                    univariate_polynomial_dx(m_nurbs->m_degree * 4 - 3, c_y_polynomial, dc_y_polynomial);
+                    UnivariablePolynomialEquation equation1(m_nurbs->m_degree * 4 - 3, c_x_polynomial, dc_x_polynomial);
+                    solver.SetEquationSystem(&equation1);
+                    UnivariablePolynomialVariable variable1;
+                    variable1.Set(0, t_domain);
+                    solver.SetInitialVariable(variable1);
+                    m_xt2_extreme_count = 0;
+                    for (int i = 0; i < solver.GetClearRoots().GetCount(); ++i) {
+                        const UnivariablePolynomialVariable* root = solver.GetClearRoots().GetPointer(i);
+                        m_xt2_extreme[m_xt2_extreme_count++] = root->Get(0).Center();
+                    }
+                    for (int i = 0; i < solver.GetFuzzyRoots().GetCount(); ++i) {
+                        const UnivariablePolynomialVariable* root = solver.GetFuzzyRoots().GetPointer(i);
+                        m_xt2_extreme[m_xt2_extreme_count++] = root->Get(0).Center();
+                    }
+                    UnivariablePolynomialEquation equation2(m_nurbs->m_degree * 4 - 3, c_y_polynomial, dc_y_polynomial);
+                    solver.SetEquationSystem(&equation2);
+                    UnivariablePolynomialVariable variable2;
+                    variable2.Set(0, t_domain);
+                    solver.SetInitialVariable(variable2);
+                    m_yt2_extreme_count = 0;
+                    for (int i = 0; i < solver.GetClearRoots().GetCount(); ++i) {
+                        const UnivariablePolynomialVariable* root = solver.GetClearRoots().GetPointer(i);
+                        m_yt2_extreme[m_yt2_extreme_count++] = root->Get(0).Center();
+                    }
+                    for (int i = 0; i < solver.GetFuzzyRoots().GetCount(); ++i) {
+                        const UnivariablePolynomialVariable* root = solver.GetFuzzyRoots().GetPointer(i);
+                        m_yt2_extreme[m_yt2_extreme_count++] = root->Get(0).Center();
+                    }
+                }
+                else {
+                    m_xt2_extreme_count = -1;
+                    m_yt2_extreme_count = -1;
+                }
+            }
+            else {
+                m_xt_extreme_count = -1;
+                m_yt_extreme_count = -1;
+                m_xt2_extreme_count = -1;
+                m_yt2_extreme_count = -1;
+            }
+        }
+
+        virtual void Calculate(const Interval& t, Interval2d* d0, Interval2d* dt, Interval2d* dt2) {
+            {
+                assert(m_x0_extreme_count != -1);
+                assert(m_y0_extreme_count != -1);
+                double w = calculate_univariate_polynomial_value(m_nurbs->m_degree, m_w_polynomial, t.Min);
+                double x = calculate_univariate_polynomial_value(m_nurbs->m_degree, m_x_polynomial, t.Min);
+                double y = calculate_univariate_polynomial_value(m_nurbs->m_degree, m_y_polynomial, t.Min);
+                if (d0) {
+                    d0->X = x / w;
+                    d0->Y = y / w;
+                }
+                if (dt || dt2) {
+                    double w2 = w * w;
+                    double wt = calculate_univariate_polynomial_value(m_nurbs->m_degree - 1, m_dw_polynomial, t.Min);
+                    double xt = calculate_univariate_polynomial_value(m_nurbs->m_degree - 1, m_dx_polynomial, t.Min);
+                    double yt = calculate_univariate_polynomial_value(m_nurbs->m_degree - 1, m_dy_polynomial, t.Min);
+                    if (dt) {
+                        dt->X = (xt * w - x * wt) / w2;
+                        dt->Y = (yt * w - y * wt) / w2;
+                    }
+                    if (dt2) {
+                        assert(m_xt2_extreme_count != -1);
+                        assert(m_yt2_extreme_count != -1);
+                        double wt2 = calculate_univariate_polynomial_value(m_nurbs->m_degree - 2, m_dw2_polynomial, t.Min);
+                        double xt2 = calculate_univariate_polynomial_value(m_nurbs->m_degree - 2, m_dx2_polynomial, t.Min);
+                        double yt2 = calculate_univariate_polynomial_value(m_nurbs->m_degree - 2, m_dy2_polynomial, t.Min);
+                        double w3 = w2 * w;
+                        dt2->X = ((xt2 * w - x * wt2) * w - 2 * (xt * w - x * wt) * wt) / w3;
+                        dt2->Y = ((yt2 * w - y * wt2) * w - 2 * (yt * w - y * wt) * wt) / w3;
+                    }
+                }
+            }
+            {
+                double w = calculate_univariate_polynomial_value(m_nurbs->m_degree, m_w_polynomial, t.Max);
+                double x = calculate_univariate_polynomial_value(m_nurbs->m_degree, m_x_polynomial, t.Max);
+                double y = calculate_univariate_polynomial_value(m_nurbs->m_degree, m_y_polynomial, t.Max);
+                if (d0) {
+                    d0->X.Merge(x / w);
+                    d0->Y.Merge(y / w);
+                }
+                if (dt || dt2) {
+                    double w2 = w * w;
+                    double wt = calculate_univariate_polynomial_value(m_nurbs->m_degree - 1, m_dw_polynomial, t.Max);
+                    double xt = calculate_univariate_polynomial_value(m_nurbs->m_degree - 1, m_dx_polynomial, t.Max);
+                    double yt = calculate_univariate_polynomial_value(m_nurbs->m_degree - 1, m_dy_polynomial, t.Max);
+                    if (dt) {
+                        dt->X.Merge((xt * w - x * wt) / w2);
+                        dt->Y.Merge((yt * w - y * wt) / w2);
+                    }
+                    if (dt2) {
+                        assert(m_xt2_extreme_count != -1);
+                        assert(m_yt2_extreme_count != -1);
+                        double wt2 = calculate_univariate_polynomial_value(m_nurbs->m_degree - 2, m_dw2_polynomial, t.Max);
+                        double xt2 = calculate_univariate_polynomial_value(m_nurbs->m_degree - 2, m_dx2_polynomial, t.Max);
+                        double yt2 = calculate_univariate_polynomial_value(m_nurbs->m_degree - 2, m_dy2_polynomial, t.Max);
+                        double w3 = w2 * w;
+                        dt2->X.Merge(((xt2 * w - x * wt2) * w - 2 * (xt * w - x * wt) * wt) / w3);
+                        dt2->Y.Merge(((yt2 * w - y * wt2) * w - 2 * (yt * w - y * wt) * wt) / w3);
+                    }
+                }
+            }
+            if (d0) {
+                for (int i = 0; i < m_x0_extreme_count; ++i) {
+                    if (m_x0_extreme[i] > t.Min && m_x0_extreme[i] < t.Max) {
+                        double w = calculate_univariate_polynomial_value(m_nurbs->m_degree, m_w_polynomial, m_x0_extreme[i]);
+                        double x = calculate_univariate_polynomial_value(m_nurbs->m_degree, m_x_polynomial, m_x0_extreme[i]);
+                        d0->X.Merge(x / w);
+                    }
+                }
+                for (int i = 0; i < m_y0_extreme_count; ++i) {
+                    if (m_y0_extreme[i] > t.Min && m_y0_extreme[i] < t.Max) {
+                        double w = calculate_univariate_polynomial_value(m_nurbs->m_degree, m_w_polynomial, m_y0_extreme[i]);
+                        double y = calculate_univariate_polynomial_value(m_nurbs->m_degree, m_y_polynomial, m_y0_extreme[i]);
+                        d0->Y.Merge(y / w);
+                    }
+                }
+            }
+            if (dt) {
+                for (int i = 0; i < m_xt_extreme_count; ++i) {
+                    if (m_xt_extreme[i] > t.Min && m_xt_extreme[i] < t.Max) {
+                        double w = calculate_univariate_polynomial_value(m_nurbs->m_degree, m_w_polynomial, m_xt_extreme[i]);
+                        double x = calculate_univariate_polynomial_value(m_nurbs->m_degree, m_x_polynomial, m_xt_extreme[i]);
+                        double wt = calculate_univariate_polynomial_value(m_nurbs->m_degree - 1, m_dw_polynomial, m_xt_extreme[i]);
+                        double xt = calculate_univariate_polynomial_value(m_nurbs->m_degree - 1, m_dx_polynomial, m_xt_extreme[i]);
+                        dt->X.Merge((xt * w - x * wt) / (w * w));
+                    }
+                }
+                for (int i = 0; i < m_yt_extreme_count; ++i) {
+                    if (m_yt_extreme[i] > t.Min && m_yt_extreme[i] < t.Max) {
+                        double w = calculate_univariate_polynomial_value(m_nurbs->m_degree, m_w_polynomial, m_yt_extreme[i]);
+                        double y = calculate_univariate_polynomial_value(m_nurbs->m_degree, m_y_polynomial, m_yt_extreme[i]);
+                        double wt = calculate_univariate_polynomial_value(m_nurbs->m_degree - 1, m_dw_polynomial, m_yt_extreme[i]);
+                        double yt = calculate_univariate_polynomial_value(m_nurbs->m_degree - 1, m_dy_polynomial, m_yt_extreme[i]);
+                        dt->Y.Merge((yt * w - y * wt) / (w * w));
+                    }
+                }
+            }
+            if (dt2) {
+                for (int i = 0; i < m_xt2_extreme_count; ++i) {
+                    if (m_xt2_extreme[i] > t.Min && m_xt2_extreme[i] < t.Max) {
+                        double w = calculate_univariate_polynomial_value(m_nurbs->m_degree, m_w_polynomial, m_xt2_extreme[i]);
+                        double x = calculate_univariate_polynomial_value(m_nurbs->m_degree, m_x_polynomial, m_xt2_extreme[i]);
+                        double wt = calculate_univariate_polynomial_value(m_nurbs->m_degree - 1, m_dw_polynomial, m_xt2_extreme[i]);
+                        double xt = calculate_univariate_polynomial_value(m_nurbs->m_degree - 1, m_dx_polynomial, m_xt2_extreme[i]);
+                        double wt2 = calculate_univariate_polynomial_value(m_nurbs->m_degree - 2, m_dw2_polynomial, m_xt2_extreme[i]);
+                        double xt2 = calculate_univariate_polynomial_value(m_nurbs->m_degree - 2, m_dx2_polynomial, m_xt2_extreme[i]);
+                        dt2->X.Merge(((xt2* w - x * wt2)* w - 2 * (xt * w - x * wt) * wt) / (w * w * w));
+                    }
+                }
+                for (int i = 0; i < m_yt2_extreme_count; ++i) {
+                    if (m_yt2_extreme[i] > t.Min && m_yt2_extreme[i] < t.Max) {
+                        double w = calculate_univariate_polynomial_value(m_nurbs->m_degree, m_w_polynomial, m_yt2_extreme[i]);
+                        double y = calculate_univariate_polynomial_value(m_nurbs->m_degree, m_y_polynomial, m_yt2_extreme[i]);
+                        double wt = calculate_univariate_polynomial_value(m_nurbs->m_degree - 1, m_dw_polynomial, m_yt2_extreme[i]);
+                        double yt = calculate_univariate_polynomial_value(m_nurbs->m_degree - 1, m_dy_polynomial, m_yt2_extreme[i]);
+                        double wt2 = calculate_univariate_polynomial_value(m_nurbs->m_degree - 2, m_dw2_polynomial, m_yt2_extreme[i]);
+                        double yt2 = calculate_univariate_polynomial_value(m_nurbs->m_degree - 2, m_dy2_polynomial, m_yt2_extreme[i]);
+                        dt2->Y.Merge(((yt2 * w - y * wt2) * w - 2 * (yt * w - y * wt) * wt) / (w * w * w));
+                    }
+                }
+            }
+        }
+    private:
+        NurbsCurve2d* m_nurbs;
+        int m_index;
+    private:
+        double m_x_polynomial[g_nurbs_polynomial_size];
+        double m_y_polynomial[g_nurbs_polynomial_size];
+        double m_w_polynomial[g_nurbs_polynomial_size];
+        double m_dx_polynomial[g_nurbs_polynomial_size];
+        double m_dy_polynomial[g_nurbs_polynomial_size];
+        double m_dw_polynomial[g_nurbs_polynomial_size];
+        double m_dx2_polynomial[g_nurbs_polynomial_size];
+        double m_dy2_polynomial[g_nurbs_polynomial_size];
+        double m_dw2_polynomial[g_nurbs_polynomial_size];
+    private:
+        int m_x0_extreme_count;
+        double m_x0_extreme[g_nurbs_polynomial_size];
+        int m_y0_extreme_count;
+        double m_y0_extreme[g_nurbs_polynomial_size];
+        int m_xt_extreme_count;
+        double m_xt_extreme[g_nurbs_polynomial_size];
+        int m_yt_extreme_count;
+        double m_yt_extreme[g_nurbs_polynomial_size];
+        int m_xt2_extreme_count;
+        double m_xt2_extreme[g_nurbs_polynomial_size];
+        int m_yt2_extreme_count;
+        double m_yt2_extreme[g_nurbs_polynomial_size];
+    };
+
+    class NurbsCurve2dIntervalCalculatorByCircleTransformation : public Curve2dProjectionIntervalCalculator {
+    public:
+        NurbsCurve2dIntervalCalculatorByCircleTransformation(NurbsCurve2d* nurbs, int index, const Vector2d& center,
+            const Interval& t_domain, bool d0, bool dt) {
+            UnivariablePolynomialEquationSolver solver;
+            m_nurbs = nurbs;
+            m_index = index;
+            double x_polynomial[g_nurbs_polynomial_size];
+            double y_polynomial[g_nurbs_polynomial_size];
+            double w_polynomial[g_nurbs_polynomial_size];
+            m_nurbs->BuildWXYPolynomials(m_index, w_polynomial, x_polynomial, y_polynomial);
+            add_mul_univariate_polynomial(x_polynomial, m_nurbs->m_degree, w_polynomial, -center.X);
+            add_mul_univariate_polynomial(y_polynomial, m_nurbs->m_degree, w_polynomial, -center.Y);
+            mul_univariate_polynomial(m_nurbs->m_degree, x_polynomial, m_nurbs->m_degree, x_polynomial, m_c_polynomial);
+            add_mul_univariate_polynomial(m_c_polynomial, m_nurbs->m_degree, y_polynomial, m_nurbs->m_degree, y_polynomial);
+            mul_univariate_polynomial(m_nurbs->m_degree, w_polynomial, m_nurbs->m_degree, w_polynomial, m_w_polynomial);
+            univariate_polynomial_dx(m_nurbs->m_degree * 2, m_c_polynomial, m_dc_polynomial);
+            univariate_polynomial_dx(m_nurbs->m_degree * 2, m_w_polynomial, m_dw_polynomial);
+            double a_polynomial[g_nurbs_polynomial_size * 4];
+            mul_univariate_polynomial(m_nurbs->m_degree * 2 - 1, m_dc_polynomial, m_nurbs->m_degree * 2, m_w_polynomial, a_polynomial);
+            sub_mul_univariate_polynomial(a_polynomial, m_nurbs->m_degree * 2, m_c_polynomial, m_nurbs->m_degree * 2 - 1, m_dw_polynomial);
+            double da_polynomial[g_nurbs_polynomial_size * 4];
+            univariate_polynomial_dx(m_nurbs->m_degree * 4 - 1, a_polynomial, da_polynomial);
+            if (d0) {
+                UnivariablePolynomialEquation equation1(m_nurbs->m_degree * 4 - 1, a_polynomial, da_polynomial);
+                solver.SetEquationSystem(&equation1);
+                UnivariablePolynomialVariable variable1;
+                variable1.Set(0, t_domain);
+                solver.SetInitialVariable(variable1);
+                m_c0_extreme_count = 0;
+                for (int i = 0; i < solver.GetClearRoots().GetCount(); ++i) {
+                    const UnivariablePolynomialVariable* root = solver.GetClearRoots().GetPointer(i);
+                    m_c0_extreme[m_c0_extreme_count++] = root->Get(0).Center();
+                }
+                for (int i = 0; i < solver.GetFuzzyRoots().GetCount(); ++i) {
+                    const UnivariablePolynomialVariable* root = solver.GetFuzzyRoots().GetPointer(i);
+                    m_c0_extreme[m_c0_extreme_count++] = root->Get(0).Center();
+                }
+            }
+            else {
+                m_c0_extreme_count = -1;
+            }
+            if (dt) {
+                double b_polynomial[g_nurbs_polynomial_size * 6];
+                mul_univariate_polynomial(m_nurbs->m_degree * 4 - 2, da_polynomial, m_nurbs->m_degree * 2, m_w_polynomial, b_polynomial);
+                add_mul_univariate_polynomial(b_polynomial, m_nurbs->m_degree * 4 - 1, a_polynomial, m_nurbs->m_degree * 2 - 1, m_dw_polynomial, -2);
+                double db_polynomial[g_nurbs_polynomial_size * 6];
+                univariate_polynomial_dx(m_nurbs->m_degree * 6 - 2, b_polynomial, db_polynomial);
+                UnivariablePolynomialEquation equation1(m_nurbs->m_degree * 6 - 2, b_polynomial, db_polynomial);
+                solver.SetEquationSystem(&equation1);
+                UnivariablePolynomialVariable variable1;
+                variable1.Set(0, t_domain);
+                solver.SetInitialVariable(variable1);
+                m_ct_extreme_count = 0;
+                for (int i = 0; i < solver.GetClearRoots().GetCount(); ++i) {
+                    const UnivariablePolynomialVariable* root = solver.GetClearRoots().GetPointer(i);
+                    m_ct_extreme[m_ct_extreme_count++] = root->Get(0).Center();
+                }
+                for (int i = 0; i < solver.GetFuzzyRoots().GetCount(); ++i) {
+                    const UnivariablePolynomialVariable* root = solver.GetFuzzyRoots().GetPointer(i);
+                    m_ct_extreme[m_ct_extreme_count++] = root->Get(0).Center();
+                }
+            }
+            else {
+                m_ct_extreme_count = -1;
+            }
+        }
+
+        virtual void Calculate(const Interval& t, Interval* d0, Interval* dt) {
+            {
+                double w = calculate_univariate_polynomial_value(m_nurbs->m_degree * 2, m_w_polynomial, t.Min);
+                double c = calculate_univariate_polynomial_value(m_nurbs->m_degree * 2, m_c_polynomial, t.Min);
+                if (d0) {
+                    *d0 = c / w;
+                }
+                if (dt) {
+                    double wt = calculate_univariate_polynomial_value(m_nurbs->m_degree * 2 - 1, m_dw_polynomial, t.Min);
+                    double ct = calculate_univariate_polynomial_value(m_nurbs->m_degree * 2 - 1, m_dc_polynomial, t.Min);
+                    *dt = (ct * w - c * wt) / (w * w);
+                }
+            }
+            {
+                double w = calculate_univariate_polynomial_value(m_nurbs->m_degree * 2, m_w_polynomial, t.Max);
+                double c = calculate_univariate_polynomial_value(m_nurbs->m_degree * 2, m_c_polynomial, t.Max);
+                if (d0) {
+                    d0->Merge(c / w);
+                }
+                if (dt) {
+                    double wt = calculate_univariate_polynomial_value(m_nurbs->m_degree * 2 - 1, m_dw_polynomial, t.Max);
+                    double ct = calculate_univariate_polynomial_value(m_nurbs->m_degree * 2 - 1, m_dc_polynomial, t.Max);
+                    dt->Merge((ct * w - c * wt) / (w * w));
+                }
+            }
+            if (d0) {
+                for (int i = 0; i < m_c0_extreme_count; ++i) {
+                    if (m_c0_extreme[i] > t.Min && m_c0_extreme[i] < t.Max) {
+                        double w = calculate_univariate_polynomial_value(m_nurbs->m_degree * 2, m_w_polynomial, m_c0_extreme[i]);
+                        double c = calculate_univariate_polynomial_value(m_nurbs->m_degree * 2, m_c_polynomial, m_c0_extreme[i]);
+                        d0->Merge(c / w);
+                    }
+                }
+            }
+            if (dt) {
+                for (int i = 0; i < m_ct_extreme_count; ++i) {
+                    if (m_ct_extreme[i] > t.Min && m_ct_extreme[i] < t.Max) {
+                        double w = calculate_univariate_polynomial_value(m_nurbs->m_degree * 2, m_w_polynomial, m_ct_extreme[i]);
+                        double c = calculate_univariate_polynomial_value(m_nurbs->m_degree * 2, m_c_polynomial, m_ct_extreme[i]);
+                        double wt = calculate_univariate_polynomial_value(m_nurbs->m_degree * 2 - 1, m_dw_polynomial, m_ct_extreme[i]);
+                        double ct = calculate_univariate_polynomial_value(m_nurbs->m_degree * 2 - 1, m_dc_polynomial, m_ct_extreme[i]);
+                        dt->Merge((ct * w - c * wt) / (w * w));
+                    }
+                }
+            }
+        }
+    private:
+        NurbsCurve2d* m_nurbs;
+        int m_index;
+    private:
+        double m_c_polynomial[g_nurbs_polynomial_size * 2];
+        double m_w_polynomial[g_nurbs_polynomial_size * 2];
+        double m_dc_polynomial[g_nurbs_polynomial_size * 2];
+        double m_dw_polynomial[g_nurbs_polynomial_size * 2];
+    private:
+        int m_c0_extreme_count;
+        double m_c0_extreme[g_nurbs_polynomial_size * 2];
+        int m_ct_extreme_count;
+        double m_ct_extreme[g_nurbs_polynomial_size * 2];
+    };
+
     NurbsCurve2dType* NurbsCurve2dType::Instance() {
         return &m_Instance;
     }
@@ -539,22 +969,41 @@ namespace wgp {
     }
 
     Curve2dIntervalCalculator* NurbsCurve2d::NewCalculator(int index, const Interval& t_domain, bool d0, bool dt, bool dt2) {
-        if (m_weights) {
-            //todo
+        if (GetTPiece(index).Length() <= g_double_epsilon) {
+            return nullptr;
         }
-        else {
+        bool is_without_weight = true;
+        if (m_weights) {
+            double* p = m_weights + index;
+            for (int i = 0; i <= m_degree; ++i) {
+                if (!double_equals(p[i], 1, g_double_epsilon)) {
+                    is_without_weight = false;
+                    break;
+                }
+            }
+        }
+        if (is_without_weight) {
             return new NurbsCurve2dWithoutWeightIntervalCalculator(this, index, t_domain, d0, dt, dt2);
         }
+        return new NurbsCurve2dIntervalCalculator(this, index, t_domain, d0, dt, dt2);
     }
 
     Curve2dProjectionIntervalCalculator* NurbsCurve2d::NewCalculatorByCircleTransformation(
         int index, const Interval& t_domain, const Vector2d& center, bool d0, bool dt) {
+        bool is_without_weight = true;
         if (m_weights) {
-            //todo
+            double* p = m_weights + index;
+            for (int i = 0; i <= m_degree; ++i) {
+                if (!double_equals(p[i], 1, g_double_epsilon)) {
+                    is_without_weight = false;
+                    break;
+                }
+            }
         }
-        else {
+        if (is_without_weight) {
             return new NurbsCurve2dWithoutWeightIntervalCalculatorByCircleTransformation(this, index, center, t_domain, d0, dt);
         }
+        return new NurbsCurve2dIntervalCalculatorByCircleTransformation(this, index, center, t_domain, d0, dt);
     }
 
     NurbsCurve2d* NurbsCurve2d::CreateByArc(const Vector2d& center, double radius, double start_angle, double end_angle) {

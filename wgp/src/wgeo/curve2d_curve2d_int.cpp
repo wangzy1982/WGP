@@ -369,7 +369,13 @@ namespace wgp {
         Curve2dCurve2dIntCorrespondingPointEquationSystem corresponding_point_equation_system(&helper, distance_epsilon);
         Curve2dCurve2dIntHighPrecisionEquationSystem high_precision_equation_system(&helper, distance_epsilon);
         for (int index0 = 0; index0 < curve0->GetTPieceCount(); ++index0) {
+            if (!calculators0[index0]) {
+                continue;
+            }
             for (int index1 = 0; index1 < curve1->GetTPieceCount(); ++index1) {
+                if (!calculators1[index1]) {
+                    continue;
+                }
                 helper.SetIndex(index0, index1);
                 //formula solve
                 solver.SetEquationSystem(&formula_equation_system);

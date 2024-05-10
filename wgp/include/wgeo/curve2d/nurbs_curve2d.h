@@ -45,6 +45,8 @@ namespace wgp {
     private:
         friend class NurbsCurve2dWithoutWeightIntervalCalculator;
         friend class NurbsCurve2dWithoutWeightIntervalCalculatorByCircleTransformation;
+        friend class NurbsCurve2dIntervalCalculator;
+        friend class NurbsCurve2dIntervalCalculatorByCircleTransformation;
     };
 }
 
