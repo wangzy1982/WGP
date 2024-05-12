@@ -34,10 +34,8 @@ namespace wgp {
 
     WGP_API void Intersect(Curve2d* curve0, Curve2d* curve1, void* tag0, void* tag1, double dist_epsilon, Array<Curve2dCurve2dInt>& result);
 
-    WGP_API void Intersect(Curve2d* curve0, Curve2d* curve1, void* tag0, void* tag1, double dist_epsilon,
-        Curve2dIntervalCalculator** calculators0, Curve2dIntervalCalculator** calculators1, Array<Curve2dCurve2dInt>& result);
-
-    typedef int (*CompareTagFunction)(void* tag1, void* tag2);
+    WGP_API void Intersect(Curve2d* curve0, Curve2d* curve1, void* tag0, void* tag1, double dist_epsilon, Curve2dIntervalCalculator** calculators0, 
+        Curve2dIntervalCalculator** calculators1, Array<Curve2dCurve2dInt>& result);
 
     WGP_API Array<Curve2dCurve2dIntIndex> SortIntersections(Array<Curve2dCurve2dInt>* int_array_list, int int_array_count, 
         CompareTagFunction compare_tag_function, bool is_sorted_by_first);

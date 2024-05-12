@@ -168,8 +168,8 @@ namespace wgp {
 
 		void Append(const Array& arr, int start, int count) {
 			//todo optimize
-			for (int i = start; i < count; ++i) {
-				Append(arr.Get(i));
+			for (int i = 0; i < count; ++i) {
+				Append(arr.Get(start + i));
 			}
 		}
 

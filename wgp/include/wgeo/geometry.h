@@ -17,6 +17,12 @@ namespace wgp {
         virtual ~Geometry() {}
         virtual GeometryType* GetType() const = 0;
     };
+
+    typedef int (*CompareTagFunction)(void* tag1, void* tag2);
+
+    inline int CompareTagIgnore(void* tag1, void* tag2) {
+        return 0;
+    }
 }
 
 #endif
