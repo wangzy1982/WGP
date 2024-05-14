@@ -10,7 +10,7 @@
 
 namespace wgp {
 
-    struct IntInfo {
+    struct Curve3dCurve3dIntInfo {
         Curve3dCurve3dIntVariable Variable;
         int BeginState;     //0-Unknown  1-Joint  2-Disjoint
         int EndState;
@@ -35,7 +35,7 @@ namespace wgp {
 
     void CalculateBeginState(Curve3dCurve3dIntHelper& helper, Curve3dCurve3dIntSolver& solver,
         Curve3dCurve3dIntCorrespondingPointEquationSystem& corresponding_point_equation_system,
-        IntInfo* int_info, void* tag0, void* tag1, double distance_epsilon) {
+        Curve3dCurve3dIntInfo* int_info, void* tag0, void* tag1, double distance_epsilon) {
         assert(int_info->BeginState == 0);
         double t0 = int_info->Variable.Get(0).Min;
         double t1;
@@ -121,7 +121,7 @@ namespace wgp {
 
     void CalculateEndState(Curve3dCurve3dIntHelper& helper, Curve3dCurve3dIntSolver& solver,
         Curve3dCurve3dIntCorrespondingPointEquationSystem& corresponding_point_equation_system,
-        IntInfo* int_info, void* tag0, void* tag1, double distance_epsilon) {
+        Curve3dCurve3dIntInfo* int_info, void* tag0, void* tag1, double distance_epsilon) {
         assert(int_info->EndState == 0);
         double t0 = int_info->Variable.Get(0).Max;
         double t1;
@@ -207,7 +207,7 @@ namespace wgp {
 
     bool CalculateSample(Curve3dCurve3dIntHelper& helper, Curve3dCurve3dIntSolver& solver,
         Curve3dCurve3dIntCorrespondingPointEquationSystem& corresponding_point_equation_system,
-        IntInfo* int_info, int index, void* tag0, void* tag1) {
+        Curve3dCurve3dIntInfo* int_info, int index, void* tag0, void* tag1) {
         Curve3dCurve3dInt* sample1 = int_info->Samples.GetPointer(index);
         Curve3dCurve3dInt* sample2 = int_info->Samples.GetPointer(index + 1);
         bool b = false;
@@ -237,7 +237,7 @@ namespace wgp {
         return b;
     }
 
-    void ResetVariableInterval(Curve3dCurve3dIntHelper& helper, IntInfo* int_info) {
+    void ResetVariableInterval(Curve3dCurve3dIntHelper& helper, Curve3dCurve3dIntInfo* int_info) {
         if (int_info->BeginState == 1) {
             if (int_info->EndState == 1) {
                 Curve3dCurve3dInt* sample1 = int_info->Samples.GetPointer(0);
@@ -370,8 +370,8 @@ namespace wgp {
         Curve3dIntervalCalculator** calculators0, Curve3dIntervalCalculator** calculators1, Array<Curve3dCurve3dInt>& result) {
         Array<Curve3dCurve3dInt> pre_result;
         Array<Curve3dCurve3dInt> samples;
-        Array<IntInfo> pre_int_infos;
-        Array<IntInfo> int_infos;
+        Array<Curve3dCurve3dIntInfo> pre_int_infos;
+        Array<Curve3dCurve3dIntInfo> int_infos;
         Array<Curve3dCurve3dIntVariable> initial_variables;
         Curve3dCurve3dIntHelper helper(curve0, calculators0, curve1, calculators1);
         Curve3dCurve3dIntSolver solver;
@@ -428,7 +428,7 @@ namespace wgp {
                 }
                 for (int i = 0; i < solver.GetClearRoots().GetCount(); ++i) {
                     const Curve3dCurve3dIntVariable* root = solver.GetClearRoots().GetPointer(i);
-                    IntInfo int_info;
+                    Curve3dCurve3dIntInfo int_info;
                     int_info.Variable = *root;
                     int_info.BeginState = 0;
                     int_info.EndState = 0;
@@ -437,7 +437,7 @@ namespace wgp {
                 }
                 for (int i = 0; i < solver.GetFuzzyRoots().GetCount(); ++i) {
                     const Curve3dCurve3dIntVariable* root = solver.GetFuzzyRoots().GetPointer(i);
-                    IntInfo int_info;
+                    Curve3dCurve3dIntInfo int_info;
                     int_info.Variable = *root;
                     int_info.BeginState = 0;
                     int_info.EndState = 0;
@@ -449,10 +449,10 @@ namespace wgp {
                     pre_int_infos.Exchange(int_infos);
                     int_infos.Clear();
                     for (int i = 0; i < pre_int_infos.GetCount(); ++i) {
-                        IntInfo* int_info1 = pre_int_infos.GetPointer(i);
+                        Curve3dCurve3dIntInfo* int_info1 = pre_int_infos.GetPointer(i);
                         if (int_info1->ClearState != 0) {
                             for (int j = i + 1; j < pre_int_infos.GetCount(); ++j) {
-                                IntInfo* int_info2 = pre_int_infos.GetPointer(j);
+                                Curve3dCurve3dIntInfo* int_info2 = pre_int_infos.GetPointer(j);
                                 if (int_info2->ClearState != 0 && helper.GetSameDir(int_info2->Variable) == helper.GetSameDir(int_info1->Variable) &&
                                     int_info1->Variable.Get(0).IsIntersected(int_info2->Variable.Get(0), g_double_epsilon) &&
                                     int_info1->Variable.Get(1).IsIntersected(int_info2->Variable.Get(1), g_double_epsilon)) {
@@ -470,11 +470,11 @@ namespace wgp {
                     pre_int_infos.Exchange(int_infos);
                     int_infos.Clear();
                     for (int i = 0; i < pre_int_infos.GetCount(); ++i) {
-                        IntInfo* int_info1 = pre_int_infos.GetPointer(i);
+                        Curve3dCurve3dIntInfo* int_info1 = pre_int_infos.GetPointer(i);
                         if (int_info1->ClearState != 0) {
                             int same_dir = helper.GetSameDir(int_info1->Variable);
                             for (int j = i + 1; j < pre_int_infos.GetCount(); ++j) {
-                                IntInfo* int_info2 = pre_int_infos.GetPointer(j);
+                                Curve3dCurve3dIntInfo* int_info2 = pre_int_infos.GetPointer(j);
                                 if (helper.GetSameDir(int_info2->Variable) == same_dir &&
                                     int_info1->Variable.Get(0).IsIntersected(int_info2->Variable.Get(0), g_double_epsilon) &&
                                     int_info1->Variable.Get(1).IsIntersected(int_info2->Variable.Get(1), g_double_epsilon)) {
@@ -546,11 +546,11 @@ namespace wgp {
                     pre_int_infos.Exchange(int_infos);
                     int_infos.Clear();
                     for (int i = 0; i < pre_int_infos.GetCount(); ++i) {
-                        IntInfo* int_info1 = pre_int_infos.GetPointer(i);
+                        Curve3dCurve3dIntInfo* int_info1 = pre_int_infos.GetPointer(i);
                         if (int_info1->BeginState != 2 || int_info1->EndState != 2) {
                             int same_dir = helper.GetSameDir(int_info1->Variable);
                             for (int j = i + 1; j < pre_int_infos.GetCount(); ++j) {
-                                IntInfo* int_info2 = pre_int_infos.GetPointer(j);
+                                Curve3dCurve3dIntInfo* int_info2 = pre_int_infos.GetPointer(j);
                                 if (helper.GetSameDir(int_info2->Variable) == same_dir &&
                                     int_info1->Variable.Get(0).IsIntersected(int_info2->Variable.Get(0), g_double_epsilon) &&
                                     int_info1->Variable.Get(1).IsIntersected(int_info2->Variable.Get(1), g_double_epsilon)) {
@@ -588,7 +588,7 @@ namespace wgp {
                     }
                     //calculate side state
                     for (int i = 0; i < int_infos.GetCount(); ++i) {
-                        IntInfo* int_info = int_infos.GetPointer(i);
+                        Curve3dCurve3dIntInfo* int_info = int_infos.GetPointer(i);
                         if (int_info->BeginState == 0) {
                             CalculateBeginState(helper, solver, corresponding_point_equation_system, int_info, tag0, tag1, distance_epsilon);
                         }
@@ -601,7 +601,7 @@ namespace wgp {
                     pre_int_infos.Exchange(int_infos);
                     int_infos.Clear();
                     for (int i = 0; i < pre_int_infos.GetCount(); ++i) {
-                        IntInfo* int_info = pre_int_infos.GetPointer(i);
+                        Curve3dCurve3dIntInfo* int_info = pre_int_infos.GetPointer(i);
                         if (int_info->Samples.GetCount() == 0) {
                             int_infos.Append(*int_info);
                         }
@@ -612,7 +612,7 @@ namespace wgp {
                             bool b = false;
                             if (int_info->BeginState == 2) {
                                 Curve3dCurve3dInt* sample = int_info->Samples.GetPointer(0);
-                                IntInfo int_info1;
+                                Curve3dCurve3dIntInfo int_info1;
                                 int_info1.Variable = int_info->Variable;
                                 int_info1.BeginState = 2;
                                 int_info1.EndState = 1;
@@ -625,7 +625,7 @@ namespace wgp {
                             }
                             if (int_info->EndState == 2) {
                                 Curve3dCurve3dInt* sample = int_info->Samples.GetPointer(int_info->Samples.GetCount() - 1);
-                                IntInfo int_info2;
+                                Curve3dCurve3dIntInfo int_info2;
                                 int_info2.Variable = int_info->Variable;
                                 int_info2.BeginState = 1;
                                 int_info2.EndState = 2;
@@ -678,7 +678,7 @@ namespace wgp {
                                             Curve3dCurve3dInt* sample2 = int_info->Samples.GetPointer(max_index + 1);
                                             double m = (sample1->Ts[0].Value + sample2->Ts[0].Value) * 0.5;
                                             if (max_index > 0) {
-                                                IntInfo int_info1;
+                                                Curve3dCurve3dIntInfo int_info1;
                                                 int_info1.Variable = int_info->Variable;
                                                 int_info1.BeginState = 1;
                                                 int_info1.EndState = 1;
@@ -687,7 +687,7 @@ namespace wgp {
                                                 ResetVariableInterval(helper, &int_info1);
                                                 int_infos.Append(int_info1);
                                             }
-                                            IntInfo int_info2;
+                                            Curve3dCurve3dIntInfo int_info2;
                                             int_info2.Variable = int_info->Variable;
                                             int_info2.Variable.Set(0, Interval(sample1->Ts[0].Value, m));
                                             if (sample1->Ts[1].Value < sample2->Ts[1].Value) {
@@ -701,7 +701,7 @@ namespace wgp {
                                             int_info2.ClearState = 0;
                                             int_info2.Samples.Append(*sample1);
                                             int_infos.Append(int_info2);
-                                            IntInfo int_info3;
+                                            Curve3dCurve3dIntInfo int_info3;
                                             int_info3.Variable = int_info->Variable;
                                             int_info3.Variable.Set(0, Interval(m, sample2->Ts[0].Value));
                                             if (sample1->Ts[1].Value < sample2->Ts[1].Value) {
@@ -716,7 +716,7 @@ namespace wgp {
                                             int_info3.Samples.Append(*sample2);
                                             int_infos.Append(int_info3);
                                             if (max_index + 1 < int_info->Samples.GetCount() - 1) {
-                                                IntInfo int_info4;
+                                                Curve3dCurve3dIntInfo int_info4;
                                                 int_info4.Variable = int_info->Variable;
                                                 int_info4.BeginState = 1;
                                                 int_info4.EndState = 1;
@@ -736,7 +736,7 @@ namespace wgp {
                     pre_int_infos.Exchange(int_infos);
                     int_infos.Clear();
                     for (int i = 0; i < pre_int_infos.GetCount(); ++i) {
-                        IntInfo* int_info = pre_int_infos.GetPointer(i);
+                        Curve3dCurve3dIntInfo* int_info = pre_int_infos.GetPointer(i);
                         if (int_info->BeginState == 1 && int_info->EndState == 1) {
                             int_infos.Append(*int_info);
                         }
@@ -780,7 +780,7 @@ namespace wgp {
                                     solver.SetEquationSystem(&trim_equation_system);
                                 }
                                 for (int i = 0; i < solver.GetClearRoots().GetCount(); ++i) {
-                                    IntInfo int_info1;
+                                    Curve3dCurve3dIntInfo int_info1;
                                     int_info1.Variable = solver.GetClearRoots().Get(i);
                                     int_info1.BeginState = 0;
                                     int_info1.EndState = 0;
@@ -788,7 +788,7 @@ namespace wgp {
                                     int_infos.Append(int_info1);
                                 }
                                 for (int i = 0; i < solver.GetFuzzyRoots().GetCount(); ++i) {
-                                    IntInfo int_info1;
+                                    Curve3dCurve3dIntInfo int_info1;
                                     int_info1.Variable = solver.GetFuzzyRoots().Get(i);
                                     int_info1.BeginState = 0;
                                     int_info1.EndState = 0;

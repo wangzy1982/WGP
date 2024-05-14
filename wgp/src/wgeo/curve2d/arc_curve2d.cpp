@@ -391,29 +391,6 @@ namespace wgp {
         return m_t_domain;
     }
 
-    void ArcCurve2d::SplitFlat(Array<VariableInterval>& segments, double angle_epsilon) {
-        double t0 = m_t_domain.Min;
-        double t1 = m_t_domain.Max;
-        double d = abs(t1 - t0);
-        int n = (int)(d / angle_epsilon);
-        if (d - n * angle_epsilon > g_unit_epsilon) {
-            n += 1;
-        }
-        if (n == 0) {
-            segments.Append(VariableInterval(0, Interval(t0, t1)));
-        }
-        else {
-            double dt = (t1 - t0) / n;
-            double t2 = t0 + dt;
-            for (int i = 0; i < n - 1; ++i) {
-                segments.Append(VariableInterval(0, Interval(t0, t2)));
-                t0 = t2;
-                t2 = t0 + dt;
-            }
-            segments.Append(VariableInterval(0, Interval(t0, t1)));
-        }
-    }
-
     void ArcCurve2d::Calculate(int index, double t, Vector2d* d0, Vector2d* dt, Vector2d* dt2) {
         double cos, sin;
         sincos(t, &sin, &cos);

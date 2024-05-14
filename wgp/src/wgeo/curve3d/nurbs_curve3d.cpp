@@ -1024,18 +1024,19 @@ namespace wgp {
 
     NurbsCurve3dType NurbsCurve3dType::m_Instance = NurbsCurve3dType();
 
-    NurbsCurve3d::NurbsCurve3d(int degree, int control_point_count, const double* knots, const Vector3d* control_points, const double* weights) :
+    NurbsCurve3d::NurbsCurve3d(int degree, int knot_count, const double* knots, const Vector3d* control_points, const double* weights) :
         m_degree(degree),
-        m_control_point_count(control_point_count) {
-        m_knots = new double[degree + control_point_count + 1];
-        memcpy(m_knots, knots, (degree + control_point_count + 1) * sizeof(double));
+        m_knot_count(knot_count) {
+        m_knots = new double[knot_count];
+        memcpy(m_knots, knots, knot_count * sizeof(double));
+        int control_point_count = knot_count - degree - 1;
         m_control_points = (Vector3d*)malloc(control_point_count * sizeof(Vector3d));
         if (m_control_points) {
             memcpy(m_control_points, control_points, control_point_count * sizeof(Vector3d));
         }
         if (weights) {
-            m_weights = new double[m_control_point_count];
-            memcpy(m_weights, weights, m_control_point_count * sizeof(double));
+            m_weights = new double[control_point_count];
+            memcpy(m_weights, weights, control_point_count * sizeof(double));
         }
         else {
             m_weights = nullptr;
@@ -1061,16 +1062,12 @@ namespace wgp {
     }
 
     int NurbsCurve3d::GetTPieceCount() {
-        return m_control_point_count - m_degree;
+        return m_knot_count - m_degree * 2 - 1;
     }
 
     Interval NurbsCurve3d::GetTPiece(int index) {
         int i = index + m_degree;
         return Interval(m_knots[i], m_knots[i + 1]);
-    }
-
-    void NurbsCurve3d::SplitFlat(Array<VariableInterval>& segments, double angle_epsilon) {
-        //todo
     }
 
     void NurbsCurve3d::Calculate(int index, double t, Vector3d* d0, Vector3d* dt, Vector3d* dt2) {
@@ -1245,7 +1242,7 @@ namespace wgp {
         int n = BSplineBasisCalculator::GetBasisPolynomialsSize(m_degree, m_degree);
         double* tb = temp_all_polynomials + (all_polynomial_size - n);
         double* b = m_basis_polynomials;
-        for (int i = m_degree; i < m_control_point_count; ++i) {
+        for (int i = m_degree; i < m_knot_count - m_degree - 1; ++i) {
             BSplineBasisCalculator::CalculateAllBasisPolynomials(m_degree, m_knots, i, temp_all_polynomials);
             memcpy(b, tb, n * sizeof(double));
             b += n;

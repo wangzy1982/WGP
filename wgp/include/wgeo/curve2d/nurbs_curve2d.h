@@ -18,12 +18,11 @@ namespace wgp {
 
     class WGP_API NurbsCurve2d : public Curve2d {
     public:
-        NurbsCurve2d(int degree, int control_point_count, const double* knots, const Vector2d* control_points, const double* weights);
+        NurbsCurve2d(int degree, int knot_count, const double* knots, const Vector2d* control_points, const double* weights);
         virtual ~NurbsCurve2d();
         GeometryType* GetType() const { return NurbsCurve2dType::Instance(); }
         virtual int GetTPieceCount();
         virtual Interval GetTPiece(int index);
-        virtual void SplitFlat(Array<VariableInterval>& segments, double angle_epsilon);
     public:
         virtual void Calculate(int index, double t, Vector2d* d0, Vector2d* dt, Vector2d* dt2);
         virtual Curve2dIntervalCalculator* NewCalculator(int index, const Interval& t_domain, bool d0, bool dt, bool dt2);
@@ -37,7 +36,7 @@ namespace wgp {
         void BuildWXYPolynomials(int index, double* w_polynomial, double* x_polynomial, double* y_polynomial);
     private:
         int m_degree;
-        int m_control_point_count;
+        int m_knot_count;
         double* m_knots;
         Vector2d* m_control_points;
         double* m_weights;

@@ -22,7 +22,6 @@ namespace wgp {
         GeometryType* GetType() const { return ArcCurve2dType::Instance(); }
         virtual int GetTPieceCount();
         virtual Interval GetTPiece(int index);
-        virtual void SplitFlat(Array<VariableInterval>& segments, double angle_epsilon);
     public:
         virtual void Calculate(int index, double t, Vector2d* d0, Vector2d* dt, Vector2d* dt2);
         virtual Curve2dIntervalCalculator* NewCalculator(int index, const Interval& t_domain, bool d0, bool dt, bool dt2);

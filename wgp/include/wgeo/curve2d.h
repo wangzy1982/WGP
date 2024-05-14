@@ -9,10 +9,7 @@
 #include "wstd/vector2d.h"
 #include "wstd/interval2d.h"
 #include "wstd/quaternion.h"
-#include "wstd/thread.h"
 #include "geometry.h"
-#include <atomic>
-#include <thread>
 
 namespace wgp {
 
@@ -25,7 +22,6 @@ namespace wgp {
         virtual ~Curve2d();
         virtual int GetTPieceCount() = 0;
         virtual Interval GetTPiece(int index) = 0;
-        virtual void SplitFlat(Array<VariableInterval>& segments, double angle_epsilon) = 0;
     public:
         virtual void Calculate(int index, double t, Vector2d* d0, Vector2d* dt, Vector2d* dt2) = 0;
         virtual Curve2dIntervalCalculator* NewCalculator(int index, const Interval& t_domain, bool d0, bool dt, bool dt2) = 0;

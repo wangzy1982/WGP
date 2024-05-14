@@ -807,18 +807,19 @@ namespace wgp {
 
     NurbsCurve2dType NurbsCurve2dType::m_Instance = NurbsCurve2dType();
 
-    NurbsCurve2d::NurbsCurve2d(int degree, int control_point_count, const double* knots, const Vector2d* control_points, const double* weights) :
+    NurbsCurve2d::NurbsCurve2d(int degree, int knot_count, const double* knots, const Vector2d* control_points, const double* weights) :
         m_degree(degree),
-        m_control_point_count(control_point_count) {
-        m_knots = new double[degree + control_point_count + 1];
-        memcpy(m_knots, knots, (degree + control_point_count + 1) * sizeof(double));
+        m_knot_count(knot_count) {
+        m_knots = new double[knot_count];
+        memcpy(m_knots, knots, knot_count * sizeof(double));
+        int control_point_count = knot_count - degree - 1;
         m_control_points = (Vector2d*)malloc(control_point_count * sizeof(Vector2d));
         if (m_control_points) {
             memcpy(m_control_points, control_points, control_point_count * sizeof(Vector2d));
         }
         if (weights) {
-            m_weights = new double[m_control_point_count];
-            memcpy(m_weights, weights, m_control_point_count * sizeof(double));
+            m_weights = new double[control_point_count];
+            memcpy(m_weights, weights, control_point_count * sizeof(double));
         }
         else {
             m_weights = nullptr;
@@ -844,16 +845,12 @@ namespace wgp {
     }
 
     int NurbsCurve2d::GetTPieceCount() {
-        return m_control_point_count - m_degree;
+        return m_knot_count - m_degree * 2 - 1;
     }
 
     Interval NurbsCurve2d::GetTPiece(int index) {
         int i = index + m_degree;
         return Interval(m_knots[i], m_knots[i + 1]);
-    }
-
-    void NurbsCurve2d::SplitFlat(Array<VariableInterval>& segments, double angle_epsilon) {
-        //todo
     }
 
     void NurbsCurve2d::Calculate(int index, double t, Vector2d* d0, Vector2d* dt, Vector2d* dt2) {
@@ -1018,7 +1015,7 @@ namespace wgp {
                 center + Vector2d(radius * cos(end_angle), radius * sin(end_angle))
             };
             double weights[3] = { 1.0, cos(delta_angle * 0.5), 1.0 };
-            return new NurbsCurve2d(2, 3, knots, control_points, weights);
+            return new NurbsCurve2d(2, 6, knots, control_points, weights);
         }
         else if (abs_delta_angle <= g_pi) {
             double knots[7] = { 0.0, 0.0, 0.0, 0.5, 1.0, 1.0, 1.0 };
@@ -1036,7 +1033,7 @@ namespace wgp {
                 cos(delta_angle / 4) * cos(delta_angle / 4), 
                 1
             };
-            return new NurbsCurve2d(2, 4, knots, control_points, weights);
+            return new NurbsCurve2d(2, 7, knots, control_points, weights);
         }
         else if (abs_delta_angle <= g_pi * 1.5) {
             double knots[9] = { 0.0, 0.0, 0.0, 1.0 / 3.0, 1.0 / 3.0, 2.0 / 3.0, 1.0, 1.0, 1.0 };
@@ -1059,7 +1056,7 @@ namespace wgp {
                 cos(delta_angle / 6) * cos(delta_angle / 6),
                 1.0
             };
-            return new NurbsCurve2d(2, 6, knots, control_points, weights);
+            return new NurbsCurve2d(2, 9, knots, control_points, weights);
         }
         else if (abs_delta_angle <= g_pi * 2 + g_double_epsilon) {
             double knots[10] = { 0.0, 0.0, 0.0, 0.25, 0.5, 0.5, 0.75, 1.0, 1.0, 1.0 };
@@ -1085,7 +1082,7 @@ namespace wgp {
                 cos(delta_angle / 8) * cos(delta_angle / 8),
                 1.0
             };
-            return new NurbsCurve2d(2, 7, knots, control_points, weights);
+            return new NurbsCurve2d(2, 10, knots, control_points, weights);
         }
         else {
             return nullptr;
@@ -1096,7 +1093,7 @@ namespace wgp {
         int n = BSplineBasisCalculator::GetBasisPolynomialsSize(m_degree, m_degree);
         double* tb = temp_all_polynomials + (all_polynomial_size - n);
         double* b = m_basis_polynomials;
-        for (int i = m_degree; i < m_control_point_count; ++i) {
+        for (int i = m_degree; i < m_knot_count - m_degree - 1; ++i) {
             BSplineBasisCalculator::CalculateAllBasisPolynomials(m_degree, m_knots, i, temp_all_polynomials);
             memcpy(b, tb, n * sizeof(double));
             b += n;

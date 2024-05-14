@@ -9,10 +9,7 @@
 #include "wstd/vector3d.h"
 #include "wstd/interval3d.h"
 #include "wstd/quaternion.h"
-#include "wstd/thread.h"
 #include "geometry.h"
-#include <atomic>
-#include <thread>
 
 namespace wgp {
 
@@ -25,7 +22,6 @@ namespace wgp {
         virtual ~Curve3d();
         virtual int GetTPieceCount() = 0;
         virtual Interval GetTPiece(int index) = 0;
-        virtual void SplitFlat(Array<VariableInterval>& segments, double angle_epsilon) = 0;
     public:
         virtual void Calculate(int index, double t, Vector3d* d0, Vector3d* dt, Vector3d* dt2) = 0;
         virtual Curve3dIntervalCalculator* NewCalculator(int index, const Interval& t_domain, bool d0, bool dt, bool dt2) = 0;
