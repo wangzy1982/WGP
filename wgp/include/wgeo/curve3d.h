@@ -36,6 +36,9 @@ namespace wgp {
         virtual ~Curve3dIntervalCalculator() {
         }
         virtual void Calculate(const Interval& t, Interval3d* d0, Interval3d* dt, Interval3d* dt2) = 0;
+        virtual int GetExtremeX(const Interval& t_domain, double* ts, int max_t_count) = 0;
+        virtual int GetExtremeY(const Interval& t_domain, double* ts, int max_t_count) = 0;
+        virtual int GetExtremeZ(const Interval& t_domain, double* ts, int max_t_count) = 0;
     };
 
     class Curve3dProjectionIntervalCalculator {

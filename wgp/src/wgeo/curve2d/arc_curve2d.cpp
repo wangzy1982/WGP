@@ -205,6 +205,32 @@ namespace wgp {
                 }
             }
         }
+
+        virtual int GetExtremeX(const Interval& t_domain, double* ts, int max_t_count) {
+            int j = 0;
+            for (int i = 0; i < m_x0_extreme_count; ++i) {
+                if (j >= max_t_count) {
+                    break;
+                }
+                if (m_x0_extreme[i] <= t_domain.Max && m_x0_extreme[i] >= t_domain.Min) {
+                    ts[j++] = m_x0_extreme[i];
+                }
+            }
+            return j;
+        }
+
+        virtual int GetExtremeY(const Interval& t_domain, double* ts, int max_t_count) {
+            int j = 0;
+            for (int i = 0; i < m_y0_extreme_count; ++i) {
+                if (j >= max_t_count) {
+                    break;
+                }
+                if (m_y0_extreme[i] <= t_domain.Max && m_y0_extreme[i] >= t_domain.Min) {
+                    ts[j++] = m_y0_extreme[i];
+                }
+            }
+            return j;
+        }
     private:
         ArcCurve2d* m_arc;
     private:

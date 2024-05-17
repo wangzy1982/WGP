@@ -19,8 +19,8 @@ namespace wgp {
             m_d0_dirty[1] = true;
             m_dt_dirty[0] = true;
             m_dt_dirty[1] = true;
-            m_is_flat[0] = false;
-            m_is_flat[1] = false;
+            m_split_extreme[0] = 1E100;
+            m_split_extreme[1] = 1E100;
             m_same_dir = 0;
         }
 
@@ -46,7 +46,7 @@ namespace wgp {
             m_d0_dirty[i] = true;
             m_dt_dirty[i] = true;
             if (!value.IsInner(m_t[i])) {
-                m_is_flat[i] = false;
+                m_split_extreme[i] = -1E100;
                 m_same_dir = 0;
             }
         }
@@ -58,12 +58,12 @@ namespace wgp {
             m_dt_dirty[i] = variable.m_dt_dirty[i];
             m_dt[i] = variable.m_dt[i];
             if (!variable.m_t[i].IsInner(m_t[i])) {
-                m_is_flat[i] = variable.m_is_flat[i];
+                m_split_extreme[i] = variable.m_split_extreme[i];
                 m_same_dir = variable.m_same_dir;
             }
             else {
-                if (variable.m_is_flat[i]) {
-                    m_is_flat[i] = true;
+                if (variable.m_split_extreme[i] > variable.m_t[i].Max) {
+                    m_split_extreme[i] = 1E100;
                 }
                 if (variable.m_same_dir != 0) {
                     m_same_dir = variable.m_same_dir;
@@ -78,26 +78,37 @@ namespace wgp {
             m_d0_dirty[1] = true;
             m_dt_dirty[0] = true;
             m_dt_dirty[1] = true;
-            m_is_flat[0] = false;
-            m_is_flat[1] = false;
+            m_split_extreme[0] = -1E100;
+            m_split_extreme[1] = -1E100;
             if (m_same_dir != variable.m_same_dir) {
                 m_same_dir = 0;
             }
         }
 
         void Split(int index, Curve2dCurve2dIntVariable& variable1, Curve2dCurve2dIntVariable& variable2) const {
+            bool b = m_t[index].Min < m_split_extreme[index] && m_t[index].Max > m_split_extreme[index];
             variable1 = *this;
             variable2 = *this;
-            double m = m_t[index].Center();
+            double m = b ? m_split_extreme[index] : m_t[index].Center();
             variable1.m_t[index].Max = m;
             variable2.m_t[index].Min = m;
             variable1.m_d0_dirty[index] = true;
             variable1.m_dt_dirty[index] = true;
-            variable1.m_is_flat[index] = m_is_flat[index];
+            if (b) {
+                variable1.m_split_extreme[index] = -1E100;
+            }
+            else {
+                variable1.m_split_extreme[index] = m_split_extreme[index];
+            }
             variable1.m_same_dir = m_same_dir;
             variable2.m_d0_dirty[index] = true;
             variable2.m_dt_dirty[index] = true;
-            variable2.m_is_flat[index] = m_is_flat[index];
+            if (b) {
+                variable2.m_split_extreme[index] = -1E100;
+            }
+            else {
+                variable2.m_split_extreme[index] = m_split_extreme[index];
+            }
             variable2.m_same_dir = m_same_dir;
         }
     protected:
@@ -107,8 +118,8 @@ namespace wgp {
         mutable Interval2d m_d0[2];
         mutable bool m_dt_dirty[2];
         mutable Interval2d m_dt[2];
-        mutable bool m_is_flat[2];
-        mutable int m_same_dir;     //0-Unknown  1-Yes  2-No
+        mutable double m_split_extreme[2];     // Less than t - Unknown;  Greater than t - None
+        mutable int m_same_dir;     //0-Unknown;  1-Yes;  2-No
     };
 
     class Curve2dCurve2dIntHelper {
@@ -157,17 +168,38 @@ namespace wgp {
         }
 
         void CalculateIsFlat(const Curve2dCurve2dIntVariable& variable, int index) {
-            if (!variable.m_is_flat[index]) {
-                const double flat_epsilon = g_pi / 2;
-                Interval2d dt = CalculateDt(variable, index);
-                if (dt.Normalize().DiagonalLength() <= flat_epsilon) {
-                    variable.m_is_flat[index] = true;
+            if (variable.m_split_extreme[index] < variable.m_t[index].Min) {
+                Curve2dIntervalCalculator* calculator = GetCalculator(index);
+                double ts[256];
+                int n = calculator->GetExtremeX(variable.m_t[index], ts, 256);
+                n += calculator->GetExtremeY(variable.m_t[index], ts + n, 256 - n);
+                if (n == 0) {
+                    variable.m_split_extreme[index] = 1E100;
+                }
+                else {
+                    double c = variable.m_t[index].Center();
+                    double d = abs(ts[0] - c);
+                    double m = ts[0];
+                    for (int i = 1; i < n; ++i) {
+                        double d1 = abs(ts[i] - c);
+                        if (d1 < d) {
+                            d = d1;
+                            m = ts[i];
+                        }
+                    }
+                    if (m - variable.m_t[index].Min <= g_double_epsilon ||
+                        m - variable.m_t[index].Max >= -g_double_epsilon) {
+                        variable.m_split_extreme[index] = 1E100;
+                    }
+                    else {
+                        variable.m_split_extreme[index] = m;
+                    }
                 }
             }
         }
 
         bool GetIsFlat(const Curve2dCurve2dIntVariable& variable, int index) {
-            return variable.m_is_flat[index];
+            return variable.m_split_extreme[index] > variable.m_t[index].Max;
         }
 
         int GetSameDir(const Curve2dCurve2dIntVariable& variable) {
@@ -660,8 +692,8 @@ namespace wgp {
             m_d0_dirty[1] = true;
             m_dt_dirty[0] = true;
             m_dt_dirty[1] = true;
-            m_is_flat[0] = false;
-            m_is_flat[1] = false;
+            m_split_extreme[0] = 1E100;
+            m_split_extreme[1] = 1E100;
             m_same_dir = 0;
         }
 
@@ -687,7 +719,7 @@ namespace wgp {
             m_d0_dirty[i] = true;
             m_dt_dirty[i] = true;
             if (!value.IsInner(m_t[i])) {
-                m_is_flat[i] = false;
+                m_split_extreme[i] = 1E100;
                 m_same_dir = 0;
             }
         }
@@ -699,12 +731,12 @@ namespace wgp {
             m_dt_dirty[i] = variable.m_dt_dirty[i];
             m_dt[i] = variable.m_dt[i];
             if (!variable.m_t[i].IsInner(m_t[i])) {
-                m_is_flat[i] = variable.m_is_flat[i];
+                m_split_extreme[i] = variable.m_split_extreme[i];
                 m_same_dir = variable.m_same_dir;
             }
             else {
-                if (variable.m_is_flat[i]) {
-                    m_is_flat[i] = true;
+                if (variable.m_split_extreme[i] > variable.m_t[i].Max) {
+                    m_split_extreme[i] = 1E100;
                 }
                 if (variable.m_same_dir != 0) {
                     m_same_dir = variable.m_same_dir;
@@ -719,26 +751,37 @@ namespace wgp {
             m_d0_dirty[1] = true;
             m_dt_dirty[0] = true;
             m_dt_dirty[1] = true;
-            m_is_flat[0] = false;
-            m_is_flat[1] = false;
+            m_split_extreme[0] = -1E100;
+            m_split_extreme[1] = -1E100;
             if (m_same_dir != variable.m_same_dir) {
                 m_same_dir = 0;
             }
         }
 
         void Split(int index, Curve3dCurve3dIntVariable& variable1, Curve3dCurve3dIntVariable& variable2) const {
+            bool b = m_t[index].Min < m_split_extreme[index] && m_t[index].Max > m_split_extreme[index];
             variable1 = *this;
             variable2 = *this;
-            double m = m_t[index].Center();
+            double m = b ? m_split_extreme[index] : m_t[index].Center();
             variable1.m_t[index].Max = m;
             variable2.m_t[index].Min = m;
             variable1.m_d0_dirty[index] = true;
             variable1.m_dt_dirty[index] = true;
-            variable1.m_is_flat[index] = m_is_flat[index];
+            if (b) {
+                variable1.m_split_extreme[index] = -1E100;
+            }
+            else {
+                variable1.m_split_extreme[index] = m_split_extreme[index];
+            }
             variable1.m_same_dir = m_same_dir;
             variable2.m_d0_dirty[index] = true;
             variable2.m_dt_dirty[index] = true;
-            variable2.m_is_flat[index] = m_is_flat[index];
+            if (b) {
+                variable2.m_split_extreme[index] = -1E100;
+            }
+            else {
+                variable2.m_split_extreme[index] = m_split_extreme[index];
+            }
             variable2.m_same_dir = m_same_dir;
         }
     protected:
@@ -748,7 +791,7 @@ namespace wgp {
         mutable Interval3d m_d0[2];
         mutable bool m_dt_dirty[2];
         mutable Interval3d m_dt[2];
-        mutable bool m_is_flat[2];
+        mutable double m_split_extreme[2];     // Less than t - Unknown;  Greater than t - None
         mutable int m_same_dir;     //0-Unknown  1-Yes  2-No
     };
 
@@ -798,17 +841,39 @@ namespace wgp {
         }
 
         void CalculateIsFlat(const Curve3dCurve3dIntVariable& variable, int index) {
-            if (!variable.m_is_flat[index]) {
-                const double flat_epsilon = g_pi / 2;
-                Interval3d dt = CalculateDt(variable, index);
-                if (dt.Normalize().DiagonalLength() <= flat_epsilon) {
-                    variable.m_is_flat[index] = true;
+            if (variable.m_split_extreme[index] < variable.m_t[index].Min) {
+                Curve3dIntervalCalculator* calculator = GetCalculator(index);
+                double ts[256];
+                int n = calculator->GetExtremeX(variable.m_t[index], ts, 256);
+                n += calculator->GetExtremeY(variable.m_t[index], ts + n, 256 - n);
+                n += calculator->GetExtremeZ(variable.m_t[index], ts + n, 256 - n);
+                if (n == 0) {
+                    variable.m_split_extreme[index] = 1E100;
+                }
+                else {
+                    double c = variable.m_t[index].Center();
+                    double d = abs(ts[0] - c);
+                    double m = ts[0];
+                    for (int i = 1; i < n; ++i) {
+                        double d1 = abs(ts[i] - c);
+                        if (d1 < d) {
+                            d = d1;
+                            m = ts[i];
+                        }
+                    }
+                    if (m - variable.m_t[index].Min <= g_double_epsilon ||
+                        m - variable.m_t[index].Max >= -g_double_epsilon) {
+                        variable.m_split_extreme[index] = 1E100;
+                    }
+                    else {
+                        variable.m_split_extreme[index] = m;
+                    }
                 }
             }
         }
 
         bool GetIsFlat(const Curve3dCurve3dIntVariable& variable, int index) {
-            return variable.m_is_flat[index];
+            return variable.m_split_extreme[index] > variable.m_t[index].Max;
         }
 
         int GetSameDir(const Curve3dCurve3dIntVariable& variable) {
