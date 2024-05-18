@@ -14,6 +14,16 @@
 
 namespace wgp {
 
+    struct WGP_API UV {
+        double U;
+        double V;
+
+        UV() : U(0), V(0) {
+        }
+        UV(double u, double v) : U(u), V(v) {
+        }
+    };
+
     struct WGP_API Variable {
         int Index;
         double Value;

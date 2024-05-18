@@ -23,8 +23,8 @@ namespace wgp {
         virtual int GetTPieceCount();
         virtual Interval GetTPiece(int index);
     public:
-        virtual void Calculate(int index, double t, Vector2d* d0, Vector2d* dt, Vector2d* dt2);
-        virtual Curve2dIntervalCalculator* NewCalculator(int index, const Interval& t_domain, bool d0, bool dt, bool dt2);
+        virtual void Calculate(int index, double t, Vector2d* d0, Vector2d* dt);
+        virtual Curve2dIntervalCalculator* NewCalculator(int index, const Interval& t_domain, bool d0, bool dt);
         virtual Curve2dProjectionIntervalCalculator* NewCalculatorByCircleTransformation(
             int index, const Interval& t_domain, const Vector2d& center, bool d0, bool dt);
     public:

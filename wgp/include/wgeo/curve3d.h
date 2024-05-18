@@ -23,11 +23,11 @@ namespace wgp {
         virtual int GetTPieceCount() = 0;
         virtual Interval GetTPiece(int index) = 0;
     public:
-        virtual void Calculate(int index, double t, Vector3d* d0, Vector3d* dt, Vector3d* dt2) = 0;
-        virtual Curve3dIntervalCalculator* NewCalculator(int index, const Interval& t_domain, bool d0, bool dt, bool dt2) = 0;
+        virtual void Calculate(int index, double t, Vector3d* d0, Vector3d* dt) = 0;
+        virtual Curve3dIntervalCalculator* NewCalculator(int index, const Interval& t_domain, bool d0, bool dt) = 0;
         virtual Curve3dProjectionIntervalCalculator* NewCalculatorByCircleTransformation(
             int index, const Interval& t_domain, const Vector3d& center, bool d0, bool dt) = 0;
-        Curve3dIntervalCalculator** NewCalculators(bool d0, bool dt, bool dt2);
+        Curve3dIntervalCalculator** NewCalculators(bool d0, bool dt);
         void FreeCalculators(Curve3dIntervalCalculator** calculators);
     };
 
@@ -35,7 +35,7 @@ namespace wgp {
     public:
         virtual ~Curve3dIntervalCalculator() {
         }
-        virtual void Calculate(const Interval& t, Interval3d* d0, Interval3d* dt, Interval3d* dt2) = 0;
+        virtual void Calculate(const Interval& t, Interval3d* d0, Interval3d* dt) = 0;
         virtual int GetExtremeX(const Interval& t_domain, double* ts, int max_t_count) = 0;
         virtual int GetExtremeY(const Interval& t_domain, double* ts, int max_t_count) = 0;
         virtual int GetExtremeZ(const Interval& t_domain, double* ts, int max_t_count) = 0;

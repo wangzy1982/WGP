@@ -8,7 +8,7 @@ namespace wgp {
 
     class ArcCurve2dIntervalCalculator : public Curve2dIntervalCalculator {
     public:
-        ArcCurve2dIntervalCalculator(ArcCurve2d* arc, const Interval& t_domain, bool d0, bool dt, bool dt2) : 
+        ArcCurve2dIntervalCalculator(ArcCurve2d* arc, const Interval& t_domain, bool d0, bool dt) : 
             m_arc(arc) {
             if (d0) {
                 m_x0_extreme_count = 0;
@@ -58,33 +58,9 @@ namespace wgp {
                 m_xt_extreme_count = -1;
                 m_yt_extreme_count = -1;
             }
-            if (dt2) {
-                m_xt2_extreme_count = 0;
-                double d = g_pi;
-                if (t_domain.Min < d && t_domain.Max > d) {
-                    m_xt2_extreme[m_xt2_extreme_count++] = d;
-                }
-                d = g_pi * 2;
-                if (t_domain.Min < d && t_domain.Max > d) {
-                    m_xt2_extreme[m_xt2_extreme_count++] = d;
-                }
-                m_yt2_extreme_count = 0;
-                d = g_pi * 0.5;
-                if (t_domain.Min < d && t_domain.Max > d) {
-                    m_yt2_extreme[m_yt2_extreme_count++] = d;
-                }
-                d = g_pi * 1.5;
-                if (t_domain.Min < d && t_domain.Max > d) {
-                    m_yt2_extreme[m_yt2_extreme_count++] = d;
-                }
-            }
-            else {
-                m_xt2_extreme_count = -1;
-                m_yt2_extreme_count = -1;
-            }
         }
 
-        virtual void Calculate(const Interval& t, Interval2d* d0, Interval2d* dt, Interval2d* dt2) {
+        virtual void Calculate(const Interval& t, Interval2d* d0, Interval2d* dt) {
             double t0 = t.Min;
             double t1 = t.Max;
             double sin0, cos0, sin1, cos1;
@@ -166,44 +142,6 @@ namespace wgp {
                     *dt = *dt * m_arc->m_radius;
                 }
             }
-            if (dt2) {
-                assert(m_xt2_extreme_count != -1);
-                assert(m_yt2_extreme_count != -1);
-                if (m_arc->m_clockwise) {
-                    dt2->X = -cos0;
-                    dt2->Y = sin0;
-                    dt2->X.Merge(-cos1);
-                    dt2->Y.Merge(sin1);
-                    for (int i = 0; i < m_xt2_extreme_count; ++i) {
-                        if (m_xt2_extreme[i] > t.Min && m_xt2_extreme[i] < t.Max) {
-                            dt2->X.Merge(-cos(m_xt2_extreme[i]));
-                        }
-                    }
-                    for (int i = 0; i < m_yt2_extreme_count; ++i) {
-                        if (m_yt2_extreme[i] > t.Min && m_yt2_extreme[i] < t.Max) {
-                            dt2->Y.Merge(sin(m_yt2_extreme[i]));
-                        }
-                    }
-                    *dt2 = *dt2 * m_arc->m_radius;
-                }
-                else {
-                    dt2->X = -cos0;
-                    dt2->Y = -sin0;
-                    dt2->X.Merge(-cos1);
-                    dt2->Y.Merge(-sin1);
-                    for (int i = 0; i < m_xt2_extreme_count; ++i) {
-                        if (m_xt2_extreme[i] > t.Min && m_xt2_extreme[i] < t.Max) {
-                            dt2->X.Merge(-cos(m_xt2_extreme[i]));
-                        }
-                    }
-                    for (int i = 0; i < m_yt2_extreme_count; ++i) {
-                        if (m_yt2_extreme[i] > t.Min && m_yt2_extreme[i] < t.Max) {
-                            dt2->Y.Merge(-sin(m_yt2_extreme[i]));
-                        }
-                    }
-                    *dt2 = *dt2 * m_arc->m_radius;
-                }
-            }
         }
 
         virtual int GetExtremeX(const Interval& t_domain, double* ts, int max_t_count) {
@@ -242,10 +180,6 @@ namespace wgp {
         double m_xt_extreme[2];
         int m_yt_extreme_count;
         double m_yt_extreme[2];
-        int m_xt2_extreme_count;
-        double m_xt2_extreme[2];
-        int m_yt2_extreme_count;
-        double m_yt2_extreme[2];
     };
 
     class ArcCurve2dIntervalCalculatorByCircleTransformation : public Curve2dProjectionIntervalCalculator {
@@ -417,7 +351,7 @@ namespace wgp {
         return m_t_domain;
     }
 
-    void ArcCurve2d::Calculate(int index, double t, Vector2d* d0, Vector2d* dt, Vector2d* dt2) {
+    void ArcCurve2d::Calculate(int index, double t, Vector2d* d0, Vector2d* dt) {
         double cos, sin;
         sincos(t, &sin, &cos);
         if (m_clockwise) {
@@ -429,13 +363,10 @@ namespace wgp {
         if (dt) {
             *dt = Vector2d(-m_radius * sin, m_radius * cos);
         }
-        if (dt2) {
-            *dt2 = Vector2d(-m_radius * cos, -m_radius * sin);
-        }
     }
 
-    Curve2dIntervalCalculator* ArcCurve2d::NewCalculator(int index, const Interval& t_domain, bool d0, bool dt, bool dt2) {
-        return new ArcCurve2dIntervalCalculator(this, t_domain, d0, dt, dt2);
+    Curve2dIntervalCalculator* ArcCurve2d::NewCalculator(int index, const Interval& t_domain, bool d0, bool dt) {
+        return new ArcCurve2dIntervalCalculator(this, t_domain, d0, dt);
     }
 
     Curve2dProjectionIntervalCalculator* ArcCurve2d::NewCalculatorByCircleTransformation(

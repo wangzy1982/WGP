@@ -23,11 +23,11 @@ namespace wgp {
         virtual int GetTPieceCount() = 0;
         virtual Interval GetTPiece(int index) = 0;
     public:
-        virtual void Calculate(int index, double t, Vector2d* d0, Vector2d* dt, Vector2d* dt2) = 0;
-        virtual Curve2dIntervalCalculator* NewCalculator(int index, const Interval& t_domain, bool d0, bool dt, bool dt2) = 0;
+        virtual void Calculate(int index, double t, Vector2d* d0, Vector2d* dt) = 0;
+        virtual Curve2dIntervalCalculator* NewCalculator(int index, const Interval& t_domain, bool d0, bool dt) = 0;
         virtual Curve2dProjectionIntervalCalculator* NewCalculatorByCircleTransformation(
             int index, const Interval& t_domain, const Vector2d& center, bool d0, bool dt) = 0;
-        Curve2dIntervalCalculator** NewCalculators(bool d0, bool dt, bool dt2);
+        Curve2dIntervalCalculator** NewCalculators(bool d0, bool dt);
         void FreeCalculators(Curve2dIntervalCalculator** calculators);
     };
 
@@ -35,7 +35,7 @@ namespace wgp {
     public:
         virtual ~Curve2dIntervalCalculator() {
         }
-        virtual void Calculate(const Interval& t, Interval2d* d0, Interval2d* dt, Interval2d* dt2) = 0;
+        virtual void Calculate(const Interval& t, Interval2d* d0, Interval2d* dt) = 0;
         virtual int GetExtremeX(const Interval& t_domain, double* ts, int max_t_count) = 0;
         virtual int GetExtremeY(const Interval& t_domain, double* ts, int max_t_count) = 0;
     };

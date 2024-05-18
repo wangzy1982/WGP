@@ -28,8 +28,8 @@ namespace wgp {
         intersection.Tags[1] = tag1;
         intersection.Ts[0] = Variable(helper.GetIndex(0), t0);
         intersection.Ts[1] = Variable(helper.GetIndex(1), t1);
-        helper.GetCurve(0)->Calculate(helper.GetIndex(0), t0, &intersection.Points[0], nullptr, nullptr);
-        helper.GetCurve(1)->Calculate(helper.GetIndex(1), t1, &intersection.Points[1], nullptr, nullptr);
+        helper.GetCurve(0)->Calculate(helper.GetIndex(0), t0, &intersection.Points[0], nullptr);
+        helper.GetCurve(1)->Calculate(helper.GetIndex(1), t1, &intersection.Points[1], nullptr);
         intersection.Type = type;
         return intersection;
     }
@@ -47,8 +47,8 @@ namespace wgp {
             t1 = int_info->Variable.Get(1).Max;
         }
         Vector2d point0, point1;
-        helper.GetCurve(0)->Calculate(helper.GetIndex(0), t0, &point0, nullptr, nullptr);
-        helper.GetCurve(1)->Calculate(helper.GetIndex(1), t1, &point1, nullptr, nullptr);
+        helper.GetCurve(0)->Calculate(helper.GetIndex(0), t0, &point0, nullptr);
+        helper.GetCurve(1)->Calculate(helper.GetIndex(1), t1, &point1, nullptr);
         if (vector2_equals(point0, point1, distance_epsilon)) {
             int_info->BeginState = 1;
             Curve2dCurve2dInt intersection;
@@ -133,8 +133,8 @@ namespace wgp {
             t1 = int_info->Variable.Get(1).Min;
         }
         Vector2d point0, point1;
-        helper.GetCurve(0)->Calculate(helper.GetIndex(0), t0, &point0, nullptr, nullptr);
-        helper.GetCurve(1)->Calculate(helper.GetIndex(1), t1, &point1, nullptr, nullptr);
+        helper.GetCurve(0)->Calculate(helper.GetIndex(0), t0, &point0, nullptr);
+        helper.GetCurve(1)->Calculate(helper.GetIndex(1), t1, &point1, nullptr);
         if (vector2_equals(point0, point1, distance_epsilon)) {
             int_info->EndState = 1;
             Curve2dCurve2dInt intersection;
@@ -281,14 +281,14 @@ namespace wgp {
         Interval2d dt_0 = helper.CalculateDt(variable, 0);
         Interval2d dt_1 = helper.CalculateDt(variable, 1);
         if (dt_1.Normalize().DiagonalLength() <= dt_0.Normalize().DiagonalLength()) {
-            helper.GetCurve(0)->Calculate(helper.GetIndex(0), variable.Get(0).Min, &point1, nullptr, nullptr);
-            helper.GetCurve(0)->Calculate(helper.GetIndex(0), variable.Get(0).Center(), &point2, nullptr, nullptr);
-            helper.GetCurve(0)->Calculate(helper.GetIndex(0), variable.Get(0).Max, &point3, nullptr, nullptr);
+            helper.GetCurve(0)->Calculate(helper.GetIndex(0), variable.Get(0).Min, &point1, nullptr);
+            helper.GetCurve(0)->Calculate(helper.GetIndex(0), variable.Get(0).Center(), &point2, nullptr);
+            helper.GetCurve(0)->Calculate(helper.GetIndex(0), variable.Get(0).Max, &point3, nullptr);
         }
         else {
-            helper.GetCurve(1)->Calculate(helper.GetIndex(1), variable.Get(1).Min, &point1, nullptr, nullptr);
-            helper.GetCurve(1)->Calculate(helper.GetIndex(1), variable.Get(1).Center(), &point2, nullptr, nullptr);
-            helper.GetCurve(1)->Calculate(helper.GetIndex(1), variable.Get(1).Max, &point3, nullptr, nullptr);
+            helper.GetCurve(1)->Calculate(helper.GetIndex(1), variable.Get(1).Min, &point1, nullptr);
+            helper.GetCurve(1)->Calculate(helper.GetIndex(1), variable.Get(1).Center(), &point2, nullptr);
+            helper.GetCurve(1)->Calculate(helper.GetIndex(1), variable.Get(1).Max, &point3, nullptr);
         }
         Vector2d center;
         if (!ArcCurve2d::Get3PointCircle(point1, point2, point3, center)) {
@@ -343,8 +343,8 @@ namespace wgp {
     }
 
     void Intersect(Curve2d* curve0, Curve2d* curve1, void* tag0, void* tag1, double dist_epsilon, Array<Curve2dCurve2dInt>& result) {
-        Curve2dIntervalCalculator** calculators0 = curve0->NewCalculators(true, true, false);
-        Curve2dIntervalCalculator** calculators1 = curve1->NewCalculators(true, true, false);
+        Curve2dIntervalCalculator** calculators0 = curve0->NewCalculators(true, true);
+        Curve2dIntervalCalculator** calculators1 = curve1->NewCalculators(true, true);
         Intersect(curve0, curve1, tag0, tag1, dist_epsilon, calculators0, calculators1, result);
         curve0->FreeCalculators(calculators0);
         curve1->FreeCalculators(calculators1);

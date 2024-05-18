@@ -149,7 +149,7 @@ namespace wgp {
             if (variable.m_d0_dirty[index]) {
                 Curve2dIntervalCalculator* calculator = GetCalculator(index);
                 Interval2d d0;
-                calculator->Calculate(variable.m_t[index], &d0, nullptr, nullptr);
+                calculator->Calculate(variable.m_t[index], &d0, nullptr);
                 variable.m_d0_dirty[index] = false;
                 variable.m_d0[index] = d0;
             }
@@ -160,7 +160,7 @@ namespace wgp {
             if (variable.m_dt_dirty[index]) {
                 Curve2dIntervalCalculator* calculator = GetCalculator(index);
                 Interval2d dt;
-                calculator->Calculate(variable.m_t[index], nullptr, &dt, nullptr);
+                calculator->Calculate(variable.m_t[index], nullptr, &dt);
                 variable.m_dt_dirty[index] = false;
                 variable.m_dt[index] = dt;
             }
@@ -233,8 +233,8 @@ namespace wgp {
                 t0 = variable.Get(0).Center();
                 t1 = variable.Get(1).Center();
                 Vector2d pt0, pt1, vt0, vt1;
-                m_curve[0]->Calculate(m_index[0], t0, &pt0, &vt0, nullptr);
-                m_curve[1]->Calculate(m_index[1], t1, &pt1, &vt1, nullptr);
+                m_curve[0]->Calculate(m_index[0], t0, &pt0, &vt0);
+                m_curve[1]->Calculate(m_index[1], t1, &pt1, &vt1);
                 Vector2d vt = pt0 - pt1;
                 double dist = vt.Length();
                 for (int i = 0; i < 10000; ++i) {
@@ -262,9 +262,12 @@ namespace wgp {
                         nt1 = variable.Get(1).Min;
                         delta1 = nt1 - t1;
                     }
+                    if (is_zero(delta0, g_double_epsilon) && is_zero(delta1, g_double_epsilon)) {
+                        break;
+                    }
                     Vector2d npt0, npt1, nvt0, nvt1;
-                    m_curve[0]->Calculate(m_index[0], nt0, &npt0, &nvt0, nullptr);
-                    m_curve[1]->Calculate(m_index[1], nt1, &npt1, &nvt1, nullptr);
+                    m_curve[0]->Calculate(m_index[0], nt0, &npt0, &nvt0);
+                    m_curve[1]->Calculate(m_index[1], nt1, &npt1, &nvt1);
                     Vector2d nvt = npt0 - npt1;
                     double ndist = nvt.Length();
                     while (ndist > dist) {
@@ -275,8 +278,8 @@ namespace wgp {
                         }
                         nt0 = t0 + delta0;
                         nt1 = t1 + delta1;
-                        m_curve[0]->Calculate(m_index[0], nt0, &npt0, &nvt0, nullptr);
-                        m_curve[1]->Calculate(m_index[1], nt1, &npt1, &nvt1, nullptr);
+                        m_curve[0]->Calculate(m_index[0], nt0, &npt0, &nvt0);
+                        m_curve[1]->Calculate(m_index[1], nt1, &npt1, &nvt1);
                         nvt = npt0 - npt1;
                         ndist = nvt.Length();
                     }
@@ -822,7 +825,7 @@ namespace wgp {
             if (variable.m_d0_dirty[index]) {
                 Curve3dIntervalCalculator* calculator = GetCalculator(index);
                 Interval3d d0;
-                calculator->Calculate(variable.m_t[index], &d0, nullptr, nullptr);
+                calculator->Calculate(variable.m_t[index], &d0, nullptr);
                 variable.m_d0_dirty[index] = false;
                 variable.m_d0[index] = d0;
             }
@@ -833,7 +836,7 @@ namespace wgp {
             if (variable.m_dt_dirty[index]) {
                 Curve3dIntervalCalculator* calculator = GetCalculator(index);
                 Interval3d dt;
-                calculator->Calculate(variable.m_t[index], nullptr, &dt, nullptr);
+                calculator->Calculate(variable.m_t[index], nullptr, &dt);
                 variable.m_dt_dirty[index] = false;
                 variable.m_dt[index] = dt;
             }
@@ -907,8 +910,8 @@ namespace wgp {
                 t0 = variable.Get(0).Center();
                 t1 = variable.Get(1).Center();
                 Vector3d pt0, pt1, vt0, vt1;
-                m_curve[0]->Calculate(m_index[0], t0, &pt0, &vt0, nullptr);
-                m_curve[1]->Calculate(m_index[1], t1, &pt1, &vt1, nullptr);
+                m_curve[0]->Calculate(m_index[0], t0, &pt0, &vt0);
+                m_curve[1]->Calculate(m_index[1], t1, &pt1, &vt1);
                 Vector3d vt = pt0 - pt1;
                 double dist = vt.Length();
                 for (int i = 0; i < 10000; ++i) {
@@ -937,9 +940,12 @@ namespace wgp {
                         nt1 = variable.Get(1).Min;
                         delta1 = nt1 - t1;
                     }
+                    if (is_zero(delta0, g_double_epsilon) && is_zero(delta1, g_double_epsilon)) {
+                        break;
+                    }
                     Vector3d npt0, npt1, nvt0, nvt1;
-                    m_curve[0]->Calculate(m_index[0], nt0, &npt0, &nvt0, nullptr);
-                    m_curve[1]->Calculate(m_index[1], nt1, &npt1, &nvt1, nullptr);
+                    m_curve[0]->Calculate(m_index[0], nt0, &npt0, &nvt0);
+                    m_curve[1]->Calculate(m_index[1], nt1, &npt1, &nvt1);
                     Vector3d nvt = npt0 - npt1;
                     double ndist = nvt.Length();
                     while (ndist > dist) {
@@ -950,8 +956,8 @@ namespace wgp {
                         }
                         nt0 = t0 + delta0;
                         nt1 = t1 + delta1;
-                        m_curve[0]->Calculate(m_index[0], nt0, &npt0, &nvt0, nullptr);
-                        m_curve[1]->Calculate(m_index[1], nt1, &npt1, &nvt1, nullptr);
+                        m_curve[0]->Calculate(m_index[0], nt0, &npt0, &nvt0);
+                        m_curve[1]->Calculate(m_index[1], nt1, &npt1, &nvt1);
                         nvt = npt0 - npt1;
                         ndist = nvt.Length();
                     }
