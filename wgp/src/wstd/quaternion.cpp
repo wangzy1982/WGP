@@ -1,6 +1,6 @@
 ﻿/*
-	Original Author: Zuoyuan Wang
-	Copyright (c) 2024 Zuoyuan Wang
+    Original Author: Zuoyuan Wang
+    Copyright (c) 2024 Zuoyuan Wang
 */
 #include "wstd/quaternion.h"
 

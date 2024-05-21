@@ -29,11 +29,12 @@ namespace wgp {
         virtual Curve2dProjectionIntervalCalculator* NewCalculatorByCircleTransformation(
             int index, const Interval& t_domain, const Vector2d& center, bool d0, bool dt);
     public:
+        void BuildXYPolynomials(int index, double* x_polynomial, double* y_polynomial);
+        void BuildWXYPolynomials(int index, double* w_polynomial, double* x_polynomial, double* y_polynomial);
+    public:
         static NurbsCurve2d* CreateByArc(const Vector2d& center, double radius, double start_angle, double end_angle);
     private:
         void BuildBasisPolynomials(double* temp_all_polynomials, int all_polynomial_size);
-        void BuildXYPolynomials(int index, double* x_polynomial, double* y_polynomial);
-        void BuildWXYPolynomials(int index, double* w_polynomial, double* x_polynomial, double* y_polynomial);
     private:
         int m_degree;
         int m_knot_count;

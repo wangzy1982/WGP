@@ -1,6 +1,6 @@
 ﻿/*
-	Original Author: Zuoyuan Wang
-	Copyright (c) 2024 Zuoyuan Wang
+    Original Author: Zuoyuan Wang
+    Copyright (c) 2024 Zuoyuan Wang
 */
 #ifndef _WGP_STD_INTERVAL3D_
 #define _WGP_STD_INTERVAL3D_
