@@ -590,6 +590,12 @@ namespace wgp {
 
 
 
+    typedef Interval(*estimate_univariate_polynomial_interval_nd_func)(double* polynomial, const Interval& t);
+
+    Interval estimate_univariate_polynomial_interval_0d(double* polynomial, const Interval& t) {
+        return polynomial[0];
+    }
+
     Interval estimate_univariate_polynomial_interval_1d(double* polynomial, const Interval& t) {
         double s[2] = {
             calculate_univariate_polynomial_value(1, polynomial, t.Min),
@@ -1707,108 +1713,54 @@ namespace wgp {
         return result;
     }
 
+    const estimate_univariate_polynomial_interval_nd_func estimate_univariate_polynomial_interval_nd_funcs[31] = {
+        estimate_univariate_polynomial_interval_0d,
+        estimate_univariate_polynomial_interval_1d,
+        estimate_univariate_polynomial_interval_2d,
+        estimate_univariate_polynomial_interval_3d,
+        estimate_univariate_polynomial_interval_4d,
+        estimate_univariate_polynomial_interval_5d,
+        estimate_univariate_polynomial_interval_6d,
+        estimate_univariate_polynomial_interval_7d,
+        estimate_univariate_polynomial_interval_8d,
+        estimate_univariate_polynomial_interval_9d,
+        estimate_univariate_polynomial_interval_10d,
+        estimate_univariate_polynomial_interval_11d,
+        estimate_univariate_polynomial_interval_12d,
+        estimate_univariate_polynomial_interval_13d,
+        estimate_univariate_polynomial_interval_14d,
+        estimate_univariate_polynomial_interval_15d,
+        estimate_univariate_polynomial_interval_16d,
+        estimate_univariate_polynomial_interval_17d,
+        estimate_univariate_polynomial_interval_18d,
+        estimate_univariate_polynomial_interval_19d,
+        estimate_univariate_polynomial_interval_20d,
+        estimate_univariate_polynomial_interval_21d,
+        estimate_univariate_polynomial_interval_22d,
+        estimate_univariate_polynomial_interval_23d,
+        estimate_univariate_polynomial_interval_24d,
+        estimate_univariate_polynomial_interval_25d,
+        estimate_univariate_polynomial_interval_26d,
+        estimate_univariate_polynomial_interval_27d,
+        estimate_univariate_polynomial_interval_28d,
+        estimate_univariate_polynomial_interval_29d,
+        estimate_univariate_polynomial_interval_30d
+    };
+
     Interval estimate_univariate_polynomial_interval(int degree, double* polynomial, const Interval& t) {
-        switch (degree) {
-        case 0: {
-                return Interval(polynomial[0]);
-            }
-        case 1: {
-                return estimate_univariate_polynomial_interval_1d(polynomial, t);
-            }
-        case 2: {
-                return estimate_univariate_polynomial_interval_2d(polynomial, t);
-            }
-        case 3: {
-                return estimate_univariate_polynomial_interval_3d(polynomial, t);
-            }
-        case 4: {
-                return estimate_univariate_polynomial_interval_4d(polynomial, t);
-            }
-        case 5: {
-                return estimate_univariate_polynomial_interval_5d(polynomial, t);
-            }
-        case 6: {
-                return estimate_univariate_polynomial_interval_6d(polynomial, t);
-            }
-        case 7: {
-                return estimate_univariate_polynomial_interval_7d(polynomial, t);
-            }
-        case 8: {
-                return estimate_univariate_polynomial_interval_8d(polynomial, t);
-            }
-        case 9: {
-                return estimate_univariate_polynomial_interval_9d(polynomial, t);
-            }
-        case 10: {
-                return estimate_univariate_polynomial_interval_10d(polynomial, t);
-            }
-        case 11: {
-                return estimate_univariate_polynomial_interval_11d(polynomial, t);
-            }
-        case 12: {
-                return estimate_univariate_polynomial_interval_12d(polynomial, t);
-            }
-        case 13: {
-                return estimate_univariate_polynomial_interval_13d(polynomial, t);
-            }
-        case 14: {
-                return estimate_univariate_polynomial_interval_14d(polynomial, t);
-            }
-        case 15: {
-                return estimate_univariate_polynomial_interval_15d(polynomial, t);
-            }
-        case 16: {
-                return estimate_univariate_polynomial_interval_16d(polynomial, t);
-            }
-        case 17: {
-                return estimate_univariate_polynomial_interval_17d(polynomial, t);
-            }
-        case 18: {
-                return estimate_univariate_polynomial_interval_18d(polynomial, t);
-            }
-        case 19: {
-                return estimate_univariate_polynomial_interval_19d(polynomial, t);
-            }
-        case 20: {
-                return estimate_univariate_polynomial_interval_20d(polynomial, t);
-            }
-        case 21: {
-                return estimate_univariate_polynomial_interval_21d(polynomial, t);
-            }
-        case 22: {
-                return estimate_univariate_polynomial_interval_22d(polynomial, t);
-            }
-        case 23: {
-                return estimate_univariate_polynomial_interval_23d(polynomial, t);
-            }
-        case 24: {
-                return estimate_univariate_polynomial_interval_24d(polynomial, t);
-            }
-        case 25: {
-                return estimate_univariate_polynomial_interval_25d(polynomial, t);
-            }
-        case 26: {
-                return estimate_univariate_polynomial_interval_26d(polynomial, t);
-            }
-        case 27: {
-                return estimate_univariate_polynomial_interval_27d(polynomial, t);
-            }
-        case 28: {
-                return estimate_univariate_polynomial_interval_28d(polynomial, t);
-            }
-        case 29: {
-                return estimate_univariate_polynomial_interval_29d(polynomial, t);
-            }
-        case 30: {
-                return estimate_univariate_polynomial_interval_30d(polynomial, t);
-            }
-        default: {
-                throw "degree is error";
-            }
+        if (degree > 30) {
+            throw "degree is too large";
         }
+        return estimate_univariate_polynomial_interval_nd_funcs[degree](polynomial, t);
     }
 
 
+
+    typedef Interval(*estimate_univariate_rational_polynomial_interval_nd_func)(double* n_polynomial, double* d_polynomial, const Interval& t);
+
+    Interval estimate_univariate_rational_polynomial_interval_0d(double* n_polynomial, double* d_polynomial, const Interval& t) {
+        return Interval(n_polynomial[0]) / Interval(d_polynomial[0]);
+    }
 
     Interval estimate_univariate_rational_polynomial_interval_1d(double* n_polynomial, double* d_polynomial, const Interval& t) {
         double n[2] = {
@@ -3600,105 +3552,45 @@ namespace wgp {
         return result;
     }
 
+    const estimate_univariate_rational_polynomial_interval_nd_func estimate_univariate_rational_polynomial_interval_nd_funcs[31] = {
+        estimate_univariate_rational_polynomial_interval_0d,
+        estimate_univariate_rational_polynomial_interval_1d,
+        estimate_univariate_rational_polynomial_interval_2d,
+        estimate_univariate_rational_polynomial_interval_3d,
+        estimate_univariate_rational_polynomial_interval_4d,
+        estimate_univariate_rational_polynomial_interval_5d,
+        estimate_univariate_rational_polynomial_interval_6d,
+        estimate_univariate_rational_polynomial_interval_7d,
+        estimate_univariate_rational_polynomial_interval_8d,
+        estimate_univariate_rational_polynomial_interval_9d,
+        estimate_univariate_rational_polynomial_interval_10d,
+        estimate_univariate_rational_polynomial_interval_11d,
+        estimate_univariate_rational_polynomial_interval_12d,
+        estimate_univariate_rational_polynomial_interval_13d,
+        estimate_univariate_rational_polynomial_interval_14d,
+        estimate_univariate_rational_polynomial_interval_15d,
+        estimate_univariate_rational_polynomial_interval_16d,
+        estimate_univariate_rational_polynomial_interval_17d,
+        estimate_univariate_rational_polynomial_interval_18d,
+        estimate_univariate_rational_polynomial_interval_19d,
+        estimate_univariate_rational_polynomial_interval_20d,
+        estimate_univariate_rational_polynomial_interval_21d,
+        estimate_univariate_rational_polynomial_interval_22d,
+        estimate_univariate_rational_polynomial_interval_23d,
+        estimate_univariate_rational_polynomial_interval_24d,
+        estimate_univariate_rational_polynomial_interval_25d,
+        estimate_univariate_rational_polynomial_interval_26d,
+        estimate_univariate_rational_polynomial_interval_27d,
+        estimate_univariate_rational_polynomial_interval_28d,
+        estimate_univariate_rational_polynomial_interval_29d,
+        estimate_univariate_rational_polynomial_interval_30d
+    };
+
     Interval estimate_univariate_rational_polynomial_interval(int degree, double* n_polynomial, double* d_polynomial, const Interval& t) {
-        switch (degree) {
-        case 0: {
-                return Interval(n_polynomial[0]) / Interval(d_polynomial[0]);
-            }
-        case 1: {
-                return estimate_univariate_rational_polynomial_interval_1d(n_polynomial, d_polynomial, t);
-            }
-        case 2: {
-                return estimate_univariate_rational_polynomial_interval_2d(n_polynomial, d_polynomial, t);
-            }
-        case 3: {
-                return estimate_univariate_rational_polynomial_interval_3d(n_polynomial, d_polynomial, t);
-            }
-        case 4: {
-                return estimate_univariate_rational_polynomial_interval_4d(n_polynomial, d_polynomial, t);
-            }
-        case 5: {
-                return estimate_univariate_rational_polynomial_interval_5d(n_polynomial, d_polynomial, t);
-            }
-        case 6: {
-                return estimate_univariate_rational_polynomial_interval_6d(n_polynomial, d_polynomial, t);
-            }
-        case 7: {
-                return estimate_univariate_rational_polynomial_interval_7d(n_polynomial, d_polynomial, t);
-            }
-        case 8: {
-                return estimate_univariate_rational_polynomial_interval_8d(n_polynomial, d_polynomial, t);
-            }
-        case 9: {
-                return estimate_univariate_rational_polynomial_interval_9d(n_polynomial, d_polynomial, t);
-            }
-        case 10: {
-                return estimate_univariate_rational_polynomial_interval_10d(n_polynomial, d_polynomial, t);
-            }
-        case 11: {
-                return estimate_univariate_rational_polynomial_interval_11d(n_polynomial, d_polynomial, t);
-            }
-        case 12: {
-                return estimate_univariate_rational_polynomial_interval_12d(n_polynomial, d_polynomial, t);
-            }
-        case 13: {
-                return estimate_univariate_rational_polynomial_interval_13d(n_polynomial, d_polynomial, t);
-            }
-        case 14: {
-                return estimate_univariate_rational_polynomial_interval_14d(n_polynomial, d_polynomial, t);
-            }
-        case 15: {
-                return estimate_univariate_rational_polynomial_interval_15d(n_polynomial, d_polynomial, t);
-            }
-        case 16: {
-                return estimate_univariate_rational_polynomial_interval_16d(n_polynomial, d_polynomial, t);
-            }
-        case 17: {
-                return estimate_univariate_rational_polynomial_interval_17d(n_polynomial, d_polynomial, t);
-            }
-        case 18: {
-                return estimate_univariate_rational_polynomial_interval_18d(n_polynomial, d_polynomial, t);
-            }
-        case 19: {
-                return estimate_univariate_rational_polynomial_interval_19d(n_polynomial, d_polynomial, t);
-            }
-        case 20: {
-                return estimate_univariate_rational_polynomial_interval_20d(n_polynomial, d_polynomial, t);
-            }
-        case 21: {
-                return estimate_univariate_rational_polynomial_interval_21d(n_polynomial, d_polynomial, t);
-            }
-        case 22: {
-                return estimate_univariate_rational_polynomial_interval_22d(n_polynomial, d_polynomial, t);
-            }
-        case 23: {
-                return estimate_univariate_rational_polynomial_interval_23d(n_polynomial, d_polynomial, t);
-            }
-        case 24: {
-                return estimate_univariate_rational_polynomial_interval_24d(n_polynomial, d_polynomial, t);
-            }
-        case 25: {
-                return estimate_univariate_rational_polynomial_interval_25d(n_polynomial, d_polynomial, t);
-            }
-        case 26: {
-                return estimate_univariate_rational_polynomial_interval_26d(n_polynomial, d_polynomial, t);
-            }
-        case 27: {
-                return estimate_univariate_rational_polynomial_interval_27d(n_polynomial, d_polynomial, t);
-            }
-        case 28: {
-                return estimate_univariate_rational_polynomial_interval_28d(n_polynomial, d_polynomial, t);
-            }
-        case 29: {
-                return estimate_univariate_rational_polynomial_interval_29d(n_polynomial, d_polynomial, t);
-            }
-        case 30: {
-                return estimate_univariate_rational_polynomial_interval_30d(n_polynomial, d_polynomial, t);
-            }
-        default: {
-                throw "degree is error";
-            }
+        if (degree > 30) {
+            throw "degree is too large";
         }
+        return estimate_univariate_rational_polynomial_interval_nd_funcs[degree](n_polynomial, d_polynomial, t);
     }
 
 

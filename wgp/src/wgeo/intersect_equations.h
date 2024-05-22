@@ -19,8 +19,8 @@ namespace wgp {
             m_d0_dirty[1] = true;
             m_dt_dirty[0] = true;
             m_dt_dirty[1] = true;
-            m_split_extreme[0] = 1E100;
-            m_split_extreme[1] = 1E100;
+            m_split_extreme[0] = -1E100;
+            m_split_extreme[1] = -1E100;
             m_same_dir = 0;
         }
 
@@ -695,8 +695,8 @@ namespace wgp {
             m_d0_dirty[1] = true;
             m_dt_dirty[0] = true;
             m_dt_dirty[1] = true;
-            m_split_extreme[0] = 1E100;
-            m_split_extreme[1] = 1E100;
+            m_split_extreme[0] = -1E100;
+            m_split_extreme[1] = -1E100;
             m_same_dir = 0;
         }
 
