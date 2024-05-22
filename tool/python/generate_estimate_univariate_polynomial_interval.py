@@ -1,4 +1,5 @@
 import sympy
+import numpy
 
 
 def format_num(d):
@@ -22,14 +23,14 @@ def generate_matrix_code(max_degree, base_tab_count):
             for j in range(degree + 1):
                 row.append(exprs[j].subs(u, sympy.Rational(i, degree)))
             matrix.append(row)
-        matrix_inv = sympy.Matrix(matrix).inv()
+        matrix_inv = numpy.linalg.inv(numpy.array(sympy.Matrix(matrix), dtype=numpy.float64))
         s2 = ''
         for i in range(degree + 1):
             s2 += '\t{ '
-            s2 += format_num(sympy.N(matrix_inv.row(i)[0], 19))
+            s2 += format_num(matrix_inv[i][0])
             for j in range(1, degree + 1):
                 s2 += ', '
-                s2 += format_num(sympy.N(matrix_inv.row(i)[j], 19))
+                s2 += format_num(matrix_inv[i][j])
             s2 += ' },\n'
         s2 = s2.rstrip('\n').rstrip(',')
         s2 += '\n};\n\n'
@@ -43,7 +44,7 @@ def generate_matrix_code(max_degree, base_tab_count):
 
 def generate_normal_func_code(max_degree, base_tab_count):
     s = '''
-inline Interval estimate_univariate_polynomial_interval_1d(double* polynomial, const Interval& t) {
+Interval estimate_univariate_polynomial_interval_1d(double* polynomial, const Interval& t) {
     double s[2] = {
         calculate_univariate_polynomial_value(1, polynomial, t.Min),
         calculate_univariate_polynomial_value(1, polynomial, t.Max)
@@ -61,12 +62,14 @@ inline Interval estimate_univariate_polynomial_interval_1d(double* polynomial, c
 '''
     for degree in range(2, max_degree + 1):
         s2 = ''
-        s2 += 'inline Interval estimate_univariate_polynomial_interval_{}d(double* polynomial, const Interval& t) {{\n'.format(degree)
+        s2 += 'Interval estimate_univariate_polynomial_interval_{}d(double* polynomial, const Interval& t) {{\n'.format(
+            degree)
         s2 += '    double tlen = t.Length();\n'
         s2 += '    double s[{}] = {{\n'.format(degree + 1)
         s2 += '        calculate_univariate_polynomial_value({}, polynomial, t.Min),\n'.format(degree)
         for i in range(1, degree):
-            s2 += '        calculate_univariate_polynomial_value({}, polynomial, {}.0 / {} * tlen + t.Min),\n'.format(degree, i, degree)
+            s2 += '        calculate_univariate_polynomial_value({}, polynomial, {}.0 / {} * tlen + t.Min),\n'.format(
+                degree, i, degree)
         s2 += '        calculate_univariate_polynomial_value({}, polynomial, t.Max)\n'.format(degree)
         s2 += '    };\n'
         s2 += '    Interval result;\n'
@@ -87,7 +90,7 @@ inline Interval estimate_univariate_polynomial_interval_1d(double* polynomial, c
         s2 += '}\n\n'
         s += s2
     s2 = ''
-    s2 += 'inline Interval estimate_univariate_polynomial_interval(int degree, double* polynomial, const Interval& t) {\n'
+    s2 += 'Interval estimate_univariate_polynomial_interval(int degree, double* polynomial, const Interval& t) {\n'
     s2 += '    switch (degree) {\n'
     s2 += '        case 0: {\n'
     s2 += '                return Interval(polynomial[0]);\n'
@@ -111,7 +114,7 @@ inline Interval estimate_univariate_polynomial_interval_1d(double* polynomial, c
 
 def generate_rational_func_code(max_degree, base_tab_count):
     s = '''
-inline Interval estimate_univariate_rational_polynomial_interval_1d(double* n_polynomial, double* d_polynomial, const Interval& t) {
+Interval estimate_univariate_rational_polynomial_interval_1d(double* n_polynomial, double* d_polynomial, const Interval& t) {
     double n[2] = {
         calculate_univariate_polynomial_value(1, n_polynomial, t.Min),
         calculate_univariate_polynomial_value(1, n_polynomial, t.Max)
@@ -135,18 +138,21 @@ inline Interval estimate_univariate_rational_polynomial_interval_1d(double* n_po
 '''
     for degree in range(2, max_degree + 1):
         s2 = ''
-        s2 += 'inline Interval estimate_univariate_rational_polynomial_interval_{}d(double* n_polynomial, double* d_polynomial, const Interval& t) {{\n'.format(degree)
+        s2 += 'Interval estimate_univariate_rational_polynomial_interval_{}d(double* n_polynomial, double* d_polynomial, const Interval& t) {{\n'.format(
+            degree)
         s2 += '    double tlen = t.Length();\n'
         s2 += '    double n[{}] = {{\n'.format(degree + 1)
         s2 += '        calculate_univariate_polynomial_value({}, n_polynomial, t.Min),\n'.format(degree)
         for i in range(1, degree):
-            s2 += '        calculate_univariate_polynomial_value({}, n_polynomial, {}.0 / {} * tlen + t.Min),\n'.format(degree, i, degree)
+            s2 += '        calculate_univariate_polynomial_value({}, n_polynomial, {}.0 / {} * tlen + t.Min),\n'.format(
+                degree, i, degree)
         s2 += '        calculate_univariate_polynomial_value({}, n_polynomial, t.Max)\n'.format(degree)
         s2 += '    };\n'
         s2 += '    double d[{}] = {{\n'.format(degree + 1)
         s2 += '        calculate_univariate_polynomial_value({}, d_polynomial, t.Min),\n'.format(degree)
         for i in range(1, degree):
-            s2 += '        calculate_univariate_polynomial_value({}, d_polynomial, {}.0 / {} * tlen + t.Min),\n'.format(degree, i, degree)
+            s2 += '        calculate_univariate_polynomial_value({}, d_polynomial, {}.0 / {} * tlen + t.Min),\n'.format(
+                degree, i, degree)
         s2 += '        calculate_univariate_polynomial_value({}, d_polynomial, t.Max)\n'.format(degree)
         s2 += '    };\n'
         s2 += '    double a = n[0] / d[0];\n'
@@ -171,14 +177,15 @@ inline Interval estimate_univariate_rational_polynomial_interval_1d(double* n_po
         s2 += '}\n\n'
         s += s2
     s2 = ''
-    s2 += 'inline Interval estimate_univariate_rational_polynomial_interval(int degree, double* n_polynomial, double* d_polynomial, const Interval& t) {\n'
+    s2 += 'Interval estimate_univariate_rational_polynomial_interval(int degree, double* n_polynomial, double* d_polynomial, const Interval& t) {\n'
     s2 += '    switch (degree) {\n'
     s2 += '        case 0: {\n'
     s2 += '                return Interval(n_polynomial[0]) / Interval(d_polynomial[0]);\n'
     s2 += '            }\n'
     for i in range(1, max_degree + 1):
         s2 += '        case {}: {{\n'.format(i)
-        s2 += '                return estimate_univariate_rational_polynomial_interval_{}d(n_polynomial, d_polynomial, t);\n'.format(i)
+        s2 += '                return estimate_univariate_rational_polynomial_interval_{}d(n_polynomial, d_polynomial, t);\n'.format(
+            i)
         s2 += '            }\n'
     s2 += '        default: {\n'
     s2 += '                throw "degree is error";\n'
@@ -193,6 +200,19 @@ inline Interval estimate_univariate_rational_polynomial_interval_1d(double* n_po
     return s.replace('\n', '\n' + base_tab)
 
 
+print('''/*
+    Original Author: Zuoyuan Wang
+    Copyright (c) 2024 Zuoyuan Wang
+*/
+
+#include "wstd/polynomial.h"
+
+namespace wgp {
+''')
 print(generate_matrix_code(30, 1))
-# print(generate_normal_func_code(10, 1))
-# print(generate_rational_func_code(10, 1))
+print(generate_normal_func_code(30, 1))
+print(generate_rational_func_code(30, 1))
+
+print('''
+}
+''')
