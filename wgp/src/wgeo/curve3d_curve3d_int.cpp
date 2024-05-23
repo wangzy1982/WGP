@@ -586,6 +586,33 @@ namespace wgp {
                             int_infos.Append(*int_info1);
                         }
                     }
+                    //remove inner
+                    pre_int_infos.Exchange(int_infos);
+                    int_infos.Clear();
+                    for (int i = 0; i < pre_int_infos.GetCount(); ++i) {
+                        Curve3dCurve3dIntInfo* int_info1 = pre_int_infos.GetPointer(i);
+                        for (int j = i + 1; j < pre_int_infos.GetCount(); ++j) {
+                            Curve3dCurve3dIntInfo* int_info2 = pre_int_infos.GetPointer(j);
+                            if (int_info1->Variable.Get(0).IsInner(int_info2->Variable.Get(0)) &&
+                                int_info1->Variable.Get(1).IsInner(int_info2->Variable.Get(1))) {
+                                int_info1 = nullptr;
+                                break;
+                            }
+                        }
+                        if (int_info1) {
+                            for (int j = 0; j < int_infos.GetCount(); ++j) {
+                                Curve3dCurve3dIntInfo* int_info2 = pre_int_infos.GetPointer(j);
+                                if (int_info1->Variable.Get(0).IsInner(int_info2->Variable.Get(0)) &&
+                                    int_info1->Variable.Get(1).IsInner(int_info2->Variable.Get(1))) {
+                                    int_info1 = nullptr;
+                                    break;
+                                }
+                            }
+                        }
+                        if (int_info1) {
+                            int_infos.Append(*int_info1);
+                        }
+                    }
                     //calculate side state
                     for (int i = 0; i < int_infos.GetCount(); ++i) {
                         Curve3dCurve3dIntInfo* int_info = int_infos.GetPointer(i);
