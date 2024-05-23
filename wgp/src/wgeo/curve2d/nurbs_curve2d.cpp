@@ -8,7 +8,7 @@
 
 namespace wgp {
 
-    const int g_max_nurbs_curve2d_degree = 7;
+    const int g_max_nurbs_curve2d_degree = 11;
 
     const int g_nurbs_curve2d_polynomial_size = g_max_nurbs_curve2d_degree + 1;
 
@@ -324,25 +324,25 @@ namespace wgp {
             add_mul_univariate_polynomial(y_polynomial, m_nurbs->m_degree, w_polynomial, -center.Y);
             mul_univariate_polynomial(m_nurbs->m_degree, x_polynomial, m_nurbs->m_degree, x_polynomial, m_c_polynomial);
             add_mul_univariate_polynomial(m_c_polynomial, m_nurbs->m_degree, y_polynomial, m_nurbs->m_degree, y_polynomial);
-            mul_univariate_polynomial(m_nurbs->m_degree, w_polynomial, m_nurbs->m_degree, w_polynomial, m_w_polynomial);
+            mul_univariate_polynomial(m_nurbs->m_degree, w_polynomial, m_nurbs->m_degree, w_polynomial, m_w2_polynomial);
             double dc_polynomial[g_nurbs_curve2d_polynomial_size * 2];
-            double dw_polynomial[g_nurbs_curve2d_polynomial_size * 2];
+            double dw_polynomial[g_nurbs_curve2d_polynomial_size];
             univariate_polynomial_dt(m_nurbs->m_degree * 2, m_c_polynomial, dc_polynomial);
-            univariate_polynomial_dt(m_nurbs->m_degree * 2, m_w_polynomial, dw_polynomial);
-            mul_univariate_polynomial(m_nurbs->m_degree * 2 - 1, dc_polynomial, m_nurbs->m_degree * 2, m_w_polynomial, m_a_polynomial);
-            sub_mul_univariate_polynomial(m_a_polynomial, m_nurbs->m_degree * 2, m_c_polynomial, m_nurbs->m_degree * 2 - 1, dw_polynomial);
-            m_a_polynomial[m_nurbs->m_degree * 4] = 0;
+            univariate_polynomial_dt(m_nurbs->m_degree, w_polynomial, dw_polynomial);
+            mul_univariate_polynomial(m_nurbs->m_degree * 2 - 1, dc_polynomial, m_nurbs->m_degree, w_polynomial, m_a_polynomial);
+            add_mul_univariate_polynomial(m_a_polynomial, m_nurbs->m_degree * 2, m_c_polynomial, m_nurbs->m_degree - 1, dw_polynomial, -2);
+            m_a_polynomial[m_nurbs->m_degree * 3] = 0;
             if (dt) {
-                mul_univariate_polynomial(m_nurbs->m_degree * 2, m_w_polynomial, m_nurbs->m_degree * 2, m_w_polynomial, m_w2_polynomial);
+                mul_univariate_polynomial(m_nurbs->m_degree * 2, m_w2_polynomial, m_nurbs->m_degree, w_polynomial, m_w3_polynomial);
             }
         }
 
         virtual void Calculate(const Interval& t, Interval* d0, Interval* dt) {
             if (d0) {
-                *d0 = estimate_univariate_rational_polynomial_interval(m_nurbs->m_degree * 2, m_c_polynomial, m_w_polynomial, t);
+                *d0 = estimate_univariate_rational_polynomial_interval(m_nurbs->m_degree * 2, m_c_polynomial, m_w2_polynomial, t);
             }
             if (dt) {
-                *dt = estimate_univariate_rational_polynomial_interval(m_nurbs->m_degree * 4, m_a_polynomial, m_w2_polynomial, t);
+                *dt = estimate_univariate_rational_polynomial_interval(m_nurbs->m_degree * 3, m_a_polynomial, m_w3_polynomial, t);
             }
         }
     private:
@@ -350,9 +350,9 @@ namespace wgp {
         int m_index;
     private:
         double m_c_polynomial[g_nurbs_curve2d_polynomial_size * 2];
-        double m_w_polynomial[g_nurbs_curve2d_polynomial_size * 2];
-        double m_a_polynomial[g_nurbs_curve2d_polynomial_size * 4];
-        double m_w2_polynomial[g_nurbs_curve2d_polynomial_size * 4];
+        double m_w2_polynomial[g_nurbs_curve2d_polynomial_size * 2];
+        double m_a_polynomial[g_nurbs_curve2d_polynomial_size * 3];
+        double m_w3_polynomial[g_nurbs_curve2d_polynomial_size * 3];
     };
 
     NurbsCurve2dType* NurbsCurve2dType::Instance() {
