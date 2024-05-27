@@ -2,7 +2,7 @@
     Original Author: Zuoyuan Wang
     Copyright (c) 2024 Zuoyuan Wang
 */
-
+/*
 #include "wstd/polynomial.h"
 
 namespace wgp {
@@ -3597,3 +3597,4 @@ namespace wgp {
 
 }
 
+*/

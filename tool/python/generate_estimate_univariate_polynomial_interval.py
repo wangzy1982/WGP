@@ -250,6 +250,27 @@ def generate_matrix_code2(max_u_degree, max_v_degree, base_tab_count):
     return s.replace('\n', '\n' + base_tab)
 
 
+def generate_cs(max_degree, base_tab_count):
+    s = ''
+    for degree in range(0, max_degree + 1):
+        s2 = 'const double g_c{}[{}] = {{\n'.format(degree, degree + 1)
+        for i in range(0, degree):
+            s2 += '    {},\n'.format(sympy.N(sympy.binomial(degree, i), 19))
+        s2 += '    {}\n'.format(sympy.N(sympy.binomial(degree, degree), 19))
+        s2 += '};\n\n'
+        s += s2
+    s2 = 'const double* g_c[{}] = {{\n'.format(max_degree + 1)
+    for degree in range(0, max_degree):
+        s2 += '    g_c{},\n'.format(degree)
+    s2 += '    g_c{}\n'.format(max_degree)
+    s2 += '};\n\n'
+    s += s2
+    base_tab = ''
+    for i in range(base_tab_count):
+        base_tab += '    '
+    return s.replace('\n', '\n' + base_tab)
+
+
 print('''/*
     Original Author: Zuoyuan Wang
     Copyright (c) 2024 Zuoyuan Wang
@@ -263,7 +284,9 @@ namespace wgp {
 # print(generate_normal_func_code1(30, 1))
 # print(generate_rational_func_code1(30, 1))
 
-print(generate_matrix_code2(30, 30, 1))
+# print(generate_matrix_code2(5, 5, 1))
+
+print(generate_cs(30, 1))
 
 print('''
 }
