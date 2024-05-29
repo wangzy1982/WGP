@@ -17,6 +17,11 @@ namespace wgp {
     class SurfaceIntervalCalculator;
     class SurfaceProjectionIntervalCalculator;
 
+    struct PieceCriticalCurve {
+        int CriticalCurveIndex;
+        Interval TDomain;
+    };
+
     class WGP_API Surface : public Geometry {
     public:
         Surface();
@@ -25,8 +30,11 @@ namespace wgp {
         virtual int GetVPieceCount() = 0;
         virtual Interval GetUPiece(int index) = 0;
         virtual Interval GetVPiece(int index) = 0;
-        virtual Curve3d* NewUCurve(int v_index, double v, int u_index = -1) = 0;
-        virtual Curve3d* NewVCurve(int u_index, double u, int v_index = -1) = 0;
+        virtual int GetCriticalCurveCount() = 0;
+        virtual Curve3d* NewCriticalCurve(int curve_index) = 0;
+        virtual UV GetCriticalCurveUV(int curve_index, Curve3d* curve, double t) = 0;
+        virtual int GetPieceCriticalCurveCount(int piece_index) = 0;
+        virtual PieceCriticalCurve GetPieceCriticalCurve(int piece_index, int curve_index) = 0;
     public:
         virtual void Calculate(int u_index, int v_index, double u, double v, Vector3d* d0, Vector3d* du, Vector3d* dv) = 0;
         virtual SurfaceIntervalCalculator* NewCalculator(int u_index, int v_index, 
@@ -42,6 +50,9 @@ namespace wgp {
         virtual ~SurfaceIntervalCalculator() {
         }
         virtual void Calculate(const Interval& u, const Interval& v, Interval3d* d0, Interval3d* du, Interval3d* dv) = 0;
+        virtual int GetExtremeX(const Interval& u_domain, const Interval& v_domain, UV* uvs, int max_uv_count) = 0;
+        virtual int GetExtremeY(const Interval& u_domain, const Interval& v_domain, UV* uvs, int max_uv_count) = 0;
+        virtual int GetExtremeZ(const Interval& u_domain, const Interval& v_domain, UV* ts, int max_uv_count) = 0;
     };
 
     class SurfaceProjectionIntervalCalculator {

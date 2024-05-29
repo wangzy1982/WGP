@@ -134,8 +134,8 @@ namespace wgp {
             if (d0) {
                 if (dt) {
                     double basis[max_degree + 1];
-                    double basis_t[max_degree + 1];
-                    BSplineBasisCalculator::CalculateBasis<max_degree>(m_degree, m_knots, index + m_degree, t, basis, basis_t);
+                    double basis_dt[max_degree + 1];
+                    BSplineBasisCalculator::CalculateBasis<max_degree>(m_degree, m_knots, index + m_degree, t, basis, basis_dt);
                     if (m_weights) {
                         double x = 0;
                         double y = 0;
@@ -155,10 +155,10 @@ namespace wgp {
                             y = y + py * basis[i];
                             z = z + pz * basis[i];
                             w = w + pw * basis[i];
-                            xt = xt + px * basis_t[i];
-                            yt = yt + py * basis_t[i];
-                            zt = zt + pz * basis_t[i];
-                            wt = wt + pw * basis_t[i];
+                            xt = xt + px * basis_dt[i];
+                            yt = yt + py * basis_dt[i];
+                            zt = zt + pz * basis_dt[i];
+                            wt = wt + pw * basis_dt[i];
                         }
                         *d0 = Vector3d(x / w, y / w, z / w);
                         double w2 = w * w;
@@ -169,7 +169,7 @@ namespace wgp {
                         *dt = Vector3d(0, 0, 0);
                         for (int i = 0; i <= m_degree; ++i) {
                             *d0 = *d0 + m_control_points[index + i] * basis[i];
-                            *dt = *dt + m_control_points[index + i] * basis_t[i];
+                            *dt = *dt + m_control_points[index + i] * basis_dt[i];
                         }
                     }
                 }
@@ -178,8 +178,8 @@ namespace wgp {
                     BSplineBasisCalculator::CalculateBasis<max_degree>(m_degree, m_knots, index + m_degree, t, basis, nullptr);
                     if (m_weights) {
                         double basis[max_degree + 1];
-                        double basis_t[max_degree + 1];
-                        BSplineBasisCalculator::CalculateBasis<max_degree>(m_degree, m_knots, index + m_degree, t, basis, basis_t);
+                        double basis_dt[max_degree + 1];
+                        BSplineBasisCalculator::CalculateBasis<max_degree>(m_degree, m_knots, index + m_degree, t, basis, basis_dt);
                         double x = 0;
                         double y = 0;
                         double z = 0;
@@ -209,8 +209,8 @@ namespace wgp {
                 if (dt) {
                     if (m_weights) {
                         double basis[max_degree + 1];
-                        double basis_t[max_degree + 1];
-                        BSplineBasisCalculator::CalculateBasis<max_degree>(m_degree, m_knots, index + m_degree, t, basis, basis_t);
+                        double basis_dt[max_degree + 1];
+                        BSplineBasisCalculator::CalculateBasis<max_degree>(m_degree, m_knots, index + m_degree, t, basis, basis_dt);
                         double x = 0;
                         double y = 0;
                         double z = 0;
@@ -229,20 +229,20 @@ namespace wgp {
                             y = y + py * basis[i];
                             z = z + pz * basis[i];
                             w = w + pw * basis[i];
-                            xt = xt + px * basis_t[i];
-                            yt = yt + py * basis_t[i];
-                            zt = zt + pz * basis_t[i];
-                            wt = wt + pw * basis_t[i];
+                            xt = xt + px * basis_dt[i];
+                            yt = yt + py * basis_dt[i];
+                            zt = zt + pz * basis_dt[i];
+                            wt = wt + pw * basis_dt[i];
                         }
                         double w2 = w * w;
                         *dt = Vector3d((xt * w - x * wt) / w2, (yt * w - y * wt) / w2, (zt * w - z * wt) / w2);
                     }
                     else {
-                        double basis_t[max_degree + 1];
-                        BSplineBasisCalculator::CalculateBasis<max_degree>(m_degree, m_knots, index + m_degree, t, nullptr, basis_t);
+                        double basis_dt[max_degree + 1];
+                        BSplineBasisCalculator::CalculateBasis<max_degree>(m_degree, m_knots, index + m_degree, t, nullptr, basis_dt);
                         *dt = Vector3d(0, 0, 0);
                         for (int i = 0; i <= m_degree; ++i) {
-                            *dt = *dt + m_control_points[index + i] * basis_t[i];
+                            *dt = *dt + m_control_points[index + i] * basis_dt[i];
                         }
                     }
                 }
