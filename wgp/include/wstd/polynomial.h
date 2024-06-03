@@ -38,22 +38,6 @@ namespace wgp {
         }
     }
 
-    inline void mul_univariate_polynomial(int degree, const double* polynomial1, const double* polynomial2, double* result_low, double* result_high) {
-        for (int i = 0; i < degree; ++i) {
-            result_low[i] = 0;
-            result_high[i] = 0;
-        }
-        result_low[degree] = 0;
-        for (int i = 0; i <= degree; ++i) {
-            for (int j = 0; j <= degree - i; ++j) {
-                result_low[i + j] += polynomial1[i] * polynomial2[j];
-            }
-            for (int j = degree - i + 1; j <= degree; ++j) {
-                result_high[i - j - degree] += polynomial1[i] * polynomial2[j];
-            }
-        }
-    }
-
     inline void mul_univariate_polynomial(int degree1, const double* polynomial1, int degree2, const double* polynomial2, double* result) {
         for (int i = 0; i <= degree1 + degree2; ++i) {
             result[i] = 0;
@@ -119,18 +103,6 @@ namespace wgp {
         }
     }
 
-    inline void div_univariate_polynomial(int degree, const double* polynomial, double d, double* result) {
-        for (int i = 0; i <= degree; ++i) {
-            result[i] = polynomial[i] / d;
-        }
-    }
-
-    inline void div_univariate_polynomial(int degree, double* polynomial, double d) {
-        for (int i = 0; i <= degree; ++i) {
-            polynomial[i] /= d;
-        }
-    }
-
     inline void univariate_polynomial_dt(int degree, const double* polynomial, double* dt_polynomial) {
         if (degree > 1) {
             dt_polynomial[0] = -degree * polynomial[0];
@@ -181,9 +153,6 @@ namespace wgp {
         if (degree <= 63) {
             return calculate_univariate_polynomial_value<63>(degree, polynomial, t);
         }
-        if (degree <= 127) {
-            return calculate_univariate_polynomial_value<127>(degree, polynomial, t);
-        }
         throw "degree is too large";
     }
 
@@ -197,7 +166,7 @@ namespace wgp {
     }
 
     template<int max_degree>
-    inline Interval estimate_univariate_polynomial_interval(int degree, const double* polynomial, const Interval& t) {
+    Interval estimate_univariate_polynomial_interval(int degree, const double* polynomial, const Interval& t) {
         if (t.Max == t.Min) {
             return calculate_univariate_polynomial_value<max_degree>(degree, polynomial, t.Min);
         }
@@ -205,16 +174,20 @@ namespace wgp {
         for (int i = 0; i <= degree; ++i) {
             ps[i] = polynomial[i] / g_c[degree][i];
         }
-        double d = t.Min;
-        for (int i = degree; i > 0; --i) {
-            for (int j = 0; j < i; ++j) {
-                ps[j] = ps[j] * (1 - d) + ps[j + 1] * d;
+        if (t.Min > 0) {
+            double d = t.Min;
+            for (int i = degree; i > 0; --i) {
+                for (int j = 0; j < i; ++j) {
+                    ps[j] = ps[j] * (1 - d) + ps[j + 1] * d;
+                }
             }
         }
-        d = (t.Max - t.Min) / (1 - t.Min);
-        for (int i = degree - 1; i >= 0; --i) {
-            for (int j = degree; j >= degree - i; --j) {
-                ps[j] = ps[j - 1] * (1 - d) + ps[j] * d;
+        if (t.Max < 1) {
+            double d = (t.Max - t.Min) / (1 - t.Min);
+            for (int i = degree - 1; i >= 0; --i) {
+                for (int j = degree; j >= degree - i; --j) {
+                    ps[j] = ps[j - 1] * (1 - d) + ps[j] * d;
+                }
             }
         }
         Interval result = ps[0];
@@ -240,9 +213,6 @@ namespace wgp {
         if (degree <= 63) {
             return estimate_univariate_polynomial_interval<63>(degree, polynomial, t);
         }
-        if (degree <= 127) {
-            return estimate_univariate_polynomial_interval<127>(degree, polynomial, t);
-        }
         throw "degree is too large";
     }
 
@@ -258,18 +228,22 @@ namespace wgp {
             ps[i] = n_polynomial[i] / g_c[degree][i];
             ws[i] = d_polynomial[i] / g_c[degree][i];
         }
-        double d = t.Min;
-        for (int i = degree; i > 0; --i) {
-            for (int j = 0; j < i; ++j) {
-                ps[j] = ps[j] * (1 - d) + ps[j + 1] * d;
-                ws[j] = ws[j] * (1 - d) + ws[j + 1] * d;
+        if (t.Min > 0) {
+            double d = t.Min;
+            for (int i = degree; i > 0; --i) {
+                for (int j = 0; j < i; ++j) {
+                    ps[j] = ps[j] * (1 - d) + ps[j + 1] * d;
+                    ws[j] = ws[j] * (1 - d) + ws[j + 1] * d;
+                }
             }
         }
-        d = (t.Max - t.Min) / (1 - t.Min);
-        for (int i = degree - 1; i >= 0; --i) {
-            for (int j = degree; j >= degree - i; --j) {
-                ps[j] = ps[j - 1] * (1 - d) + ps[j] * d;
-                ws[j] = ws[j - 1] * (1 - d) + ws[j] * d;
+        if (t.Max < 1) {
+            double d = (t.Max - t.Min) / (1 - t.Min);
+            for (int i = degree - 1; i >= 0; --i) {
+                for (int j = degree; j >= degree - i; --j) {
+                    ps[j] = ps[j - 1] * (1 - d) + ps[j] * d;
+                    ws[j] = ws[j - 1] * (1 - d) + ws[j] * d;
+                }
             }
         }
         Interval result = ps[0] / ws[0];
@@ -294,9 +268,6 @@ namespace wgp {
         }
         if (degree <= 63) {
             return estimate_univariate_rational_polynomial_interval<63>(degree, n_polynomial, d_polynomial, t);
-        }
-        if (degree <= 127) {
-            return estimate_univariate_rational_polynomial_interval<127>(degree, n_polynomial, d_polynomial, t);
         }
         throw "degree is too large";
     }
@@ -378,242 +349,444 @@ namespace wgp {
         return heap.GetCount() >= m_degree * 2;
     }
 
-    ////////////////////////////////
-    inline void mul_two_univariate_polynomial(int u_degree, double* u_polynomial, int v_degree, double* v_polynomial, double* polynomial) {
-        for (int i = 0; i <= u_degree; ++i) {
-            double* p = polynomial + i * (v_degree + 1);
+    inline void add_bivariate_polynomial(int u_degree, int v_degree, const double* polynomial1, const double* polynomial2, double* result) {
+        int n = (u_degree + 1) * (v_degree + 1);
+        for (int i = 0; i < n; ++i) {
+            result[i] = polynomial1[i] + polynomial2[i];
+        }
+    }
+
+    inline void add_bivariate_polynomial(int u_degree, int v_degree, double* polynomial1, const double* polynomial2) {
+        int n = (u_degree + 1) * (v_degree + 1);
+        for (int i = 0; i < n; ++i) {
+            polynomial1[i] += polynomial2[i];
+        }
+    }
+
+    inline void sub_bivariate_polynomial(int u_degree, int v_degree, const double* polynomial1, const double* polynomial2, double* result) {
+        int n = (u_degree + 1) * (v_degree + 1);
+        for (int i = 0; i < n; ++i) {
+            result[i] = polynomial1[i] - polynomial2[i];
+        }
+    }
+
+    inline void sub_bivariate_polynomial(int u_degree, int v_degree, double* polynomial1, const double* polynomial2) {
+        int n = (u_degree + 1) * (v_degree + 1);
+        for (int i = 0; i < n; ++i) {
+            polynomial1[i] -= polynomial2[i];
+        }
+    }
+
+    inline void mul_bivariate_polynomial(int u_degree1, int v_degree1, const double* polynomial1,
+        int u_degree2, int v_degree2, const double* polynomial2, double* result) {
+        int un = u_degree1 + u_degree2;
+        int vn = v_degree1 + v_degree2;
+        int n = (un + 1) * (vn + 1);
+        for (int i = 0; i < n; ++i) {
+            result[i] = 0;
+        }
+        for (int ui = 0; ui <= u_degree1; ++ui) {
+            const double* p1 = polynomial1 + ui * (v_degree1 + 1);
+            for (int uj = 0; uj <= u_degree2; ++uj) {
+                const double* p2 = polynomial2 + uj * (v_degree2 + 1);
+                double* p = result + (ui + uj) * (vn + 1);
+                for (int vi = 0; vi <= v_degree1; ++vi) {
+                    for (int vj = 0; vj <= v_degree2; ++vj) {
+                        p[vi + vj] += p1[vi] * p2[vj];
+                    }
+                }
+            }
+        }
+    }
+
+    inline void add_mul_bivariate_polynomial(double* polynomial1, int u_degree2, int v_degree2, const double* polynomial2, 
+        int u_degree3, int v_degree3, const double* polynomial3) {
+        int vn = v_degree2 + v_degree3;
+        for (int ui = 0; ui <= u_degree2; ++ui) {
+            const double* p1 = polynomial2 + ui * (v_degree2 + 1);
+            for (int uj = 0; uj <= u_degree3; ++uj) {
+                const double* p2 = polynomial3 + uj * (v_degree3 + 1);
+                double* p = polynomial1 + (ui + uj) * (vn + 1);
+                for (int vi = 0; vi <= v_degree2; ++vi) {
+                    for (int vj = 0; vj <= v_degree3; ++vj) {
+                        p[vi + vj] += p1[vi] * p2[vj];
+                    }
+                }
+            }
+        }
+    }
+
+    inline void sub_mul_bivariate_polynomial(double* polynomial1, int u_degree2, int v_degree2, const double* polynomial2,
+        int u_degree3, int v_degree3, const double* polynomial3) {
+        int vn = v_degree2 + v_degree3;
+        for (int ui = 0; ui <= u_degree2; ++ui) {
+            const double* p1 = polynomial2 + ui * (v_degree2 + 1);
+            for (int uj = 0; uj <= u_degree3; ++uj) {
+                const double* p2 = polynomial3 + uj * (v_degree3 + 1);
+                double* p = polynomial1 + (ui + uj) * (vn + 1);
+                for (int vi = 0; vi <= v_degree2; ++vi) {
+                    for (int vj = 0; vj <= v_degree3; ++vj) {
+                        p[vi + vj] -= p1[vi] * p2[vj];
+                    }
+                }
+            }
+        }
+    }
+
+    inline void add_mul_bivariate_polynomial(double* polynomial1, int u_degree2, int v_degree2, const double* polynomial2,
+        int u_degree3, int v_degree3, const double* polynomial3, double d) {
+        int vn = v_degree2 + v_degree3;
+        for (int ui = 0; ui <= u_degree2; ++ui) {
+            const double* p1 = polynomial2 + ui * (v_degree2 + 1);
+            for (int uj = 0; uj <= u_degree3; ++uj) {
+                const double* p2 = polynomial3 + uj * (v_degree3 + 1);
+                double* p = polynomial1 + (ui + uj) * (vn + 1);
+                for (int vi = 0; vi <= v_degree2; ++vi) {
+                    for (int vj = 0; vj <= v_degree3; ++vj) {
+                        p[vi + vj] += p1[vi] * p2[vj] * d;
+                    }
+                }
+            }
+        }
+    }
+
+    inline void neg_bivariate_polynomial(int u_degree, int v_degree, const double* polynomial, double* result) {
+        int n = (u_degree + 1) * (v_degree + 1);
+        for (int i = 0; i < n; ++i) {
+            result[i] = -polynomial[i];
+        }
+    }
+
+    inline void neg_bivariate_polynomial(int u_degree, int v_degree, double* polynomial) {
+        int n = (u_degree + 1) * (v_degree + 1);
+        for (int i = 0; i < n; ++i) {
+            polynomial[i] = -polynomial[i];
+        }
+    }
+
+    inline void mul_bivariate_polynomial(int u_degree, int v_degree, const double* polynomial, double d, double* result) {
+        int n = (u_degree + 1) * (v_degree + 1);
+        for (int i = 0; i < n; ++i) {
+            result[i] = polynomial[i] * d;
+        }
+    }
+
+    inline void mul_bivariate_polynomial(int u_degree, int v_degree, double* polynomial, double d) {
+        int n = (u_degree + 1) * (v_degree + 1);
+        for (int i = 0; i < n; ++i) {
+            polynomial[i] *= d;
+        }
+    }
+
+    inline void add_mul_bivariate_polynomial(double* polynomial, int u_degree2, int v_degree2, const double* polynomial2, double d) {
+        int n2 = (u_degree2 + 1) * (v_degree2 + 1);
+        for (int i = 0; i < n2; ++i) {
+            polynomial[i] += polynomial2[i] * d;
+        }
+    }
+
+    inline void bivariate_polynomial_du(int u_degree, int v_degree, const double* polynomial, double* du_polynomial) {
+        if (u_degree > 1) {
             for (int j = 0; j <= v_degree; ++j) {
-                p[j] = u_polynomial[i] * v_polynomial[j];
+                du_polynomial[j] = -u_degree * polynomial[j];
+                for (int i = 1; i < u_degree; ++i) {
+                    int k = i * (v_degree + 1) + j;
+                    du_polynomial[k - v_degree - 1] += i * polynomial[k];
+                    du_polynomial[k] = -(u_degree - i) * polynomial[k];
+                }
+                int k = u_degree * (v_degree + 1);
+                du_polynomial[k - v_degree - 1] += u_degree * polynomial[k];
             }
         }
-    }
-
-    inline void mul_two_univariate_polynomial(int u_degree, double* u_polynomial, int v_degree, double* v_polynomial, double d, double* polynomial) {
-        for (int i = 0; i <= u_degree; ++i) {
-            double* p = polynomial + i * (v_degree + 1);
+        else if (u_degree == 1) {
             for (int j = 0; j <= v_degree; ++j) {
-                p[j] = u_polynomial[i] * v_polynomial[j] * d;
+                du_polynomial[j] = polynomial[v_degree + 1 + j] - polynomial[j];
             }
+        }
+        else {
+            du_polynomial[0] = 0;
         }
     }
 
-    inline void add_mul_two_univariate_polynomial(double* polynomial, int u_degree, double* u_polynomial, int v_degree, double* v_polynomial) {
-        for (int i = 0; i <= u_degree; ++i) {
-            double* p = polynomial + i * (v_degree + 1);
-            for (int j = 0; j <= v_degree; ++j) {
-                p[j] += u_polynomial[i] * v_polynomial[j];
+    inline void bivariate_polynomial_dv(int u_degree, int v_degree, const double* polynomial, double* dv_polynomial) {
+        if (v_degree > 1) {
+            for (int i = 0; i <= u_degree; ++i) {
+                dv_polynomial[i * v_degree] = -v_degree * polynomial[i * (v_degree + 1)];
+                for (int j = 1; j < v_degree; ++j) {
+                    int k1 = i * v_degree + j;
+                    int k2 = k1 + i;
+                    dv_polynomial[k1 - 1] += j * polynomial[k2];
+                    dv_polynomial[k1] = -(v_degree - j) * polynomial[k2];
+                }
+                dv_polynomial[i * v_degree + v_degree - 1] += v_degree * polynomial[i * (v_degree + 1) + v_degree];
             }
+        }
+        else if (v_degree == 1) {
+            for (int i = 0; i <= u_degree; ++i) {
+                int k = i * 2;
+                dv_polynomial[i] = polynomial[k + 1] - polynomial[k];
+            }
+        }
+        else {
+            dv_polynomial[0] = 0;
         }
     }
 
-    inline void add_mul_two_univariate_polynomial(double* polynomial, int u_degree, double* u_polynomial, int v_degree, double* v_polynomial, double d) {
-        for (int i = 0; i <= u_degree; ++i) {
-            double* p = polynomial + i * (v_degree + 1);
-            for (int j = 0; j <= v_degree; ++j) {
-                p[j] += u_polynomial[i] * v_polynomial[j] * d;
-            }
+    template<int max_u_degree, int max_v_degree>
+    double calculate_bivariate_polynomial_value(int u_degree, int v_degree, const double* polynomial, double u, double v) {
+        double d11s[max_u_degree + 1];
+        double d12s[max_u_degree + 1];
+        d11s[0] = 1;
+        d12s[0] = 1;
+        d11s[1] = u;
+        d12s[1] = 1 - u;
+        for (int i = 2; i <= u_degree; ++i) {
+            d11s[i] = d11s[i - 1] * d11s[1];
+            d12s[i] = d12s[i - 1] * d12s[1];
         }
-    }
-
-    inline void two_polynomial_du(int u_degree, int v_degree, double* polynomial, double* du_polynomial) {
-        for (int i = 0; i < u_degree; ++i) {
-            double* p1 = polynomial + (i + 1) * (v_degree + 1);
-            double* p2 = du_polynomial + i * (v_degree + 1);
-            for (int j = 0; j <= v_degree; ++j) {
-                p2[j] = (i + 1) * p1[j];
-            }
+        double d21s[max_v_degree + 1];
+        double d22s[max_v_degree + 1];
+        d21s[0] = 1;
+        d22s[0] = 1;
+        d21s[1] = v;
+        d22s[1] = 1 - v;
+        for (int i = 2; i <= v_degree; ++i) {
+            d21s[i] = d21s[i - 1] * d21s[1];
+            d22s[i] = d22s[i - 1] * d22s[1];
         }
-    }
-
-    inline void two_polynomial_dv(int u_degree, int v_degree, double* polynomial, double* dv_polynomial) {
-        for (int i = 0; i <= u_degree; ++i) {
-            double* p1 = polynomial + i * (v_degree + 1);
-            double* p2 = dv_polynomial + i * v_degree;
-            for (int j = 1; j <= v_degree; ++j) {
-                p2[j - 1] = j * p1[j];
-            }
-        }
-    }
-
-    inline double calculate_two_polynomial_value(int u_degree, int v_degree, double* polynomial, double u, double v) {
         double result = 0;
-        double du = 1;
         for (int i = 0; i <= u_degree; ++i) {
-            double* p = polynomial + i * (v_degree + 1);
-            double dv = 1;
+            const double* p = polynomial + i * (v_degree + 1);
             for (int j = 0; j <= v_degree; ++j) {
-                result += p[j] * du * dv;
-                dv *= v;
+                result += p[j] * d11s[i] * d12s[u_degree - i] * d21s[j] * d22s[v_degree - j];
             }
-            du *= u;
         }
         return result;
     }
 
-    inline Interval estimate_two_polynomial_interval(int u_degree, int v_degree, double* polynomial, const Interval& u, const Interval& v) {
-        if (u.Min == u.Max) {
-            if (v.Min == v.Max) {
-                double result = 0;
-                double du = 1;
-                for (int i = 0; i <= u_degree; ++i) {
-                    double* p = polynomial + i * (v_degree + 1);
-                    double dv = 1;
-                    for (int j = 0; j <= v_degree; ++j) {
-                        result += p[j] * du * dv;
-                        dv *= v.Min;
-                    }
-                    du *= u.Min;
-                }
-                return result;
-            }
-            else {
-                bool bv = v.Min * v.Max < 0;
-                Interval result = 0;
-                double du = 1;
-                for (int i = 0; i <= u_degree; ++i) {
-                    double* p = polynomial + i * (v_degree + 1);
-                    double dv0 = 1;
-                    double dv1 = 1;
-                    for (int j = 0; j <= v_degree; ++j) {
-                        if (bv) {
-                            if (j & 1) {
-                                result = result + p[j] * du * Interval(dv0, dv1);
-                            }
-                            else if (dv0 < dv1) {
-                                result = result + p[j] * du * Interval(0, dv1);
-                            }
-                            else {
-                                result = result + p[j] * du * Interval(0, dv0);
-                            }
-                        } 
-                        else {
-                            if (dv0 < dv1) {
-                                result = result + p[j] * du * Interval(dv0, dv1);
-                            }
-                            else {
-                                result = result + p[j] * du * Interval(dv1, dv0);
-                            }
-                        }
-                        dv0 *= v.Min;
-                        dv1 *= v.Max;
-                    }
-                    du *= u.Min;
-                }
-                return result;
-            }
+    inline double calculate_bivariate_polynomial_value(int u_degree, int v_degree, const double* polynomial, double u, double v) {
+        if (u_degree == 0 && v_degree == 0) {
+            return polynomial[0];
         }
-        else {
-            if (v.Min == v.Max) {
-                bool bu = u.Min * u.Max < 0;
-                Interval result = 0;
-                double du0 = 1;
-                double du1 = 1;
-                Interval du;
-                for (int i = 0; i <= u_degree; ++i) {
-                    if (bu) {
-                        if (i & 1) {
-                            du.Min = du0;
-                            du.Max = du1;
-                        }
-                        else if (du0 > du1) {
-                            du.Min = 0;
-                            du.Max = du0;
-                        }
-                        else {
-                            du.Min = 0;
-                            du.Max = du1;
-                        }
-                    }
-                    else {
-                        if (du0 > du1) {
-                            du.Min = du1;
-                            du.Max = du0;
-                        }
-                        else {
-                            du.Min = du0;
-                            du.Max = du1;
-                        }
-                    }
-                    double* p = polynomial + i * (v_degree + 1);
-                    double dv = 1;
-                    for (int j = 0; j <= v_degree; ++j) {
-                        result = result + p[j] * dv * du;
-                        dv *= v.Min;
-                    }
-                    du0 *= u.Min;
-                    du1 *= u.Max;
-                }
-                return result;
-            }
-            else {
-                bool bu = u.Min * u.Max < 0;
-                bool bv = v.Min * v.Max < 0;
-                Interval result = 0;
-                double du0 = 1;
-                double du1 = 1;
-                Interval du;
-                for (int i = 0; i <= u_degree; ++i) {
-                    if (bu) {
-                        if (i & 1) {
-                            du.Min = du0;
-                            du.Max = du1;
-                        }
-                        else if (du0 > du1) {
-                            du.Min = 0;
-                            du.Max = du0;
-                        }
-                        else {
-                            du.Min = 0;
-                            du.Max = du1;
-                        }
-                    }
-                    else {
-                        if (du0 > du1) {
-                            du.Min = du1;
-                            du.Max = du0;
-                        }
-                        else {
-                            du.Min = du0;
-                            du.Max = du1;
-                        }
-                    }
-                    double* p = polynomial + i * (v_degree + 1);
-                    double dv0 = 1;
-                    double dv1 = 1;
-                    for (int j = 0; j <= v_degree; ++j) {
-                        if (bv) {
-                            if (j & 1) {
-                                result = result + p[j] * du * Interval(dv0, dv1);
-                            }
-                            else if (dv0 < dv1) {
-                                result = result + p[j] * du * Interval(0, dv1);
-                            }
-                            else {
-                                result = result + p[j] * du * Interval(0, dv0);
-                            }
-                        }
-                        else {
-                            if (dv0 < dv1) {
-                                result = result + p[j] * du * Interval(dv0, dv1);
-                            }
-                            else {
-                                result = result + p[j] * du * Interval(dv1, dv0);
-                            }
-                        }
-                        dv0 *= v.Min;
-                        dv1 *= v.Max;
-                    }
-                    du0 *= u.Min;
-                    du1 *= u.Max;
-                }
-                return result;
+        if (u_degree <= 7 && v_degree <= 7) {
+            return calculate_bivariate_polynomial_value<7, 7>(u_degree, v_degree, polynomial, u, v);
+        }
+        if (u_degree <= 15 && v_degree <= 15) {
+            return calculate_bivariate_polynomial_value<15, 15>(u_degree, v_degree, polynomial, u, v);
+        }
+        if (u_degree <= 31 && v_degree <= 31) {
+            return calculate_bivariate_polynomial_value<31, 31>(u_degree, v_degree, polynomial, u, v);
+        }
+        if (u_degree <= 63 && v_degree <= 63) {
+            return calculate_bivariate_polynomial_value<63, 63>(u_degree, v_degree, polynomial, u, v);
+        }
+        throw "degree is too large";
+    }
+
+    inline void bivariate_polynomial_inc_u_degree(int u_degree, int v_degree, const double* polynomial, double* result) {
+        int u_degree2 = u_degree + 1;
+        for (int j = 0; j <= v_degree; ++j) {
+            result[u_degree2 * (v_degree + 1) + j] = 0;
+            for (int i = u_degree2; i >= 0; --i) {
+                int k = i * (v_degree + 1) + j;
+                int k1 = k + v_degree + 1;
+                result[k1] += (double)(i + 1) / u_degree2 * g_c[u_degree2][i + 1] * polynomial[k] / g_c[u_degree][i];
+                result[k] = (double)(u_degree2 - i) / u_degree2 * g_c[u_degree2][u_degree2 - i] * polynomial[k] / g_c[u_degree][i];
             }
         }
     }
 
-    class TwoPolynomialEquation {
+    inline void bivariate_polynomial_inc_v_degree(int u_degree, int v_degree, const double* polynomial, double* result) {
+        int v_degree2 = v_degree + 1;
+        for (int j = 0; j <= u_degree; ++j) {
+            double* p1 = result + j * (v_degree2 + 1);
+            const double* p2 = polynomial + j * (v_degree + 1);
+            p1[v_degree2] = 0;
+            for (int i = v_degree; i >= 0; --i) {
+                p1[i + 1] += (double)(i + 1) / v_degree2 * g_c[v_degree2][i + 1] * p2[i] / g_c[v_degree][i];
+                p1[i] = (double)(v_degree2 - i) / v_degree2 * g_c[v_degree2][v_degree2 - i] * p2[i] / g_c[v_degree][i];
+            }
+        }
+    }
+
+    template<int max_u_degree, int max_v_degree>
+    Interval estimate_bivariate_polynomial_interval(int u_degree, int v_degree, const double* polynomial, const Interval& u, const Interval& v) {
+        if (u.Max == u.Min && v.Max == v.Min) {
+            return calculate_bivariate_polynomial_value<max_u_degree, max_v_degree>(u_degree, v_degree, polynomial, u.Min, v.Min);
+        }
+        double ps[(max_u_degree + 1) * (max_v_degree + 1)];
+        for (int i = 0; i <= u_degree; ++i) {
+            int a = i * (v_degree + 1);
+            for (int j = 0; j <= v_degree; ++j) {
+                ps[a + j] = polynomial[a + j] / g_c[u_degree][i] / g_c[v_degree][j];
+            }
+        }
+        if (v.Min > 0) {
+            for (int k = 0; k <= u_degree; ++k) {
+                int a = k * (v_degree + 1);
+                double d = v.Min;
+                for (int i = v_degree; i > 0; --i) {
+                    for (int j = 0; j < i; ++j) {
+                        ps[a + j] = ps[a + j] * (1 - d) + ps[a + j + 1] * d;
+                    }
+                }
+            }
+        }
+        if (v.Max < 1) {
+            for (int k = 0; k <= u_degree; ++k) {
+                int a = k * (v_degree + 1);
+                double d = (v.Max - v.Min) / (1 - v.Min);
+                for (int i = v_degree - 1; i >= 0; --i) {
+                    for (int j = v_degree; j >= v_degree - i; --j) {
+                        ps[a + j] = ps[a + j - 1] * (1 - d) + ps[a + j] * d;
+                    }
+                }
+            }
+        }
+        if (u.Min > 0) {
+            double d = u.Min;
+            for (int i = u_degree; i > 0; --i) {
+                for (int j = 0; j < i; ++j) {
+                    int a = j * (v_degree + 1);
+                    for (int k = 0; k <= v_degree; ++k) {
+                        ps[a + k] = ps[a + k] * (1 - d) + ps[a + v_degree + 1 + k] * d;
+                    }
+                }
+            }
+        }
+        if (u.Max < 1) {
+            double d = (u.Max - u.Min) / (1 - u.Min);
+            for (int i = u_degree - 1; i >= 0; --i) {
+                for (int j = u_degree; j >= u_degree - i; --j) {
+                    int a = j * (v_degree + 1);
+                    for (int k = 0; k <= v_degree; ++k) {
+                        ps[a + k] = ps[a - v_degree - 1 + k] * (1 - d) + ps[a + k] * d;
+                    }
+                }
+            }
+        }
+        int n = (u_degree + 1) * (v_degree + 1);
+        Interval result = ps[0];
+        for (int i = 1; i < n; ++i) {
+            result.Merge(ps[i]);
+        }
+        return result;
+    }
+
+    inline Interval estimate_bivariate_polynomial_interval(int u_degree, int v_degree, const double* polynomial, const Interval& u, const Interval& v) {
+        if (u_degree == 0 && v_degree == 0) {
+            return polynomial[0];
+        }
+        if (u_degree <= 7 && v_degree <= 7) {
+            return estimate_bivariate_polynomial_interval<7, 7>(u_degree, v_degree, polynomial, u, v);
+        }
+        if (u_degree <= 15 && v_degree <= 15) {
+            return estimate_bivariate_polynomial_interval<15, 15>(u_degree, v_degree, polynomial, u, v);
+        }
+        if (u_degree <= 31 && v_degree <= 31) {
+            return estimate_bivariate_polynomial_interval<31, 31>(u_degree, v_degree, polynomial, u, v);
+        }
+        if (u_degree <= 63 && v_degree <= 63) {
+            return estimate_bivariate_polynomial_interval<63, 63>(u_degree, v_degree, polynomial, u, v);
+        }
+        throw "degree is too large";
+    }
+
+    template<int max_u_degree, int max_v_degree>
+    Interval estimate_bivariate_rational_polynomial_interval(int u_degree, int v_degree, const double* n_polynomial, 
+        const double* d_polynomial, const Interval& u, const Interval& v) {
+        if (u.Max == u.Min && v.Max == v.Min) {
+            return calculate_bivariate_polynomial_value<max_u_degree, max_v_degree>(u_degree, v_degree, n_polynomial, u.Min, v.Min) /
+                calculate_bivariate_polynomial_value<max_u_degree, max_v_degree>(u_degree, v_degree, d_polynomial, u.Min, v.Min);
+        }
+        double ps[(max_u_degree + 1) * (max_v_degree + 1)];
+        double ws[(max_u_degree + 1) * (max_v_degree + 1)];
+        for (int i = 0; i <= u_degree; ++i) {
+            int a = i * (v_degree + 1);
+            for (int j = 0; j <= v_degree; ++j) {
+                ps[a + j] = n_polynomial[a + j] / g_c[u_degree][i] / g_c[v_degree][j];
+                ws[a + j] = d_polynomial[a + j] / g_c[u_degree][i] / g_c[v_degree][j];
+            }
+        }
+        if (v.Min > 0) {
+            for (int k = 0; k <= u_degree; ++k) {
+                int a = k * (v_degree + 1);
+                double d = v.Min;
+                for (int i = v_degree; i > 0; --i) {
+                    for (int j = 0; j < i; ++j) {
+                        ps[a + j] = ps[a + j] * (1 - d) + ps[a + j + 1] * d;
+                        ws[a + j] = ws[a + j] * (1 - d) + ws[a + j + 1] * d;
+                    }
+                }
+            }
+        }
+        if (v.Max < 1) {
+            for (int k = 0; k <= u_degree; ++k) {
+                int a = k * (v_degree + 1);
+                double d = (v.Max - v.Min) / (1 - v.Min);
+                for (int i = v_degree - 1; i >= 0; --i) {
+                    for (int j = v_degree; j >= v_degree - i; --j) {
+                        ps[a + j] = ps[a + j - 1] * (1 - d) + ps[a + j] * d;
+                        ws[a + j] = ws[a + j - 1] * (1 - d) + ws[a + j] * d;
+                    }
+                }
+            }
+        }
+        if (u.Min > 0) {
+            double d = u.Min;
+            for (int i = u_degree; i > 0; --i) {
+                for (int j = 0; j < i; ++j) {
+                    int a = j * (v_degree + 1);
+                    for (int k = 0; k <= v_degree; ++k) {
+                        ps[a + k] = ps[a + k] * (1 - d) + ps[a + v_degree + 1 + k] * d;
+                        ws[a + k] = ws[a + k] * (1 - d) + ws[a + v_degree + 1 + k] * d;
+                    }
+                }
+            }
+        }
+        if (u.Max < 1) {
+            double d = (u.Max - u.Min) / (1 - u.Min);
+            for (int i = u_degree - 1; i >= 0; --i) {
+                for (int j = u_degree; j >= u_degree - i; --j) {
+                    int a = j * (v_degree + 1);
+                    for (int k = 0; k <= v_degree; ++k) {
+                        ps[a + k] = ps[a - v_degree - 1 + k] * (1 - d) + ps[a + k] * d;
+                        ws[a + k] = ws[a - v_degree - 1 + k] * (1 - d) + ws[a + k] * d;
+                    }
+                }
+            }
+        }
+        int n = (u_degree + 1) * (v_degree + 1);
+        Interval result = ps[0] / ws[0];
+        for (int i = 1; i < n; ++i) {
+            result.Merge(ps[i] / ws[i]);
+        }
+        return result;
+    }
+
+    inline Interval estimate_bivariate_rational_polynomial_interval(int u_degree, int v_degree, const double* n_polynomial,
+        const double* d_polynomial, const Interval& u, const Interval& v) {
+        if (u_degree == 0 && v_degree == 0) {
+            return n_polynomial[0] / d_polynomial[0];
+        }
+        if (u_degree <= 7 && v_degree <= 7) {
+            return estimate_bivariate_rational_polynomial_interval<7, 7>(u_degree, v_degree, n_polynomial, d_polynomial, u, v);
+        }
+        if (u_degree <= 15 && v_degree <= 15) {
+            return estimate_bivariate_rational_polynomial_interval<15, 15>(u_degree, v_degree, n_polynomial, d_polynomial, u, v);
+        }
+        if (u_degree <= 31 && v_degree <= 31) {
+            return estimate_bivariate_rational_polynomial_interval<31, 31>(u_degree, v_degree, n_polynomial, d_polynomial, u, v);
+        }
+        if (u_degree <= 63 && v_degree <= 63) {
+            return estimate_bivariate_rational_polynomial_interval<63, 63>(u_degree, v_degree, n_polynomial, d_polynomial, u, v);
+        }
+        throw "degree is too large";
+    }
+
+    class BivariatePolynomialEquation {
     public:
-        TwoPolynomialEquation(int u_degree1, int v_degree1, double* polynomial1, double* du_polynomial1, double* dv_polynomial1, 
+        BivariatePolynomialEquation(int u_degree1, int v_degree1, double* polynomial1, double* du_polynomial1, double* dv_polynomial1,
             int u_degree2, int v_degree2, double* polynomial2, double* du_polynomial2, double* dv_polynomial2);
     public:
         int GetEquationCount();
@@ -639,11 +812,11 @@ namespace wgp {
         double* m_dv_polynomial1;
     };
 
-    typedef Solver<TwoPolynomialEquation, IntervalVector<2>,
-        IntervalVector<2>, IntervalVector<2>, IntervalMatrix<2, 2>> TwoPolynomialEquationSolver;
+    typedef Solver<BivariatePolynomialEquation, IntervalVector<2>,
+        IntervalVector<2>, IntervalVector<2>, IntervalMatrix<2, 2>> BivariatePolynomialEquationSolver;
 
 
-    inline TwoPolynomialEquation::TwoPolynomialEquation(
+    inline BivariatePolynomialEquation::BivariatePolynomialEquation(
         int u_degree0, int v_degree0, double* polynomial0, double* du_polynomial0, double* dv_polynomial0,
         int u_degree1, int v_degree1, double* polynomial1, double* du_polynomial1, double* dv_polynomial1) :
         m_u_degree0(u_degree0),
@@ -658,43 +831,43 @@ namespace wgp {
         m_dv_polynomial1(dv_polynomial1) {
     }
 
-    inline int TwoPolynomialEquation::GetEquationCount() {
+    inline int BivariatePolynomialEquation::GetEquationCount() {
         return 2;
     }
 
-    inline int TwoPolynomialEquation::GetVariableCount() {
+    inline int BivariatePolynomialEquation::GetVariableCount() {
         return 2;
     }
 
-    inline double TwoPolynomialEquation::GetVariableEpsilon(int i) {
+    inline double BivariatePolynomialEquation::GetVariableEpsilon(int i) {
         return 1E-6;
     }
 
-    inline double TwoPolynomialEquation::GetValueEpsilon(int i, bool is_checking) {
+    inline double BivariatePolynomialEquation::GetValueEpsilon(int i, bool is_checking) {
         return is_checking ? 1E-6 : 1E-12;
     }
 
-    inline void TwoPolynomialEquation::CalculateValue(const IntervalVector<2>& variable, IntervalVector<2>& value) {
+    inline void BivariatePolynomialEquation::CalculateValue(const IntervalVector<2>& variable, IntervalVector<2>& value) {
         Interval u = variable.Get(0);
         Interval v = variable.Get(1);
-        value.Set(0, estimate_two_polynomial_interval(m_u_degree0, m_v_degree0, m_polynomial0, u, v));
-        value.Set(1, estimate_two_polynomial_interval(m_u_degree1, m_v_degree1, m_polynomial1, u, v));
+        value.Set(0, estimate_bivariate_polynomial_interval(m_u_degree0, m_v_degree0, m_polynomial0, u, v));
+        value.Set(1, estimate_bivariate_polynomial_interval(m_u_degree1, m_v_degree1, m_polynomial1, u, v));
     }
 
-    inline void TwoPolynomialEquation::CalculatePartialDerivative(const IntervalVector<2>& variable, IntervalMatrix<2, 2>& value) {
+    inline void BivariatePolynomialEquation::CalculatePartialDerivative(const IntervalVector<2>& variable, IntervalMatrix<2, 2>& value) {
         Interval u = variable.Get(0);
         Interval v = variable.Get(1);
-        *value.Get(0, 0) = estimate_two_polynomial_interval(m_u_degree0 - 1, m_v_degree0, m_du_polynomial0, u, v);
-        *value.Get(0, 1) = estimate_two_polynomial_interval(m_u_degree0, m_v_degree0 - 1, m_dv_polynomial0, u, v);
-        *value.Get(1, 0) = estimate_two_polynomial_interval(m_u_degree1 - 1, m_v_degree1, m_du_polynomial1, u, v);
-        *value.Get(1, 1) = estimate_two_polynomial_interval(m_u_degree1, m_v_degree1 - 1, m_dv_polynomial1, u, v);
+        *value.Get(0, 0) = estimate_bivariate_polynomial_interval(m_u_degree0 - 1, m_v_degree0, m_du_polynomial0, u, v);
+        *value.Get(0, 1) = estimate_bivariate_polynomial_interval(m_u_degree0, m_v_degree0 - 1, m_dv_polynomial0, u, v);
+        *value.Get(1, 0) = estimate_bivariate_polynomial_interval(m_u_degree1 - 1, m_v_degree1, m_du_polynomial1, u, v);
+        *value.Get(1, 1) = estimate_bivariate_polynomial_interval(m_u_degree1, m_v_degree1 - 1, m_dv_polynomial1, u, v);
     }
 
-    inline int TwoPolynomialEquation::GetSplitIndex(const IntervalVector<2>& variable, int prev_split_index, double size) {
+    inline int BivariatePolynomialEquation::GetSplitIndex(const IntervalVector<2>& variable, int prev_split_index, double size) {
         return prev_split_index == 0 ? 1 : 0;
     }
 
-    inline int TwoPolynomialEquation::CompareIteratePriority(const IntervalVector<2>& variable1, double size1,
+    inline int BivariatePolynomialEquation::CompareIteratePriority(const IntervalVector<2>& variable1, double size1,
         const IntervalVector<2>& variable2, double size2) {
         if (size1 < size2) {
             return -1;
@@ -705,11 +878,11 @@ namespace wgp {
         return 0;
     }
 
-    inline bool TwoPolynomialEquation::PreIterate(IntervalVector<2>* variable, SolverIteratedResult& result, double& size) {
+    inline bool BivariatePolynomialEquation::PreIterate(IntervalVector<2>* variable, SolverIteratedResult& result, double& size) {
         return false;
     }
 
-    inline bool TwoPolynomialEquation::CheckFinished(const Array<SolverHeapItem<IntervalVector<2>>>& heap) {
+    inline bool BivariatePolynomialEquation::CheckFinished(const Array<SolverHeapItem<IntervalVector<2>>>& heap) {
         return heap.GetCount() >= (m_u_degree0 > m_u_degree1 ? m_u_degree0 : m_u_degree1) * (m_v_degree0 > m_v_degree1 ? m_v_degree0 : m_v_degree1);
     }
 

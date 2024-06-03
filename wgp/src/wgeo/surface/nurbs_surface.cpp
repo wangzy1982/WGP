@@ -14,7 +14,10 @@ namespace wgp {
 
     class NurbsSurfaceWithoutWeightIntervalCalculator {
     public:
-        NurbsSurfaceWithoutWeightIntervalCalculator() {
+        NurbsSurfaceWithoutWeightIntervalCalculator(NurbsSurface* surface, int u_index, int v_index) :
+            m_surface(surface), 
+            m_u_index(u_index),
+            m_v_index(v_index) {
         }
         virtual void Calculate(const Interval& u, const Interval& v, Interval3d* d0, Interval3d* du, Interval3d* dv) = 0;
         virtual int GetExtremeX(const Interval& u_domain, const Interval& v_domain, UV* uvs, int max_uv_count) = 0;
@@ -22,6 +25,25 @@ namespace wgp {
         virtual int GetExtremeZ(const Interval& u_domain, const Interval& v_domain, UV* ts, int max_uv_count) = 0;
     private:
         NurbsSurface* m_surface;
+        int m_u_index;
+        int m_v_index;
+    private:
+        double m_x_polynomial[g_nurbs_surface_polynomial_size];
+        double m_y_polynomial[g_nurbs_surface_polynomial_size];
+        double m_z_polynomial[g_nurbs_surface_polynomial_size];
+        double m_x_du_polynomial[g_nurbs_surface_polynomial_size];
+        double m_x_dv_polynomial[g_nurbs_surface_polynomial_size];
+        double m_y_du_polynomial[g_nurbs_surface_polynomial_size];
+        double m_y_dv_polynomial[g_nurbs_surface_polynomial_size];
+        double m_z_du_polynomial[g_nurbs_surface_polynomial_size];
+        double m_z_dv_polynomial[g_nurbs_surface_polynomial_size];
+    private:
+        int m_x0_extreme_count;
+        UV m_x0_extreme[g_nurbs_surface_polynomial_size];
+        int m_y0_extreme_count;
+        UV m_y0_extreme[g_nurbs_surface_polynomial_size];
+        int m_z0_extreme_count;
+        UV m_z0_extreme[g_nurbs_surface_polynomial_size];
     };
 
     NurbsSurfaceType* NurbsSurfaceType::Instance() {
@@ -117,6 +139,10 @@ namespace wgp {
         const Interval& u_domain, const Interval& v_domain, const Vector3d& center, bool d0, bool du, bool dv) {
         //todo
         return nullptr;
+    }
+
+    void NurbsSurface::BuildXYZPolynomials(int u_index, int v_index, double* x_polynomial, double* y_polynomial, double* z_polynomial) {
+        BuildXYZPolynomials<g_max_nurbs_surface_degree>(u_index, v_index, x_polynomial, y_polynomial, z_polynomial);
     }
 
 }
