@@ -354,20 +354,24 @@ namespace wgp {
             assert(false);
         }
 
-        virtual bool PreIterate(Curve2dCurve2dIntVariable* variable, SolverIteratedResult& result, double& size) {
+        virtual double CalculatePriority(const Curve2dCurve2dIntVariable& variable, const IntervalVector<3>& value, double size) {
+            return size;
+        }
+
+        virtual bool PreIterate(Curve2dCurve2dIntVariable* variable, SolverIteratedResult& result, double& priority) {
             return false;
         }
 
-        virtual int GetSplitIndex(const Curve2dCurve2dIntVariable& variable, int prev_split_index, double size) {
+        virtual int GetSplitIndex(const Curve2dCurve2dIntVariable& variable, int prev_split_index, double priority) {
             return 0;
         }
 
-        virtual int CompareIteratePriority(const Curve2dCurve2dIntVariable& variable1, double size1,
-            const Curve2dCurve2dIntVariable& variable2, double size2) {
-            if (size1 < size2) {
+        virtual int CompareIteratePriority(const Curve2dCurve2dIntVariable& variable1, double priority1,
+            const Curve2dCurve2dIntVariable& variable2, double priority2) {
+            if (priority1 < priority2) {
                 return -1;
             }
-            if (size1 > size2) {
+            if (priority1 > priority2) {
                 return 1;
             }
             return 0;
@@ -388,10 +392,10 @@ namespace wgp {
             Curve2dCurve2dIntBaseEquationSystem(helper, distance_epsilon) {
         }
     public:
-        bool PreIterate(Curve2dCurve2dIntVariable* variable, SolverIteratedResult& result, double& size) {
+        bool PreIterate(Curve2dCurve2dIntVariable* variable, SolverIteratedResult& result, double& priority) {
             //todo 
             //todo 重合需要指定same_dir
-            size = 2014;
+            priority = 2014;
             result = SolverIteratedResult::Fuzzy;
             return true;
         }
@@ -407,30 +411,30 @@ namespace wgp {
             Curve2dCurve2dIntBaseEquationSystem(helper, distance_epsilon) {
         }
     public:
-        virtual bool PreIterate(Curve2dCurve2dIntVariable* variable, SolverIteratedResult& result, double& size) {
+        virtual bool PreIterate(Curve2dCurve2dIntVariable* variable, SolverIteratedResult& result, double& priority) {
             Interval2d d0_0 = m_helper->CalculateD0(*variable, 0);
             Interval2d d0_1 = m_helper->CalculateD0(*variable, 1);
             if (!d0_0.X.IsIntersected(d0_1.X, m_distance_epsilon) || !d0_0.Y.IsIntersected(d0_1.Y, m_distance_epsilon)) {
-                size = 0;
+                priority = 0;
                 result = SolverIteratedResult::NoRoot;
                 return true;
             }
             m_helper->CalculateIsFlat(*variable, 0);
             m_helper->CalculateIsFlat(*variable, 1);
-            size = 0;
+            priority = 0;
             result = SolverIteratedResult::Fuzzy;
             return true;
         }
 
-        virtual int GetSplitIndex(const Curve2dCurve2dIntVariable& variable, int prev_split_index, double size) {
+        virtual int GetSplitIndex(const Curve2dCurve2dIntVariable& variable, int prev_split_index, double priority) {
             if (m_helper->GetIsFlat(variable, 0)) {
                 return 1;
             }
             return 0;
         }
 
-        virtual int CompareIteratePriority(const Curve2dCurve2dIntVariable& variable1, double size1,
-            const Curve2dCurve2dIntVariable& variable2, double size2) {
+        virtual int CompareIteratePriority(const Curve2dCurve2dIntVariable& variable1, double priority1,
+            const Curve2dCurve2dIntVariable& variable2, double priority2) {
             bool b1 = m_helper->GetIsFlat(variable1, 0) && m_helper->GetIsFlat(variable1, 1);
             bool b2 = m_helper->GetIsFlat(variable2, 0) && m_helper->GetIsFlat(variable2, 1);
             if (b1 == b2) {
@@ -450,7 +454,7 @@ namespace wgp {
             Curve2dCurve2dIntBaseEquationSystem(helper, distance_epsilon) {
         }
     public:
-        virtual bool PreIterate(Curve2dCurve2dIntVariable* variable, SolverIteratedResult& result, double& size) {
+        virtual bool PreIterate(Curve2dCurve2dIntVariable* variable, SolverIteratedResult& result, double& priority) {
             return false;
         }
 
@@ -473,16 +477,16 @@ namespace wgp {
             *value.Get(2, 1) = 0;
         }
 
-        virtual int GetSplitIndex(const Curve2dCurve2dIntVariable& variable, int prev_split_index, double size) {
+        virtual int GetSplitIndex(const Curve2dCurve2dIntVariable& variable, int prev_split_index, double priority) {
             return 0;
         }
 
-        virtual int CompareIteratePriority(const Curve2dCurve2dIntVariable& variable1, double size1,
-            const Curve2dCurve2dIntVariable& variable2, double size2) {
-            if (size1 < size2) {
+        virtual int CompareIteratePriority(const Curve2dCurve2dIntVariable& variable1, double priority1,
+            const Curve2dCurve2dIntVariable& variable2, double priority2) {
+            if (priority1 < priority2) {
                 return -1;
             }
-            if (size1 > size2) {
+            if (priority1 > priority2) {
                 return 1;
             }
             return 0;
@@ -517,12 +521,12 @@ namespace wgp {
             return m_distance_epsilon;
         }
 
-        virtual bool PreIterate(Curve2dCurve2dIntVariable* variable, SolverIteratedResult& result, double& size) {
+        virtual bool PreIterate(Curve2dCurve2dIntVariable* variable, SolverIteratedResult& result, double& priority) {
             assert(is_zero(variable->Get(m_base_index).Length(), g_double_epsilon));
             Interval2d d0_0 = m_helper->CalculateD0(*variable, 0);
             Interval2d d0_1 = m_helper->CalculateD0(*variable, 1);
             if (!d0_0.X.IsIntersected(d0_1.X, m_distance_epsilon) || !d0_0.Y.IsIntersected(d0_1.Y, m_distance_epsilon)) {
-                size = 0;
+                priority = 0;
                 result = SolverIteratedResult::NoRoot;
                 return true;
             }
@@ -549,16 +553,16 @@ namespace wgp {
             *value.Get(2, 1) = dt_1.X * m_base_vt.Y - dt_1.Y * m_base_vt.X;
         }
 
-        virtual int GetSplitIndex(const Curve2dCurve2dIntVariable& variable, int prev_split_index, double size) {
+        virtual int GetSplitIndex(const Curve2dCurve2dIntVariable& variable, int prev_split_index, double priority) {
             return m_corresponding_index;
         }
 
-        virtual int CompareIteratePriority(const Curve2dCurve2dIntVariable& variable1, double size1,
-            const Curve2dCurve2dIntVariable& variable2, double size2) {
-            if (size1 < size2) {
+        virtual int CompareIteratePriority(const Curve2dCurve2dIntVariable& variable1, double priority1,
+            const Curve2dCurve2dIntVariable& variable2, double priority2) {
+            if (priority1 < priority2) {
                 return -1;
             }
-            if (size1 > size2) {
+            if (priority1 > priority2) {
                 return 1;
             }
             return 0;
@@ -619,11 +623,11 @@ namespace wgp {
             return m_calculator[index];
         }
     public:
-        virtual bool PreIterate(Curve2dCurve2dIntVariable* variable, SolverIteratedResult& result, double& size) {
+        virtual bool PreIterate(Curve2dCurve2dIntVariable* variable, SolverIteratedResult& result, double& priority) {
             Interval2d d0_0 = m_helper->CalculateD0(*variable, 0);
             Interval2d d0_1 = m_helper->CalculateD0(*variable, 1);
             if (!d0_0.X.IsIntersected(d0_1.X, m_distance_epsilon) || !d0_0.Y.IsIntersected(d0_1.Y, m_distance_epsilon)) {
-                size = 0;
+                priority = 0;
                 result = SolverIteratedResult::NoRoot;
                 return true;
             }
@@ -631,7 +635,7 @@ namespace wgp {
             if (m_helper->QuickIterate(*variable, m_distance_epsilon, t0, t1)) {
                 variable->Set(0, Interval(t0));
                 variable->Set(1, Interval(t1));
-                size = 0;
+                priority = 0;
                 result = SolverIteratedResult::OnClearRoot;
                 return true;
             }
@@ -663,16 +667,16 @@ namespace wgp {
             *value.Get(2, 1) = -ct_1;
         }
 
-        virtual int GetSplitIndex(const Curve2dCurve2dIntVariable& variable, int prev_split_index, double size) {
+        virtual int GetSplitIndex(const Curve2dCurve2dIntVariable& variable, int prev_split_index, double priority) {
             return 0;
         }
 
-        virtual int CompareIteratePriority(const Curve2dCurve2dIntVariable& variable1, double size1,
-            const Curve2dCurve2dIntVariable& variable2, double size2) {
-            if (size1 < size2) {
+        virtual int CompareIteratePriority(const Curve2dCurve2dIntVariable& variable1, double priority1,
+            const Curve2dCurve2dIntVariable& variable2, double priority2) {
+            if (priority1 < priority2) {
                 return -1;
             }
-            if (size1 > size2) {
+            if (priority1 > priority2) {
                 return 1;
             }
             return 0;
@@ -1032,20 +1036,24 @@ namespace wgp {
             assert(false);
         }
 
-        virtual bool PreIterate(Curve3dCurve3dIntVariable* variable, SolverIteratedResult& result, double& size) {
+        virtual double CalculatePriority(const Curve3dCurve3dIntVariable& variable, const IntervalVector<4>& value, double size) {
+            return size;
+        }
+
+        virtual bool PreIterate(Curve3dCurve3dIntVariable* variable, SolverIteratedResult& result, double& priority) {
             return false;
         }
 
-        virtual int GetSplitIndex(const Curve3dCurve3dIntVariable& variable, int prev_split_index, double size) {
+        virtual int GetSplitIndex(const Curve3dCurve3dIntVariable& variable, int prev_split_index, double priority) {
             return 0;
         }
 
-        virtual int CompareIteratePriority(const Curve3dCurve3dIntVariable& variable1, double size1,
-            const Curve3dCurve3dIntVariable& variable2, double size2) {
-            if (size1 < size2) {
+        virtual int CompareIteratePriority(const Curve3dCurve3dIntVariable& variable1, double priority1,
+            const Curve3dCurve3dIntVariable& variable2, double priority2) {
+            if (priority1 < priority2) {
                 return -1;
             }
-            if (size1 > size2) {
+            if (priority1 > priority2) {
                 return 1;
             }
             return 0;
@@ -1066,10 +1074,10 @@ namespace wgp {
             Curve3dCurve3dIntBaseEquationSystem(helper, distance_epsilon) {
         }
     public:
-        bool PreIterate(Curve3dCurve3dIntVariable* variable, SolverIteratedResult& result, double& size) {
+        bool PreIterate(Curve3dCurve3dIntVariable* variable, SolverIteratedResult& result, double& priority) {
             //todo 
             //todo 重合需要指定same_dir
-            size = 2014;
+            priority = 2014;
             result = SolverIteratedResult::Fuzzy;
             return true;
         }
@@ -1085,30 +1093,30 @@ namespace wgp {
             Curve3dCurve3dIntBaseEquationSystem(helper, distance_epsilon) {
         }
     public:
-        virtual bool PreIterate(Curve3dCurve3dIntVariable* variable, SolverIteratedResult& result, double& size) {
+        virtual bool PreIterate(Curve3dCurve3dIntVariable* variable, SolverIteratedResult& result, double& priority) {
             Interval3d d0_0 = m_helper->CalculateD0(*variable, 0);
             Interval3d d0_1 = m_helper->CalculateD0(*variable, 1);
             if (!d0_0.X.IsIntersected(d0_1.X, m_distance_epsilon) || !d0_0.Y.IsIntersected(d0_1.Y, m_distance_epsilon)) {
-                size = 0;
+                priority = 0;
                 result = SolverIteratedResult::NoRoot;
                 return true;
             }
             m_helper->CalculateIsFlat(*variable, 0);
             m_helper->CalculateIsFlat(*variable, 1);
-            size = 0;
+            priority = 0;
             result = SolverIteratedResult::Fuzzy;
             return true;
         }
 
-        virtual int GetSplitIndex(const Curve3dCurve3dIntVariable& variable, int prev_split_index, double size) {
+        virtual int GetSplitIndex(const Curve3dCurve3dIntVariable& variable, int prev_split_index, double priority) {
             if (m_helper->GetIsFlat(variable, 0)) {
                 return 1;
             }
             return 0;
         }
 
-        virtual int CompareIteratePriority(const Curve3dCurve3dIntVariable& variable1, double size1,
-            const Curve3dCurve3dIntVariable& variable2, double size2) {
+        virtual int CompareIteratePriority(const Curve3dCurve3dIntVariable& variable1, double priority1,
+            const Curve3dCurve3dIntVariable& variable2, double priority2) {
             bool b1 = m_helper->GetIsFlat(variable1, 0) && m_helper->GetIsFlat(variable1, 1);
             bool b2 = m_helper->GetIsFlat(variable2, 0) && m_helper->GetIsFlat(variable2, 1);
             if (b1 == b2) {
@@ -1128,7 +1136,7 @@ namespace wgp {
             Curve3dCurve3dIntBaseEquationSystem(helper, distance_epsilon) {
         }
     public:
-        virtual bool PreIterate(Curve3dCurve3dIntVariable* variable, SolverIteratedResult& result, double& size) {
+        virtual bool PreIterate(Curve3dCurve3dIntVariable* variable, SolverIteratedResult& result, double& priority) {
             return false;
         }
 
@@ -1154,16 +1162,16 @@ namespace wgp {
             *value.Get(3, 1) = 0;
         }
 
-        virtual int GetSplitIndex(const Curve3dCurve3dIntVariable& variable, int prev_split_index, double size) {
+        virtual int GetSplitIndex(const Curve3dCurve3dIntVariable& variable, int prev_split_index, double priority) {
             return 0;
         }
 
-        virtual int CompareIteratePriority(const Curve3dCurve3dIntVariable& variable1, double size1,
-            const Curve3dCurve3dIntVariable& variable2, double size2) {
-            if (size1 < size2) {
+        virtual int CompareIteratePriority(const Curve3dCurve3dIntVariable& variable1, double priority1,
+            const Curve3dCurve3dIntVariable& variable2, double priority2) {
+            if (priority1 < priority2) {
                 return -1;
             }
-            if (size1 > size2) {
+            if (priority1 > priority2) {
                 return 1;
             }
             return 0;
@@ -1198,12 +1206,12 @@ namespace wgp {
             return m_distance_epsilon;
         }
 
-        virtual bool PreIterate(Curve3dCurve3dIntVariable* variable, SolverIteratedResult& result, double& size) {
+        virtual bool PreIterate(Curve3dCurve3dIntVariable* variable, SolverIteratedResult& result, double& priority) {
             assert(is_zero(variable->Get(m_base_index).Length(), g_double_epsilon));
             Interval3d d0_0 = m_helper->CalculateD0(*variable, 0);
             Interval3d d0_1 = m_helper->CalculateD0(*variable, 1);
             if (!d0_0.X.IsIntersected(d0_1.X, m_distance_epsilon) || !d0_0.Y.IsIntersected(d0_1.Y, m_distance_epsilon)) {
-                size = 0;
+                priority = 0;
                 result = SolverIteratedResult::NoRoot;
                 return true;
             }
@@ -1233,16 +1241,16 @@ namespace wgp {
             *value.Get(3, 1) = dt_1.X * m_base_vt.X + dt_1.Y * m_base_vt.Y + dt_1.Z * m_base_vt.Z;
         }
 
-        virtual int GetSplitIndex(const Curve3dCurve3dIntVariable& variable, int prev_split_index, double size) {
+        virtual int GetSplitIndex(const Curve3dCurve3dIntVariable& variable, int prev_split_index, double priority) {
             return m_corresponding_index;
         }
 
-        virtual int CompareIteratePriority(const Curve3dCurve3dIntVariable& variable1, double size1,
-            const Curve3dCurve3dIntVariable& variable2, double size2) {
-            if (size1 < size2) {
+        virtual int CompareIteratePriority(const Curve3dCurve3dIntVariable& variable1, double priority1,
+            const Curve3dCurve3dIntVariable& variable2, double priority2) {
+            if (priority1 < priority2) {
                 return -1;
             }
-            if (size1 > size2) {
+            if (priority1 > priority2) {
                 return 1;
             }
             return 0;
@@ -1303,11 +1311,11 @@ namespace wgp {
             return m_calculator[index];
         }
     public:
-        virtual bool PreIterate(Curve3dCurve3dIntVariable* variable, SolverIteratedResult& result, double& size) {
+        virtual bool PreIterate(Curve3dCurve3dIntVariable* variable, SolverIteratedResult& result, double& priority) {
             Interval3d d0_0 = m_helper->CalculateD0(*variable, 0);
             Interval3d d0_1 = m_helper->CalculateD0(*variable, 1);
             if (!d0_0.X.IsIntersected(d0_1.X, m_distance_epsilon) || !d0_0.Y.IsIntersected(d0_1.Y, m_distance_epsilon)) {
-                size = 0;
+                priority = 0;
                 result = SolverIteratedResult::NoRoot;
                 return true;
             }
@@ -1315,7 +1323,7 @@ namespace wgp {
             if (m_helper->QuickIterate(*variable, m_distance_epsilon, t0, t1)) {
                 variable->Set(0, Interval(t0));
                 variable->Set(1, Interval(t1));
-                size = 0;
+                priority = 0;
                 result = SolverIteratedResult::OnClearRoot;
                 return true;
             }
@@ -1350,16 +1358,16 @@ namespace wgp {
             *value.Get(3, 1) = -ct_1;
         }
 
-        virtual int GetSplitIndex(const Curve3dCurve3dIntVariable& variable, int prev_split_index, double size) {
+        virtual int GetSplitIndex(const Curve3dCurve3dIntVariable& variable, int prev_split_index, double priority) {
             return 0;
         }
 
-        virtual int CompareIteratePriority(const Curve3dCurve3dIntVariable& variable1, double size1,
-            const Curve3dCurve3dIntVariable& variable2, double size2) {
-            if (size1 < size2) {
+        virtual int CompareIteratePriority(const Curve3dCurve3dIntVariable& variable1, double priority1,
+            const Curve3dCurve3dIntVariable& variable2, double priority2) {
+            if (priority1 < priority2) {
                 return -1;
             }
-            if (size1 > size2) {
+            if (priority1 > priority2) {
                 return 1;
             }
             return 0;

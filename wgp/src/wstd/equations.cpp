@@ -102,6 +102,8 @@ namespace wgp {
     }
 
     void StandardIntervalVector::Split(int index, StandardIntervalVector& vt1, StandardIntervalVector& vt2) {
+        vt1 = *this;
+        vt2 = *this;
         double m = m_data[index].Center();
         vt1.m_data[index].Max = m;
         vt2.m_data[index].Min = m;
@@ -270,7 +272,7 @@ namespace wgp {
         }
     }
 
-    int StandardEquationSystem::GetSplitIndex(const StandardIntervalVector& variable, int prev_split_index, double size) {
+    int StandardEquationSystem::GetSplitIndex(const StandardIntervalVector& variable, int prev_split_index, double priority) {
         bool b = false;
         int next_split_index = 0;
         double ves[2] = { 1E-12, 0 };
@@ -296,18 +298,18 @@ namespace wgp {
         return 0;
     }
 
-    int StandardEquationSystem::CompareIteratePriority(const StandardIntervalVector& variable1, double size1,
-        const StandardIntervalVector& variable2, double size2) {
-        if (size1 < size2) {
+    int StandardEquationSystem::CompareIteratePriority(const StandardIntervalVector& variable1, double priority1,
+        const StandardIntervalVector& variable2, double priority2) {
+        if (priority1 < priority2) {
             return -1;
         }
-        if (size1 > size2) {
+        if (priority1 > priority2) {
             return 1;
         }
         return 0;
     }
 
-    bool StandardEquationSystem::PreIterate(StandardIntervalVector* variable, SolverIteratedResult& result, double& size) {
+    bool StandardEquationSystem::PreIterate(StandardIntervalVector* variable, SolverIteratedResult& result, double& priority) {
         return false;
     }
 

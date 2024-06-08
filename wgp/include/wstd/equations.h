@@ -88,10 +88,11 @@ namespace wgp {
         virtual double GetValueEpsilon(int i, bool is_checking) = 0;
         virtual void CalculateValue(const StandardIntervalVector& variable, StandardIntervalVector& value) = 0;
         virtual void CalculatePartialDerivative(const StandardIntervalVector& variable, StandardIntervalMatrix& value) = 0;
-        virtual int GetSplitIndex(const StandardIntervalVector& variable, int prev_split_index, double size);
-        virtual int CompareIteratePriority(const StandardIntervalVector& variable1, double size1,
-            const StandardIntervalVector& variable2, double size2);
-        virtual bool PreIterate(StandardIntervalVector* variable, SolverIteratedResult& result, double& size);
+        virtual double CalculatePriority(const StandardIntervalVector& variable, const StandardIntervalVector& value, double size) = 0;
+        virtual int GetSplitIndex(const StandardIntervalVector& variable, int prev_split_index, double priority);
+        virtual int CompareIteratePriority(const StandardIntervalVector& variable1, double priority1,
+            const StandardIntervalVector& variable2, double priority2);
+        virtual bool PreIterate(StandardIntervalVector* variable, SolverIteratedResult& result, double& priority);
         virtual bool CheckFinished(const Array<SolverHeapItem<StandardIntervalVector>>& heap);
     };
 
@@ -344,7 +345,9 @@ namespace wgp {
             IntervalVector<equation_count>& value) = 0;
         virtual void CalculatePartialDerivative(const IntervalVector<variable_count>& variable,
             IntervalMatrix<equation_count, variable_count>& value) = 0;
-        virtual int GetSplitIndex(const IntervalVector<variable_count>& variable, int prev_split_index, double size) {
+        virtual double CalculatePriority(const IntervalVector<variable_count>& variable,
+            const IntervalVector<equation_count>& value, double size) = 0;
+        virtual int GetSplitIndex(const IntervalVector<variable_count>& variable, int prev_split_index, double priority) {
             bool b = false;
             int next_split_index = 0;
             double ves[2] = { g_double_epsilon, 0 };
@@ -369,17 +372,17 @@ namespace wgp {
             }
             return 0;
         }
-        virtual int CompareIteratePriority(const IntervalVector<variable_count>& variable1, double size1,
-            const IntervalVector<variable_count>& variable2, double size2) {
-            if (size1 < size2) {
+        virtual int CompareIteratePriority(const IntervalVector<variable_count>& variable1, double priority1,
+            const IntervalVector<variable_count>& variable2, double priority2) {
+            if (priority1 < priority2) {
                 return -1;
             }
-            if (size1 > size2) {
+            if (priority1 > priority2) {
                 return 1;
             }
             return 0;
         }
-        virtual bool PreIterate(IntervalVector<variable_count>* variable, SolverIteratedResult& result, double& size) {
+        virtual bool PreIterate(IntervalVector<variable_count>* variable, SolverIteratedResult& result, double& priority) {
             return false;
         }
 

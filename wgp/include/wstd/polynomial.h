@@ -282,9 +282,10 @@ namespace wgp {
         double GetValueEpsilon(int i, bool is_checking);
         void CalculateValue(const IntervalVector<1>& variable, IntervalVector<1>& value);
         void CalculatePartialDerivative(const IntervalVector<1>& variable, IntervalMatrix<1, 1>& value);
-        int GetSplitIndex(const IntervalVector<1>& variable, int prev_split_index, double size);
-        int CompareIteratePriority(const IntervalVector<1>& variable1, double size1, const IntervalVector<1>& variable2, double size2);
-        bool PreIterate(IntervalVector<1>* variable, SolverIteratedResult& result, double& size);
+        double CalculatePriority(const IntervalVector<1>& variable, const IntervalVector<1>& value, double size);
+        int GetSplitIndex(const IntervalVector<1>& variable, int prev_split_index, double priority);
+        int CompareIteratePriority(const IntervalVector<1>& variable1, double priority1, const IntervalVector<1>& variable2, double priority2);
+        bool PreIterate(IntervalVector<1>* variable, SolverIteratedResult& result, double& priority);
         bool CheckFinished(const Array<SolverHeapItem<IntervalVector<1>, double>>& heap);
     private:
         int m_degree;
@@ -326,22 +327,26 @@ namespace wgp {
         *value.Get(0, 0) = estimate_univariate_polynomial_interval(m_degree - 1, m_d_polynomial, variable.Get(0));
     }
 
-    inline int UnivariablePolynomialEquation::GetSplitIndex(const IntervalVector<1>& variable, int prev_split_index, double size) {
+    inline double UnivariablePolynomialEquation::CalculatePriority(const IntervalVector<1>& variable, const IntervalVector<1>& value, double size) {
+        return size;
+    }
+
+    inline int UnivariablePolynomialEquation::GetSplitIndex(const IntervalVector<1>& variable, int prev_split_index, double priority) {
         return 0;
     }
 
-    inline int UnivariablePolynomialEquation::CompareIteratePriority(const IntervalVector<1>& variable1, double size1,
-        const IntervalVector<1>& variable2, double size2) {
-        if (size1 < size2) {
+    inline int UnivariablePolynomialEquation::CompareIteratePriority(const IntervalVector<1>& variable1, double priority1,
+        const IntervalVector<1>& variable2, double priority2) {
+        if (priority1 < priority2) {
             return -1;
         }
-        if (size1 > size2) {
+        if (priority1 > priority2) {
             return 1;
         }
         return 0;
     }
 
-    inline bool UnivariablePolynomialEquation::PreIterate(IntervalVector<1>* variable, SolverIteratedResult& result, double& size) {
+    inline bool UnivariablePolynomialEquation::PreIterate(IntervalVector<1>* variable, SolverIteratedResult& result, double& priority) {
         return false;
     }
 
@@ -795,9 +800,10 @@ namespace wgp {
         double GetValueEpsilon(int i, bool is_checking);
         void CalculateValue(const IntervalVector<2>& variable, IntervalVector<2>& value);
         void CalculatePartialDerivative(const IntervalVector<2>& variable, IntervalMatrix<2, 2>& value);
-        int GetSplitIndex(const IntervalVector<2>& variable, int prev_split_index, double size);
-        int CompareIteratePriority(const IntervalVector<2>& variable1, double size1, const IntervalVector<2>& variable2, double size2);
-        bool PreIterate(IntervalVector<2>* variable, SolverIteratedResult& result, double& size);
+        double CalculatePriority(const IntervalVector<2>& variable, const IntervalVector<2>& value, double size);
+        int GetSplitIndex(const IntervalVector<2>& variable, int prev_split_index, double priority);
+        int CompareIteratePriority(const IntervalVector<2>& variable1, double priority1, const IntervalVector<2>& variable2, double priority2);
+        bool PreIterate(IntervalVector<2>* variable, SolverIteratedResult& result, double& priority);
         bool CheckFinished(const Array<SolverHeapItem<IntervalVector<2>, double>>& heap);
     private:
         int m_u_degree0;
@@ -863,22 +869,26 @@ namespace wgp {
         *value.Get(1, 1) = estimate_bivariate_polynomial_interval(m_u_degree1, m_v_degree1 - 1, m_dv_polynomial1, u, v);
     }
 
-    inline int BivariatePolynomialEquation::GetSplitIndex(const IntervalVector<2>& variable, int prev_split_index, double size) {
+    inline double BivariatePolynomialEquation::CalculatePriority(const IntervalVector<2>& variable, const IntervalVector<2>& value, double size) {
+        return size;
+    }
+
+    inline int BivariatePolynomialEquation::GetSplitIndex(const IntervalVector<2>& variable, int prev_split_index, double priority) {
         return prev_split_index == 0 ? 1 : 0;
     }
 
-    inline int BivariatePolynomialEquation::CompareIteratePriority(const IntervalVector<2>& variable1, double size1,
-        const IntervalVector<2>& variable2, double size2) {
-        if (size1 < size2) {
+    inline int BivariatePolynomialEquation::CompareIteratePriority(const IntervalVector<2>& variable1, double priority1,
+        const IntervalVector<2>& variable2, double priority2) {
+        if (priority1 < priority2) {
             return -1;
         }
-        if (size1 > size2) {
+        if (priority1 > priority2) {
             return 1;
         }
         return 0;
     }
 
-    inline bool BivariatePolynomialEquation::PreIterate(IntervalVector<2>* variable, SolverIteratedResult& result, double& size) {
+    inline bool BivariatePolynomialEquation::PreIterate(IntervalVector<2>* variable, SolverIteratedResult& result, double& priority) {
         return false;
     }
 
