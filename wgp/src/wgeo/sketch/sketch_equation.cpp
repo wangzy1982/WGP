@@ -7,68 +7,8 @@
 namespace wgp {
 
     SketchEqualEquation::SketchEqualEquation(SketchEquations* owner, SketchEntity* variable_entity0, int entity_variable_index0,
-        SketchEntity* variable_entity1, int entity_variable_index1, double epsilon) : SketchEquation(owner) {
-        m_variable_entities[0] = variable_entity0;
-        m_variable_entities[1] = variable_entity1;
-        m_entity_variable_indices[0] = entity_variable_index0;
-        m_entity_variable_indices[1] = entity_variable_index1;
-        m_next_related_equations[0] = nullptr;
-        m_next_related_equations[1] = nullptr;
-        m_prev_related_equations[0] = nullptr;
-        m_prev_related_equations[1] = nullptr;
-        m_epsilon = epsilon;
-    }
-
-    int SketchEqualEquation::GetVariableCount() {
-        return 2;
-    }
-
-    SketchEntity* SketchEqualEquation::GetVariableEntity(int index) {
-        return m_variable_entities[index];
-    }
-
-    int SketchEqualEquation::GetEntityVariableIndex(int index) {
-        return m_entity_variable_indices[index];
-    }
-
-    SketchEquation* SketchEqualEquation::GetNextRelatedEquation(int index) {
-        for (int i = 0; i < 2; ++i) {
-            if (m_entity_variable_indices[i] == index) {
-                return m_next_related_equations[i];
-            }
-        }
-        return nullptr;
-    }
-
-    void SketchEqualEquation::SetNextRelatedEquation(int index, SketchEquation* equation) {
-        for (int i = 0; i < 2; ++i) {
-            if (m_entity_variable_indices[i] == index) {
-                m_next_related_equations[i] = equation;
-                break;
-            }
-        }
-    }
-
-    SketchEquation* SketchEqualEquation::GetPrevRelatedEquation(int index) {
-        for (int i = 0; i < 2; ++i) {
-            if (m_entity_variable_indices[i] == index) {
-                return m_prev_related_equations[i];
-            }
-        }
-        return nullptr;
-    }
-
-    void SketchEqualEquation::SetPrevRelatedEquation(int index, SketchEquation* equation) {
-        for (int i = 0; i < 2; ++i) {
-            if (m_entity_variable_indices[i] == index) {
-                m_prev_related_equations[i] = equation;
-                break;
-            }
-        }
-    }
-
-    double SketchEqualEquation::GetValueEpsilon() {
-        return m_epsilon;
+        SketchEntity* variable_entity1, int entity_variable_index1, double epsilon) : 
+        SketchEquation2V(owner, variable_entity0, entity_variable_index0, variable_entity1, entity_variable_index1, epsilon) {
     }
 
     bool SketchEqualEquation::CheckCurrent() {
@@ -90,46 +30,9 @@ namespace wgp {
         *partial_derivative.Get(m_current_equation_index, index1) = -1;
     }
 
-    SketchSetValueEquation::SketchSetValueEquation(SketchEquations* owner, SketchEntity* variable_entity, int entity_variable_index,
-        double value, double epsilon) : SketchEquation(owner) {
-        m_variable_entity = variable_entity;
-        m_entity_variable_index = entity_variable_index;
-        m_next_related_equation = nullptr;
-        m_prev_related_equation = nullptr;
+    SketchSetValueEquation::SketchSetValueEquation(SketchEquations* owner, SketchEntity* variable_entity, int entity_variable_index, double value, double epsilon) : 
+        SketchEquation1V(owner, variable_entity, entity_variable_index, epsilon) {
         m_value = value;
-        m_epsilon = epsilon;
-    }
-
-    int SketchSetValueEquation::GetVariableCount() {
-        return 1;
-    }
-
-    SketchEntity* SketchSetValueEquation::GetVariableEntity(int index) {
-        return m_variable_entity;
-    }
-
-    int SketchSetValueEquation::GetEntityVariableIndex(int index) {
-        return m_entity_variable_index;
-    }
-
-    SketchEquation* SketchSetValueEquation::GetNextRelatedEquation(int index) {
-        return m_next_related_equation;
-    }
-
-    void SketchSetValueEquation::SetNextRelatedEquation(int index, SketchEquation* equation) {
-        m_next_related_equation = equation;
-    }
-
-    SketchEquation* SketchSetValueEquation::GetPrevRelatedEquation(int index) {
-        return m_prev_related_equation;
-    }
-
-    void SketchSetValueEquation::SetPrevRelatedEquation(int index, SketchEquation* equation) {
-        m_prev_related_equation = equation;
-    }
-
-    double SketchSetValueEquation::GetValueEpsilon() {
-        return m_epsilon;
     }
 
     bool SketchSetValueEquation::CheckCurrent() {
