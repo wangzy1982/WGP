@@ -535,9 +535,9 @@ namespace wgp {
         return solver.Solve(equations, action);
     }
 
-    SketchEquation1V::SketchEquation1V(SketchVariableEntity* variable_entity, int entity_variable_index, double epsilon) {
-        m_variable_entity = variable_entity;
-        m_entity_variable_index = entity_variable_index;
+    SketchEquation1V::SketchEquation1V(SketchVariableEntity* entity, int variable_index, double epsilon) {
+        m_entity = entity;
+        m_variable_index = variable_index;
         m_next_related_equation = nullptr;
         m_prev_related_equation = nullptr;
         m_epsilon = epsilon;
@@ -548,11 +548,11 @@ namespace wgp {
     }
 
     SketchVariableEntity* SketchEquation1V::GetVariableEntity(int index) {
-        return m_variable_entity;
+        return m_entity;
     }
 
     int SketchEquation1V::GetEntityVariableIndex(int index) {
-        return m_entity_variable_index;
+        return m_variable_index;
     }
 
     SketchEquation* SketchEquation1V::GetNextRelatedEquation(int index) {
@@ -575,12 +575,12 @@ namespace wgp {
         return m_epsilon;
     }
 
-    SketchEquation2V::SketchEquation2V(SketchVariableEntity* variable_entity0, int entity_variable_index0,
-        SketchVariableEntity* variable_entity1, int entity_variable_index1, double epsilon) {
-        m_variable_entities[0] = variable_entity0;
-        m_variable_entities[1] = variable_entity1;
-        m_entity_variable_indices[0] = entity_variable_index0;
-        m_entity_variable_indices[1] = entity_variable_index1;
+    SketchEquation2V::SketchEquation2V(SketchVariableEntity* entity0, int variable_index0,
+        SketchVariableEntity* entity1, int variable_index1, double epsilon) {
+        m_entities[0] = entity0;
+        m_entities[1] = entity1;
+        m_variable_indices[0] = variable_index0;
+        m_variable_indices[1] = variable_index1;
         m_next_related_equations[0] = nullptr;
         m_next_related_equations[1] = nullptr;
         m_prev_related_equations[0] = nullptr;
@@ -593,16 +593,16 @@ namespace wgp {
     }
 
     SketchVariableEntity* SketchEquation2V::GetVariableEntity(int index) {
-        return m_variable_entities[index];
+        return m_entities[index];
     }
 
     int SketchEquation2V::GetEntityVariableIndex(int index) {
-        return m_entity_variable_indices[index];
+        return m_variable_indices[index];
     }
 
     SketchEquation* SketchEquation2V::GetNextRelatedEquation(int index) {
         for (int i = 0; i < 2; ++i) {
-            if (m_entity_variable_indices[i] == index) {
+            if (m_variable_indices[i] == index) {
                 return m_next_related_equations[i];
             }
         }
@@ -611,7 +611,7 @@ namespace wgp {
 
     void SketchEquation2V::SetNextRelatedEquation(int index, SketchEquation* equation) {
         for (int i = 0; i < 2; ++i) {
-            if (m_entity_variable_indices[i] == index) {
+            if (m_variable_indices[i] == index) {
                 m_next_related_equations[i] = equation;
                 break;
             }
@@ -620,7 +620,7 @@ namespace wgp {
 
     SketchEquation* SketchEquation2V::GetPrevRelatedEquation(int index) {
         for (int i = 0; i < 2; ++i) {
-            if (m_entity_variable_indices[i] == index) {
+            if (m_variable_indices[i] == index) {
                 return m_prev_related_equations[i];
             }
         }
@@ -629,7 +629,7 @@ namespace wgp {
 
     void SketchEquation2V::SetPrevRelatedEquation(int index, SketchEquation* equation) {
         for (int i = 0; i < 2; ++i) {
-            if (m_entity_variable_indices[i] == index) {
+            if (m_variable_indices[i] == index) {
                 m_prev_related_equations[i] = equation;
                 break;
             }
@@ -640,18 +640,18 @@ namespace wgp {
         return m_epsilon;
     }
 
-    SketchEquation4V::SketchEquation4V(SketchVariableEntity* variable_entity0, int entity_variable_index0,
-        SketchVariableEntity* variable_entity1, int entity_variable_index1,
-        SketchVariableEntity* variable_entity2, int entity_variable_index2,
-        SketchVariableEntity* variable_entity3, int entity_variable_index3, double epsilon) {
-        m_variable_entities[0] = variable_entity0;
-        m_variable_entities[1] = variable_entity1;
-        m_variable_entities[2] = variable_entity2;
-        m_variable_entities[3] = variable_entity3;
-        m_entity_variable_indices[0] = entity_variable_index0;
-        m_entity_variable_indices[1] = entity_variable_index1;
-        m_entity_variable_indices[2] = entity_variable_index2;
-        m_entity_variable_indices[3] = entity_variable_index3;
+    SketchEquation4V::SketchEquation4V(SketchVariableEntity* entity0, int variable_index0,
+        SketchVariableEntity* entity1, int variable_index1,
+        SketchVariableEntity* entity2, int variable_index2,
+        SketchVariableEntity* entity3, int variable_index3, double epsilon) {
+        m_entities[0] = entity0;
+        m_entities[1] = entity1;
+        m_entities[2] = entity2;
+        m_entities[3] = entity3;
+        m_variable_indices[0] = variable_index0;
+        m_variable_indices[1] = variable_index1;
+        m_variable_indices[2] = variable_index2;
+        m_variable_indices[3] = variable_index3;
         m_next_related_equations[0] = nullptr;
         m_next_related_equations[1] = nullptr;
         m_next_related_equations[2] = nullptr;
@@ -668,16 +668,16 @@ namespace wgp {
     }
 
     SketchVariableEntity* SketchEquation4V::GetVariableEntity(int index) {
-        return m_variable_entities[index];
+        return m_entities[index];
     }
 
     int SketchEquation4V::GetEntityVariableIndex(int index) {
-        return m_entity_variable_indices[index];
+        return m_variable_indices[index];
     }
 
     SketchEquation* SketchEquation4V::GetNextRelatedEquation(int index) {
         for (int i = 0; i < 4; ++i) {
-            if (m_entity_variable_indices[i] == index) {
+            if (m_variable_indices[i] == index) {
                 return m_next_related_equations[i];
             }
         }
@@ -686,7 +686,7 @@ namespace wgp {
 
     void SketchEquation4V::SetNextRelatedEquation(int index, SketchEquation* equation) {
         for (int i = 0; i < 4; ++i) {
-            if (m_entity_variable_indices[i] == index) {
+            if (m_variable_indices[i] == index) {
                 m_next_related_equations[i] = equation;
                 break;
             }
@@ -695,7 +695,7 @@ namespace wgp {
 
     SketchEquation* SketchEquation4V::GetPrevRelatedEquation(int index) {
         for (int i = 0; i < 4; ++i) {
-            if (m_entity_variable_indices[i] == index) {
+            if (m_variable_indices[i] == index) {
                 return m_prev_related_equations[i];
             }
         }
@@ -704,7 +704,7 @@ namespace wgp {
 
     void SketchEquation4V::SetPrevRelatedEquation(int index, SketchEquation* equation) {
         for (int i = 0; i < 4; ++i) {
-            if (m_entity_variable_indices[i] == index) {
+            if (m_variable_indices[i] == index) {
                 m_prev_related_equations[i] = equation;
                 break;
             }
@@ -715,21 +715,21 @@ namespace wgp {
         return m_epsilon;
     }
     
-    SketchEquation5V::SketchEquation5V(SketchVariableEntity* variable_entity0, int entity_variable_index0,
-        SketchVariableEntity* variable_entity1, int entity_variable_index1,
-        SketchVariableEntity* variable_entity2, int entity_variable_index2,
-        SketchVariableEntity* variable_entity3, int entity_variable_index3,
-        SketchVariableEntity* variable_entity4, int entity_variable_index4, double epsilon) {
-        m_variable_entities[0] = variable_entity0;
-        m_variable_entities[1] = variable_entity1;
-        m_variable_entities[2] = variable_entity2;
-        m_variable_entities[3] = variable_entity3;
-        m_variable_entities[4] = variable_entity4;
-        m_entity_variable_indices[0] = entity_variable_index0;
-        m_entity_variable_indices[1] = entity_variable_index1;
-        m_entity_variable_indices[2] = entity_variable_index2;
-        m_entity_variable_indices[3] = entity_variable_index3;
-        m_entity_variable_indices[4] = entity_variable_index4;
+    SketchEquation5V::SketchEquation5V(SketchVariableEntity* entity0, int variable_index0,
+        SketchVariableEntity* entity1, int variable_index1,
+        SketchVariableEntity* entity2, int variable_index2,
+        SketchVariableEntity* entity3, int variable_index3,
+        SketchVariableEntity* entity4, int variable_index4, double epsilon) {
+        m_entities[0] = entity0;
+        m_entities[1] = entity1;
+        m_entities[2] = entity2;
+        m_entities[3] = entity3;
+        m_entities[4] = entity4;
+        m_variable_indices[0] = variable_index0;
+        m_variable_indices[1] = variable_index1;
+        m_variable_indices[2] = variable_index2;
+        m_variable_indices[3] = variable_index3;
+        m_variable_indices[4] = variable_index4;
         m_next_related_equations[0] = nullptr;
         m_next_related_equations[1] = nullptr;
         m_next_related_equations[2] = nullptr;
@@ -748,16 +748,16 @@ namespace wgp {
     }
 
     SketchVariableEntity* SketchEquation5V::GetVariableEntity(int index) {
-        return m_variable_entities[index];
+        return m_entities[index];
     }
 
     int SketchEquation5V::GetEntityVariableIndex(int index) {
-        return m_entity_variable_indices[index];
+        return m_variable_indices[index];
     }
 
     SketchEquation* SketchEquation5V::GetNextRelatedEquation(int index) {
         for (int i = 0; i < 5; ++i) {
-            if (m_entity_variable_indices[i] == index) {
+            if (m_variable_indices[i] == index) {
                 return m_next_related_equations[i];
             }
         }
@@ -766,7 +766,7 @@ namespace wgp {
 
     void SketchEquation5V::SetNextRelatedEquation(int index, SketchEquation* equation) {
         for (int i = 0; i < 5; ++i) {
-            if (m_entity_variable_indices[i] == index) {
+            if (m_variable_indices[i] == index) {
                 m_next_related_equations[i] = equation;
                 break;
             }
@@ -775,7 +775,7 @@ namespace wgp {
 
     SketchEquation* SketchEquation5V::GetPrevRelatedEquation(int index) {
         for (int i = 0; i < 5; ++i) {
-            if (m_entity_variable_indices[i] == index) {
+            if (m_variable_indices[i] == index) {
                 return m_prev_related_equations[i];
             }
         }
@@ -784,7 +784,7 @@ namespace wgp {
 
     void SketchEquation5V::SetPrevRelatedEquation(int index, SketchEquation* equation) {
         for (int i = 0; i < 5; ++i) {
-            if (m_entity_variable_indices[i] == index) {
+            if (m_variable_indices[i] == index) {
                 m_prev_related_equations[i] = equation;
                 break;
             }

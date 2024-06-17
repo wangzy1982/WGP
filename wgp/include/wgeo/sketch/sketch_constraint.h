@@ -48,20 +48,20 @@ namespace wgp {
         SketchEquation* m_equations[2];
     };
 
-    class WGP_API SketchLine2dLine2dAngleConstraintType : public SketchConstraintType {
+    class WGP_API SketchFixPoint2dPoint2dDistanceConstraintType : public SketchConstraintType {
     public:
-        static SketchLine2dLine2dAngleConstraintType* Instance();
+        static SketchFixPoint2dPoint2dDistanceConstraintType* Instance();
     private:
-        static SketchLine2dLine2dAngleConstraintType m_Instance;
+        static SketchFixPoint2dPoint2dDistanceConstraintType m_Instance;
     };
 
-    class WGP_API SketchLine2dLine2dAngleConstraint : public SketchConstraint {
+    class WGP_API SketchFixPoint2dPoint2dDistanceConstraint : public SketchConstraint {
     public:
-        SketchLine2dLine2dAngleConstraint(Sketch* owner, SketchGeometry* geometry0, int start_x_variable_index0, 
-            int start_y_variable_index0, int end_x_variable_index0, int end_y_variable_index0,
-            SketchGeometry* geometry1, int start_x_variable_index1, int start_y_variable_index1, 
-            int end_x_variable_index1, int end_y_variable_index1, double epsilon);
-        virtual ~SketchLine2dLine2dAngleConstraint();
+        SketchFixPoint2dPoint2dDistanceConstraint(Sketch* owner,
+            SketchVariableEntity* entity0, int x_variable_index0, int y_variable_index0,
+            SketchVariableEntity* entity1, int x_variable_index1, int y_variable_index1,
+            double distance, double epsilon);
+        virtual ~SketchFixPoint2dPoint2dDistanceConstraint();
         virtual SketchConstraintType* GetType() const;
         virtual int GetEquationCount();
         virtual SketchEquation* GetEquation(int index);
