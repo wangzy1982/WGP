@@ -279,7 +279,7 @@ namespace wgp {
         int GetEquationCount();
         int GetVariableCount();
         double GetVariableEpsilon(int i);
-        double GetValueEpsilon(int i, bool is_checking);
+        double GetValueEpsilon(int i, bool is_checking, const IntervalVector<1>& variable);
         void CalculateValue(const IntervalVector<1>& variable, IntervalVector<1>& value);
         void CalculatePartialDerivative(const IntervalVector<1>& variable, IntervalMatrix<1, 1>& value);
         double CalculatePriority(const IntervalVector<1>& variable, const IntervalVector<1>& value, double size);
@@ -315,7 +315,7 @@ namespace wgp {
         return 1E-6;
     }
 
-    inline double UnivariablePolynomialEquation::GetValueEpsilon(int i, bool is_checking) {
+    inline double UnivariablePolynomialEquation::GetValueEpsilon(int i, bool is_checking, const IntervalVector<1>& variable) {
         return is_checking ? 1E-6 : 1E-12;
     }
 
@@ -797,7 +797,7 @@ namespace wgp {
         int GetEquationCount();
         int GetVariableCount();
         double GetVariableEpsilon(int i);
-        double GetValueEpsilon(int i, bool is_checking);
+        double GetValueEpsilon(int i, bool is_checking, const IntervalVector<2>& variable);
         void CalculateValue(const IntervalVector<2>& variable, IntervalVector<2>& value);
         void CalculatePartialDerivative(const IntervalVector<2>& variable, IntervalMatrix<2, 2>& value);
         double CalculatePriority(const IntervalVector<2>& variable, const IntervalVector<2>& value, double size);
@@ -849,7 +849,7 @@ namespace wgp {
         return 1E-6;
     }
 
-    inline double BivariatePolynomialEquation::GetValueEpsilon(int i, bool is_checking) {
+    inline double BivariatePolynomialEquation::GetValueEpsilon(int i, bool is_checking, const IntervalVector<2>& variable) {
         return is_checking ? 1E-6 : 1E-12;
     }
 

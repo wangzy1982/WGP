@@ -85,7 +85,7 @@ namespace wgp {
         virtual int GetEquationCount() = 0;
         virtual int GetVariableCount() = 0;
         virtual double GetVariableEpsilon(int i) = 0;
-        virtual double GetValueEpsilon(int i, bool is_checking) = 0;
+        virtual double GetValueEpsilon(int i, bool is_checking, const StandardIntervalVector& variable) = 0;
         virtual void CalculateValue(const StandardIntervalVector& variable, StandardIntervalVector& value) = 0;
         virtual void CalculatePartialDerivative(const StandardIntervalVector& variable, StandardIntervalMatrix& value) = 0;
         virtual double CalculatePriority(const StandardIntervalVector& variable, const StandardIntervalVector& value, double size) = 0;
@@ -340,7 +340,7 @@ namespace wgp {
         int GetEquationCount() { return equation_count; }
         int GetVariableCount() { return variable_count; }
         virtual double GetVariableEpsilon(int i) = 0;
-        virtual double GetValueEpsilon(int i, bool is_checking) = 0;
+        virtual double GetValueEpsilon(int i, bool is_checking, const IntervalVector<variable_count>& variable) = 0;
         virtual void CalculateValue(const IntervalVector<variable_count>& variable,
             IntervalVector<equation_count>& value) = 0;
         virtual void CalculatePartialDerivative(const IntervalVector<variable_count>& variable,

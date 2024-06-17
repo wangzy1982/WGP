@@ -342,7 +342,7 @@ namespace wgp {
             return g_double_epsilon;
         }
 
-        virtual double GetValueEpsilon(int i, bool is_checking) {
+        virtual double GetValueEpsilon(int i, bool is_checking, const Curve2dCurve2dIntVariable& variable) {
             return m_distance_epsilon;
         }
 
@@ -514,7 +514,7 @@ namespace wgp {
             m_base_vt = vt;
         }
     public:
-        virtual double GetValueEpsilon(int i, bool is_checking) {
+        virtual double GetValueEpsilon(int i, bool is_checking, const Curve2dCurve2dIntVariable& variable) {
             if (i == 2) {
                 return g_double_epsilon;
             }
@@ -1024,7 +1024,7 @@ namespace wgp {
             return g_double_epsilon;
         }
 
-        virtual double GetValueEpsilon(int i, bool is_checking) {
+        virtual double GetValueEpsilon(int i, bool is_checking, const Curve3dCurve3dIntVariable& variable) {
             return m_distance_epsilon;
         }
 
@@ -1199,7 +1199,7 @@ namespace wgp {
             m_base_vt = vt;
         }
     public:
-        virtual double GetValueEpsilon(int i, bool is_checking) {
+        virtual double GetValueEpsilon(int i, bool is_checking, const Curve3dCurve3dIntVariable& variable) {
             if (i == 2) {
                 return g_double_epsilon;
             }

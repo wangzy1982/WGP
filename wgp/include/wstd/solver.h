@@ -279,7 +279,7 @@ namespace wgp {
                 Real accept_size = 0;
                 for (int i = 0; i < m_equation_system->GetEquationCount(); ++i) {
                     RealInterval v = runtime->q_value.Get(i);
-                    Real value_epsilon = m_equation_system->GetValueEpsilon(i, true);
+                    Real value_epsilon = m_equation_system->GetValueEpsilon(i, true, *variable);
                     if (!v.IsIntersected(0, value_epsilon)) {
                         priority = 0;
                         return SolverIteratedResult::NoRoot;
@@ -329,49 +329,49 @@ namespace wgp {
                         RealInterval min_value = runtime->q_min_value.Get(j);
                         RealInterval max_value = runtime->q_max_value.Get(j);
                         RealInterval* dvi = runtime->df.Get(j, i);
-                        if (C2(min_value.Min - m_equation_system->GetValueEpsilon(j, true))) {
+                        if (C2(min_value.Min - m_equation_system->GetValueEpsilon(j, true, *variable))) {
                             if (dvi->Min >= 0) {
                                 priority = 0;
                                 return SolverIteratedResult::NoRoot;
                             }
                             else {
-                                Real d = -(min_value.Min - m_equation_system->GetValueEpsilon(j, false)) / dvi->Min;
+                                Real d = -(min_value.Min - m_equation_system->GetValueEpsilon(j, false, *variable)) / dvi->Min;
                                 if (d > delta_min) {
                                     delta_min = d;
                                 }
                             }
                         }
-                        else if (C3(min_value.Max + m_equation_system->GetValueEpsilon(j, true))) {
+                        else if (C3(min_value.Max + m_equation_system->GetValueEpsilon(j, true, *variable))) {
                             if (dvi->Max <= 0) {
                                 priority = 0;
                                 return SolverIteratedResult::NoRoot;
                             }
                             else {
-                                Real d = -(min_value.Max + m_equation_system->GetValueEpsilon(j, false)) / dvi->Max;
+                                Real d = -(min_value.Max + m_equation_system->GetValueEpsilon(j, false, *variable)) / dvi->Max;
                                 if (d > delta_min) {
                                     delta_min = d;
                                 }
                             }
                         }
-                        if (C4(max_value.Min - m_equation_system->GetValueEpsilon(j, true))) {
+                        if (C4(max_value.Min - m_equation_system->GetValueEpsilon(j, true, *variable))) {
                             if (dvi->Max <= 0) {
                                 priority = 0;
                                 return SolverIteratedResult::NoRoot;
                             }
                             else {
-                                Real d = (max_value.Min - m_equation_system->GetValueEpsilon(j, false)) / dvi->Max;
+                                Real d = (max_value.Min - m_equation_system->GetValueEpsilon(j, false, *variable)) / dvi->Max;
                                 if (d > delta_max) {
                                     delta_max = d;
                                 }
                             }
                         }
-                        else if (C1(max_value.Max + m_equation_system->GetValueEpsilon(j, true))) {
+                        else if (C1(max_value.Max + m_equation_system->GetValueEpsilon(j, true, *variable))) {
                             if (dvi->Min >= 0) {
                                 priority = 0;
                                 return SolverIteratedResult::NoRoot;
                             }
                             else {
-                                Real d = (max_value.Max + m_equation_system->GetValueEpsilon(j, false)) / dvi->Min;
+                                Real d = (max_value.Max + m_equation_system->GetValueEpsilon(j, false, *variable)) / dvi->Min;
                                 if (d > delta_max) {
                                     delta_max = d;
                                 }
@@ -485,7 +485,7 @@ namespace wgp {
                 }
                 bool b = true;
                 for (int i = 0; i < m_equation_system->GetEquationCount(); ++i) {
-                    if (!is_zero(value.Get(i), m_equation_system->GetValueEpsilon(i, true))) {
+                    if (!is_zero(value.Get(i), m_equation_system->GetValueEpsilon(i, true, *variable))) {
                         b = false;
                         break;
                     }
