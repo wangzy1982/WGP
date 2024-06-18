@@ -102,4 +102,38 @@ namespace wgp {
         return m_equation;
     }
 
+    SketchFixLine2dLine2dAngleConstraintType* SketchFixLine2dLine2dAngleConstraintType::Instance() {
+        return &m_Instance;
+    }
+
+    SketchFixLine2dLine2dAngleConstraintType SketchFixLine2dLine2dAngleConstraintType::m_Instance;
+
+    SketchFixLine2dLine2dAngleConstraint::SketchFixLine2dLine2dAngleConstraint(Sketch* owner,
+        SketchVariableEntity* entity0, int start_x_variable_index0, int start_y_variable_index0, int end_x_variable_index0, int end_y_variable_index0,
+        SketchVariableEntity* entity1, int start_x_variable_index1, int start_y_variable_index1, int end_x_variable_index1, int end_y_variable_index1,
+        double angle, double epsilon) :
+        SketchConstraint(owner) {
+        m_equation = new SketchFixLine2dLine2dAngleEquation(
+            entity0, start_x_variable_index0, start_y_variable_index0, end_x_variable_index0, end_y_variable_index0,
+            entity1, start_x_variable_index1, start_y_variable_index1, end_x_variable_index1, end_y_variable_index1,
+            angle, epsilon);
+        m_equation->SetOwner(this);
+    }
+
+    SketchFixLine2dLine2dAngleConstraint::~SketchFixLine2dLine2dAngleConstraint() {
+        delete m_equation;
+    }
+
+    SketchConstraintType* SketchFixLine2dLine2dAngleConstraint::GetType() const {
+        return SketchFixLine2dLine2dAngleConstraintType::Instance();
+    }
+
+    int SketchFixLine2dLine2dAngleConstraint::GetEquationCount() {
+        return 1;
+    }
+
+    SketchEquation* SketchFixLine2dLine2dAngleConstraint::GetEquation(int index) {
+        return m_equation;
+    }
+
 }

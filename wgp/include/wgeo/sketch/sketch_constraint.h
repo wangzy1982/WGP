@@ -68,6 +68,27 @@ namespace wgp {
     protected:
         SketchEquation* m_equation;
     };
+
+    class WGP_API SketchFixLine2dLine2dAngleConstraintType : public SketchConstraintType {
+    public:
+        static SketchFixLine2dLine2dAngleConstraintType* Instance();
+    private:
+        static SketchFixLine2dLine2dAngleConstraintType m_Instance;
+    };
+
+    class WGP_API SketchFixLine2dLine2dAngleConstraint : public SketchConstraint {
+    public:
+        SketchFixLine2dLine2dAngleConstraint(Sketch* owner,
+            SketchVariableEntity* entity0, int start_x_variable_index0, int start_y_variable_index0, int end_x_variable_index0, int end_y_variable_index0,
+            SketchVariableEntity* entity1, int start_x_variable_index1, int start_y_variable_index1, int end_x_variable_index1, int end_y_variable_index1,
+            double angle, double epsilon);
+        virtual ~SketchFixLine2dLine2dAngleConstraint();
+        virtual SketchConstraintType* GetType() const;
+        virtual int GetEquationCount();
+        virtual SketchEquation* GetEquation(int index);
+    protected:
+        SketchEquation* m_equation;
+    };
 }
 
 #endif

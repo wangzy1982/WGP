@@ -465,8 +465,8 @@ namespace wgp {
         for (int j = 0; j < equation->GetVariableCount(); ++j) {
             SketchVariableEntity* entity = equation->GetVariableEntity(j);
             int index = equation->GetEntityVariableIndex(j);
-            equation->SetPrevRelatedEquation(j, nullptr);
-            equation->SetNextRelatedEquation(j, entity->GetFirstRelatedEquation(index));
+            equation->SetPrevRelatedEquation(entity, index, nullptr);
+            equation->SetNextRelatedEquation(entity, index, entity->GetFirstRelatedEquation(index));
             entity->SetFirstRelatedEquation(index, equation);
         }
     }
@@ -476,22 +476,22 @@ namespace wgp {
             SketchVariableEntity* entity = equation->GetVariableEntity(i);
             int index = equation->GetEntityVariableIndex(i);
             if (entity->GetFirstRelatedEquation(index) == equation) {
-                SketchEquation* next = equation->GetNextRelatedEquation(index);
+                SketchEquation* next = equation->GetNextRelatedEquation(entity, index);
                 entity->SetFirstRelatedEquation(index, next);
                 if (next) {
-                    next->SetPrevRelatedEquation(index, nullptr);
+                    next->SetPrevRelatedEquation(entity, index, nullptr);
                 }
             }
             else {
-                SketchEquation* prev = equation->GetPrevRelatedEquation(index);
-                SketchEquation* next = equation->GetNextRelatedEquation(index);
-                prev->SetNextRelatedEquation(index, next);
+                SketchEquation* prev = equation->GetPrevRelatedEquation(entity, index);
+                SketchEquation* next = equation->GetNextRelatedEquation(entity, index);
+                prev->SetNextRelatedEquation(entity, index, next);
                 if (next) {
-                    next->SetPrevRelatedEquation(index, prev);
+                    next->SetPrevRelatedEquation(entity, index, prev);
                 }
             }
-            equation->SetPrevRelatedEquation(index, nullptr);
-            equation->SetNextRelatedEquation(index, nullptr);
+            equation->SetPrevRelatedEquation(entity, index, nullptr);
+            equation->SetNextRelatedEquation(entity, index, nullptr);
         }
     }
 
@@ -555,19 +555,19 @@ namespace wgp {
         return m_variable_index;
     }
 
-    SketchEquation* SketchEquation1V::GetNextRelatedEquation(int index) {
+    SketchEquation* SketchEquation1V::GetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index) {
         return m_next_related_equation;
     }
 
-    void SketchEquation1V::SetNextRelatedEquation(int index, SketchEquation* equation) {
+    void SketchEquation1V::SetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation) {
         m_next_related_equation = equation;
     }
 
-    SketchEquation* SketchEquation1V::GetPrevRelatedEquation(int index) {
+    SketchEquation* SketchEquation1V::GetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index) {
         return m_prev_related_equation;
     }
 
-    void SketchEquation1V::SetPrevRelatedEquation(int index, SketchEquation* equation) {
+    void SketchEquation1V::SetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation) {
         m_prev_related_equation = equation;
     }
 
@@ -600,36 +600,36 @@ namespace wgp {
         return m_variable_indices[index];
     }
 
-    SketchEquation* SketchEquation2V::GetNextRelatedEquation(int index) {
+    SketchEquation* SketchEquation2V::GetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index) {
         for (int i = 0; i < 2; ++i) {
-            if (m_variable_indices[i] == index) {
+            if (m_entities[i] == entity && m_variable_indices[i] == entity_variable_index) {
                 return m_next_related_equations[i];
             }
         }
         return nullptr;
     }
 
-    void SketchEquation2V::SetNextRelatedEquation(int index, SketchEquation* equation) {
+    void SketchEquation2V::SetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation) {
         for (int i = 0; i < 2; ++i) {
-            if (m_variable_indices[i] == index) {
+            if (m_entities[i] == entity && m_variable_indices[i] == entity_variable_index) {
                 m_next_related_equations[i] = equation;
                 break;
             }
         }
     }
 
-    SketchEquation* SketchEquation2V::GetPrevRelatedEquation(int index) {
+    SketchEquation* SketchEquation2V::GetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index) {
         for (int i = 0; i < 2; ++i) {
-            if (m_variable_indices[i] == index) {
+            if (m_entities[i] == entity && m_variable_indices[i] == entity_variable_index) {
                 return m_prev_related_equations[i];
             }
         }
         return nullptr;
     }
 
-    void SketchEquation2V::SetPrevRelatedEquation(int index, SketchEquation* equation) {
+    void SketchEquation2V::SetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation) {
         for (int i = 0; i < 2; ++i) {
-            if (m_variable_indices[i] == index) {
+            if (m_entities[i] == entity && m_variable_indices[i] == entity_variable_index) {
                 m_prev_related_equations[i] = equation;
                 break;
             }
@@ -675,36 +675,36 @@ namespace wgp {
         return m_variable_indices[index];
     }
 
-    SketchEquation* SketchEquation4V::GetNextRelatedEquation(int index) {
+    SketchEquation* SketchEquation4V::GetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index) {
         for (int i = 0; i < 4; ++i) {
-            if (m_variable_indices[i] == index) {
+            if (m_entities[i] == entity && m_variable_indices[i] == entity_variable_index) {
                 return m_next_related_equations[i];
             }
         }
         return nullptr;
     }
 
-    void SketchEquation4V::SetNextRelatedEquation(int index, SketchEquation* equation) {
+    void SketchEquation4V::SetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation) {
         for (int i = 0; i < 4; ++i) {
-            if (m_variable_indices[i] == index) {
+            if (m_entities[i] == entity && m_variable_indices[i] == entity_variable_index) {
                 m_next_related_equations[i] = equation;
                 break;
             }
         }
     }
 
-    SketchEquation* SketchEquation4V::GetPrevRelatedEquation(int index) {
+    SketchEquation* SketchEquation4V::GetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index) {
         for (int i = 0; i < 4; ++i) {
-            if (m_variable_indices[i] == index) {
+            if (m_entities[i] == entity && m_variable_indices[i] == entity_variable_index) {
                 return m_prev_related_equations[i];
             }
         }
         return nullptr;
     }
 
-    void SketchEquation4V::SetPrevRelatedEquation(int index, SketchEquation* equation) {
+    void SketchEquation4V::SetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation) {
         for (int i = 0; i < 4; ++i) {
-            if (m_variable_indices[i] == index) {
+            if (m_entities[i] == entity && m_variable_indices[i] == entity_variable_index) {
                 m_prev_related_equations[i] = equation;
                 break;
             }
@@ -755,36 +755,36 @@ namespace wgp {
         return m_variable_indices[index];
     }
 
-    SketchEquation* SketchEquation5V::GetNextRelatedEquation(int index) {
+    SketchEquation* SketchEquation5V::GetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index) {
         for (int i = 0; i < 5; ++i) {
-            if (m_variable_indices[i] == index) {
+            if (m_entities[i] == entity && m_variable_indices[i] == entity_variable_index) {
                 return m_next_related_equations[i];
             }
         }
         return nullptr;
     }
 
-    void SketchEquation5V::SetNextRelatedEquation(int index, SketchEquation* equation) {
+    void SketchEquation5V::SetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation) {
         for (int i = 0; i < 5; ++i) {
-            if (m_variable_indices[i] == index) {
+            if (m_entities[i] == entity && m_variable_indices[i] == entity_variable_index) {
                 m_next_related_equations[i] = equation;
                 break;
             }
         }
     }
 
-    SketchEquation* SketchEquation5V::GetPrevRelatedEquation(int index) {
+    SketchEquation* SketchEquation5V::GetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index) {
         for (int i = 0; i < 5; ++i) {
-            if (m_variable_indices[i] == index) {
+            if (m_entities[i] == entity && m_variable_indices[i] == entity_variable_index) {
                 return m_prev_related_equations[i];
             }
         }
         return nullptr;
     }
 
-    void SketchEquation5V::SetPrevRelatedEquation(int index, SketchEquation* equation) {
+    void SketchEquation5V::SetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation) {
         for (int i = 0; i < 5; ++i) {
-            if (m_variable_indices[i] == index) {
+            if (m_entities[i] == entity && m_variable_indices[i] == entity_variable_index) {
                 m_prev_related_equations[i] = equation;
                 break;
             }
@@ -792,6 +792,201 @@ namespace wgp {
     }
 
     double SketchEquation5V::GetValueEpsilon(const SketchVector& variable) {
+        return m_epsilon;
+    }
+
+    SketchEquation8V::SketchEquation8V(SketchVariableEntity* entity0, int variable_index0,
+        SketchVariableEntity* entity1, int variable_index1,
+        SketchVariableEntity* entity2, int variable_index2,
+        SketchVariableEntity* entity3, int variable_index3,
+        SketchVariableEntity* entity4, int variable_index4,
+        SketchVariableEntity* entity5, int variable_index5,
+        SketchVariableEntity* entity6, int variable_index6,
+        SketchVariableEntity* entity7, int variable_index7, double epsilon) {
+        m_entities[0] = entity0;
+        m_entities[1] = entity1;
+        m_entities[2] = entity2;
+        m_entities[3] = entity3;
+        m_entities[4] = entity4;
+        m_entities[5] = entity5;
+        m_entities[6] = entity6;
+        m_entities[7] = entity7;
+        m_variable_indices[0] = variable_index0;
+        m_variable_indices[1] = variable_index1;
+        m_variable_indices[2] = variable_index2;
+        m_variable_indices[3] = variable_index3;
+        m_variable_indices[4] = variable_index4;
+        m_variable_indices[5] = variable_index5;
+        m_variable_indices[6] = variable_index6;
+        m_variable_indices[7] = variable_index7;
+        m_next_related_equations[0] = nullptr;
+        m_next_related_equations[1] = nullptr;
+        m_next_related_equations[2] = nullptr;
+        m_next_related_equations[3] = nullptr;
+        m_next_related_equations[4] = nullptr;
+        m_next_related_equations[5] = nullptr;
+        m_next_related_equations[6] = nullptr;
+        m_next_related_equations[7] = nullptr;
+        m_prev_related_equations[0] = nullptr;
+        m_prev_related_equations[1] = nullptr;
+        m_prev_related_equations[2] = nullptr;
+        m_prev_related_equations[3] = nullptr;
+        m_prev_related_equations[4] = nullptr;
+        m_prev_related_equations[5] = nullptr;
+        m_prev_related_equations[6] = nullptr;
+        m_prev_related_equations[7] = nullptr;
+        m_epsilon = epsilon;
+    }
+
+    int SketchEquation8V::GetVariableCount() {
+        return 8;
+    }
+
+    SketchVariableEntity* SketchEquation8V::GetVariableEntity(int index) {
+        return m_entities[index];
+    }
+
+    int SketchEquation8V::GetEntityVariableIndex(int index) {
+        return m_variable_indices[index];
+    }
+
+    SketchEquation* SketchEquation8V::GetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index) {
+        for (int i = 0; i < 8; ++i) {
+            if (m_entities[i] == entity && m_variable_indices[i] == entity_variable_index) {
+                return m_next_related_equations[i];
+            }
+        }
+        return nullptr;
+    }
+
+    void SketchEquation8V::SetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation) {
+        for (int i = 0; i < 8; ++i) {
+            if (m_entities[i] == entity && m_variable_indices[i] == entity_variable_index) {
+                m_next_related_equations[i] = equation;
+                break;
+            }
+        }
+    }
+
+    SketchEquation* SketchEquation8V::GetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index) {
+        for (int i = 0; i < 8; ++i) {
+            if (m_entities[i] == entity && m_variable_indices[i] == entity_variable_index) {
+                return m_prev_related_equations[i];
+            }
+        }
+        return nullptr;
+    }
+
+    void SketchEquation8V::SetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation) {
+        for (int i = 0; i < 8; ++i) {
+            if (m_entities[i] == entity && m_variable_indices[i] == entity_variable_index) {
+                m_prev_related_equations[i] = equation;
+                break;
+            }
+        }
+    }
+
+    double SketchEquation8V::GetValueEpsilon(const SketchVector& variable) {
+        return m_epsilon;
+    }
+
+    SketchEquation9V::SketchEquation9V(SketchVariableEntity* entity0, int variable_index0,
+        SketchVariableEntity* entity1, int variable_index1,
+        SketchVariableEntity* entity2, int variable_index2,
+        SketchVariableEntity* entity3, int variable_index3,
+        SketchVariableEntity* entity4, int variable_index4,
+        SketchVariableEntity* entity5, int variable_index5,
+        SketchVariableEntity* entity6, int variable_index6,
+        SketchVariableEntity* entity7, int variable_index7, 
+        SketchVariableEntity* entity8, int variable_index8, double epsilon) {
+        m_entities[0] = entity0;
+        m_entities[1] = entity1;
+        m_entities[2] = entity2;
+        m_entities[3] = entity3;
+        m_entities[4] = entity4;
+        m_entities[5] = entity5;
+        m_entities[6] = entity6;
+        m_entities[7] = entity7;
+        m_entities[8] = entity8;
+        m_variable_indices[0] = variable_index0;
+        m_variable_indices[1] = variable_index1;
+        m_variable_indices[2] = variable_index2;
+        m_variable_indices[3] = variable_index3;
+        m_variable_indices[4] = variable_index4;
+        m_variable_indices[5] = variable_index5;
+        m_variable_indices[6] = variable_index6;
+        m_variable_indices[7] = variable_index7;
+        m_variable_indices[8] = variable_index8;
+        m_next_related_equations[0] = nullptr;
+        m_next_related_equations[1] = nullptr;
+        m_next_related_equations[2] = nullptr;
+        m_next_related_equations[3] = nullptr;
+        m_next_related_equations[4] = nullptr;
+        m_next_related_equations[5] = nullptr;
+        m_next_related_equations[6] = nullptr;
+        m_next_related_equations[7] = nullptr;
+        m_next_related_equations[8] = nullptr;
+        m_prev_related_equations[0] = nullptr;
+        m_prev_related_equations[1] = nullptr;
+        m_prev_related_equations[2] = nullptr;
+        m_prev_related_equations[3] = nullptr;
+        m_prev_related_equations[4] = nullptr;
+        m_prev_related_equations[5] = nullptr;
+        m_prev_related_equations[6] = nullptr;
+        m_prev_related_equations[7] = nullptr;
+        m_prev_related_equations[8] = nullptr;
+        m_epsilon = epsilon;
+    }
+
+    int SketchEquation9V::GetVariableCount() {
+        return 9;
+    }
+
+    SketchVariableEntity* SketchEquation9V::GetVariableEntity(int index) {
+        return m_entities[index];
+    }
+
+    int SketchEquation9V::GetEntityVariableIndex(int index) {
+        return m_variable_indices[index];
+    }
+
+    SketchEquation* SketchEquation9V::GetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index) {
+        for (int i = 0; i < 9; ++i) {
+            if (m_entities[i] == entity && m_variable_indices[i] == entity_variable_index) {
+                return m_next_related_equations[i];
+            }
+        }
+        return nullptr;
+    }
+
+    void SketchEquation9V::SetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation) {
+        for (int i = 0; i < 9; ++i) {
+            if (m_entities[i] == entity && m_variable_indices[i] == entity_variable_index) {
+                m_next_related_equations[i] = equation;
+                break;
+            }
+        }
+    }
+
+    SketchEquation* SketchEquation9V::GetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index) {
+        for (int i = 0; i < 9; ++i) {
+            if (m_entities[i] == entity && m_variable_indices[i] == entity_variable_index) {
+                return m_prev_related_equations[i];
+            }
+        }
+        return nullptr;
+    }
+
+    void SketchEquation9V::SetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation) {
+        for (int i = 0; i < 9; ++i) {
+            if (m_entities[i] == entity && m_variable_indices[i] == entity_variable_index) {
+                m_prev_related_equations[i] = equation;
+                break;
+            }
+        }
+    }
+
+    double SketchEquation9V::GetValueEpsilon(const SketchVector& variable) {
         return m_epsilon;
     }
 
@@ -944,7 +1139,7 @@ namespace wgp {
                     vt2.m_state[index] = 1;
                     vt2.m_calculated = true;
                 }
-                else if (d >= a.Max + g_double_epsilon) {
+                else if (d >= a.Max - g_double_epsilon) {
                     vt1.m_data.Set(index, a.Max);
                     vt1.m_calculated = false;
                     vt2.m_state[index] = 1;
@@ -1020,7 +1215,7 @@ namespace wgp {
                         if (equation2->m_current_equation_index == -1) {
                             DfsCurrent(equation2);
                         }
-                        equation2 = equation2->GetNextRelatedEquation(entity_variable->Index);
+                        equation2 = equation2->GetNextRelatedEquation(entity_variable->Entity, entity_variable->Index);
                     }
                     SketchVariable initial_variable(m_current_variables.GetCount());
                     initial_variable.m_solver = this;
@@ -1242,7 +1437,7 @@ namespace wgp {
                     if (equation2->m_current_equation_index == -1) {
                         DfsActived(equation2);
                     }
-                    equation2 = equation2->GetNextRelatedEquation(index);
+                    equation2 = equation2->GetNextRelatedEquation(entity, index);
                 }
             }
         }
@@ -1266,7 +1461,7 @@ namespace wgp {
                     if (equation2->m_current_equation_index == -1) {
                         DfsCurrent(equation2);
                     }
-                    equation2 = equation2->GetNextRelatedEquation(index);
+                    equation2 = equation2->GetNextRelatedEquation(entity, index);
                 }
             }
         }

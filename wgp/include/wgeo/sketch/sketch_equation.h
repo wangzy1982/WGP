@@ -58,12 +58,38 @@ namespace wgp {
     class WGP_API SketchLine2dAngleEquation : public SketchEquation5V {
     public:
         SketchLine2dAngleEquation(SketchVariableEntity* entity, 
-            int x_variable_index0, int y_variable_index0, int x_variable_index1, int y_variable_index1,
+            int start_x_variable_index, int start_y_variable_index, int end_x_variable_index, int end_y_variable_index,
             SketchVariableEntity* angle_entity, int angle_variable_index, double epsilon);
         virtual bool CheckCurrent();
         virtual void CalculateValue(const SketchVector& variable, SketchVector& value);
         virtual void CalculatePartialDerivative(const SketchVector& variable, SketchMatrix& partial_derivative);
         virtual double GetValueEpsilon(const SketchVector& variable);
+    };
+
+    class WGP_API SketchLine2dLine2dAngleEquation : public SketchEquation9V {
+    public:
+        SketchLine2dLine2dAngleEquation(
+            SketchVariableEntity* entity0, int start_x_variable_index0, int start_y_variable_index0, int end_x_variable_index0, int end_y_variable_index0,
+            SketchVariableEntity* entity1, int start_x_variable_index1, int start_y_variable_index1, int end_x_variable_index1, int end_y_variable_index1,
+            SketchVariableEntity* angle_entity, int angle_variable_index, double epsilon);
+        virtual bool CheckCurrent();
+        virtual void CalculateValue(const SketchVector& variable, SketchVector& value);
+        virtual void CalculatePartialDerivative(const SketchVector& variable, SketchMatrix& partial_derivative);
+        virtual double GetValueEpsilon(const SketchVector& variable);
+    };
+
+    class WGP_API SketchFixLine2dLine2dAngleEquation : public SketchEquation8V {
+    public:
+        SketchFixLine2dLine2dAngleEquation(
+            SketchVariableEntity* entity0, int start_x_variable_index0, int start_y_variable_index0, int end_x_variable_index0, int end_y_variable_index0,
+            SketchVariableEntity* entity1, int start_x_variable_index1, int start_y_variable_index1, int end_x_variable_index1, int end_y_variable_index1,
+            double angle, double epsilon);
+        virtual bool CheckCurrent();
+        virtual void CalculateValue(const SketchVector& variable, SketchVector& value);
+        virtual void CalculatePartialDerivative(const SketchVector& variable, SketchMatrix& partial_derivative);
+        virtual double GetValueEpsilon(const SketchVector& variable);
+    public:
+        double m_angle;
     };
 
 }

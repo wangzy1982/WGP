@@ -73,10 +73,10 @@ namespace wgp {
         virtual int GetVariableCount() = 0;
         virtual SketchVariableEntity* GetVariableEntity(int index) = 0;
         virtual int GetEntityVariableIndex(int index) = 0;
-        virtual SketchEquation* GetNextRelatedEquation(int index) = 0;
-        virtual void SetNextRelatedEquation(int index, SketchEquation* equation) = 0;
-        virtual SketchEquation* GetPrevRelatedEquation(int index) = 0;
-        virtual void SetPrevRelatedEquation(int index, SketchEquation* equation) = 0;
+        virtual SketchEquation* GetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index) = 0;
+        virtual void SetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation) = 0;
+        virtual SketchEquation* GetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index) = 0;
+        virtual void SetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation) = 0;
         virtual double GetValueEpsilon(const SketchVector& variable) = 0;
         virtual bool CheckCurrent() = 0;
         virtual void CalculateValue(const SketchVector& variable, SketchVector& value) = 0;
@@ -245,10 +245,10 @@ namespace wgp {
         virtual int GetVariableCount();
         virtual SketchVariableEntity* GetVariableEntity(int index);
         virtual int GetEntityVariableIndex(int index);
-        virtual SketchEquation* GetNextRelatedEquation(int index);
-        virtual void SetNextRelatedEquation(int index, SketchEquation* equation);
-        virtual SketchEquation* GetPrevRelatedEquation(int index);
-        virtual void SetPrevRelatedEquation(int index, SketchEquation* equation);
+        virtual SketchEquation* GetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index);
+        virtual void SetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation);
+        virtual SketchEquation* GetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index);
+        virtual void SetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation);
         virtual double GetValueEpsilon(const SketchVector& variable);
     protected:
         SketchVariableEntity* m_entity;
@@ -265,10 +265,10 @@ namespace wgp {
         virtual int GetVariableCount();
         virtual SketchVariableEntity* GetVariableEntity(int index);
         virtual int GetEntityVariableIndex(int index);
-        virtual SketchEquation* GetNextRelatedEquation(int index);
-        virtual void SetNextRelatedEquation(int index, SketchEquation* equation);
-        virtual SketchEquation* GetPrevRelatedEquation(int index);
-        virtual void SetPrevRelatedEquation(int index, SketchEquation* equation);
+        virtual SketchEquation* GetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index);
+        virtual void SetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation);
+        virtual SketchEquation* GetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index);
+        virtual void SetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation);
         virtual double GetValueEpsilon(const SketchVector& variable);
     protected:
         SketchVariableEntity* m_entities[2];
@@ -287,10 +287,10 @@ namespace wgp {
         virtual int GetVariableCount();
         virtual SketchVariableEntity* GetVariableEntity(int index);
         virtual int GetEntityVariableIndex(int index);
-        virtual SketchEquation* GetNextRelatedEquation(int index);
-        virtual void SetNextRelatedEquation(int index, SketchEquation* equation);
-        virtual SketchEquation* GetPrevRelatedEquation(int index);
-        virtual void SetPrevRelatedEquation(int index, SketchEquation* equation);
+        virtual SketchEquation* GetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index);
+        virtual void SetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation);
+        virtual SketchEquation* GetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index);
+        virtual void SetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation);
         virtual double GetValueEpsilon(const SketchVector& variable);
     protected:
         SketchVariableEntity* m_entities[4];
@@ -310,16 +310,69 @@ namespace wgp {
         virtual int GetVariableCount();
         virtual SketchVariableEntity* GetVariableEntity(int index);
         virtual int GetEntityVariableIndex(int index);
-        virtual SketchEquation* GetNextRelatedEquation(int index);
-        virtual void SetNextRelatedEquation(int index, SketchEquation* equation);
-        virtual SketchEquation* GetPrevRelatedEquation(int index);
-        virtual void SetPrevRelatedEquation(int index, SketchEquation* equation);
+        virtual SketchEquation* GetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index);
+        virtual void SetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation);
+        virtual SketchEquation* GetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index);
+        virtual void SetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation);
         virtual double GetValueEpsilon(const SketchVector& variable);
     protected:
         SketchVariableEntity* m_entities[5];
         int m_variable_indices[5];
         SketchEquation* m_next_related_equations[5];
         SketchEquation* m_prev_related_equations[5];
+        double m_epsilon;
+    };
+
+    class WGP_API SketchEquation8V : public SketchEquation {
+    public:
+        SketchEquation8V(SketchVariableEntity* entity0, int variable_index0,
+            SketchVariableEntity* entity1, int variable_index1,
+            SketchVariableEntity* entity2, int variable_index2,
+            SketchVariableEntity* entity3, int variable_index3,
+            SketchVariableEntity* entity4, int variable_index4,
+            SketchVariableEntity* entity5, int variable_index5,
+            SketchVariableEntity* entity6, int variable_index6,
+            SketchVariableEntity* entity7, int variable_index7, double epsilon);
+        virtual int GetVariableCount();
+        virtual SketchVariableEntity* GetVariableEntity(int index);
+        virtual int GetEntityVariableIndex(int index);
+        virtual SketchEquation* GetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index);
+        virtual void SetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation);
+        virtual SketchEquation* GetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index);
+        virtual void SetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation);
+        virtual double GetValueEpsilon(const SketchVector& variable);
+    protected:
+        SketchVariableEntity* m_entities[8];
+        int m_variable_indices[8];
+        SketchEquation* m_next_related_equations[8];
+        SketchEquation* m_prev_related_equations[8];
+        double m_epsilon;
+    };
+
+    class WGP_API SketchEquation9V : public SketchEquation {
+    public:
+        SketchEquation9V(SketchVariableEntity* entity0, int variable_index0,
+            SketchVariableEntity* entity1, int variable_index1,
+            SketchVariableEntity* entity2, int variable_index2,
+            SketchVariableEntity* entity3, int variable_index3,
+            SketchVariableEntity* entity4, int variable_index4,
+            SketchVariableEntity* entity5, int variable_index5,
+            SketchVariableEntity* entity6, int variable_index6,
+            SketchVariableEntity* entity7, int variable_index7, 
+            SketchVariableEntity* entity8, int variable_index8, double epsilon);
+        virtual int GetVariableCount();
+        virtual SketchVariableEntity* GetVariableEntity(int index);
+        virtual int GetEntityVariableIndex(int index);
+        virtual SketchEquation* GetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index);
+        virtual void SetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation);
+        virtual SketchEquation* GetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index);
+        virtual void SetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation);
+        virtual double GetValueEpsilon(const SketchVector& variable);
+    protected:
+        SketchVariableEntity* m_entities[9];
+        int m_variable_indices[9];
+        SketchEquation* m_next_related_equations[9];
+        SketchEquation* m_prev_related_equations[9];
         double m_epsilon;
     };
 

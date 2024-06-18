@@ -174,10 +174,10 @@ namespace wgp {
     }
 
     SketchLine2dAngleEquation::SketchLine2dAngleEquation(SketchVariableEntity* entity,
-        int x_variable_index0, int y_variable_index0, int x_variable_index1, int y_variable_index1,
+        int start_x_variable_index, int start_y_variable_index, int end_x_variable_index, int end_y_variable_index,
         SketchVariableEntity* angle_entity, int angle_variable_index, double epsilon) : 
-        SketchEquation5V(entity, x_variable_index0, entity, y_variable_index0,
-            entity, x_variable_index1, entity, y_variable_index1,
+        SketchEquation5V(entity, start_x_variable_index, entity, start_y_variable_index,
+            entity, end_x_variable_index, entity, end_y_variable_index,
             angle_entity, angle_variable_index, epsilon) {
     }
 
@@ -256,5 +256,280 @@ namespace wgp {
         return d;
     }
 
+    SketchLine2dLine2dAngleEquation::SketchLine2dLine2dAngleEquation(
+        SketchVariableEntity* entity0, int start_x_variable_index0, int start_y_variable_index0, int end_x_variable_index0, int end_y_variable_index0,
+        SketchVariableEntity* entity1, int start_x_variable_index1, int start_y_variable_index1, int end_x_variable_index1, int end_y_variable_index1,
+        SketchVariableEntity* angle_entity, int angle_variable_index, double epsilon) :
+        SketchEquation9V(entity0, start_x_variable_index0, entity0, start_y_variable_index0,
+            entity0, end_x_variable_index0, entity0, end_y_variable_index0, 
+            entity1, start_x_variable_index1, entity1, start_y_variable_index1,
+            entity1, end_x_variable_index1, entity1, end_y_variable_index1,
+            angle_entity, angle_variable_index, epsilon) {
+    }
 
+    bool SketchLine2dLine2dAngleEquation::CheckCurrent() {
+        double start_x0 = m_entities[0]->GetCurrentVariable(m_variable_indices[0]);
+        double start_y0 = m_entities[1]->GetCurrentVariable(m_variable_indices[1]);
+        double end_x0 = m_entities[2]->GetCurrentVariable(m_variable_indices[2]);
+        double end_y0 = m_entities[3]->GetCurrentVariable(m_variable_indices[3]);
+        double start_x1 = m_entities[4]->GetCurrentVariable(m_variable_indices[4]);
+        double start_y1 = m_entities[5]->GetCurrentVariable(m_variable_indices[5]);
+        double end_x1 = m_entities[6]->GetCurrentVariable(m_variable_indices[6]);
+        double end_y1 = m_entities[7]->GetCurrentVariable(m_variable_indices[7]);
+        double angle = m_entities[8]->GetCurrentVariable(m_variable_indices[8]);
+        double a = cos(angle);
+        double b = sin(angle);
+        double x0 = end_x0 - start_x0;
+        double y0 = end_y0 - start_y0;
+        double x1 = end_x1 - start_x1;
+        double y1 = end_y1 - start_y1;
+        double d1 = (a * x0 - b * y0) * x1 + (b * x0 + a * y0) * y1;
+        double d2 = sqrt(x0 * x0 + y0 * y0);
+        double d3 = sqrt(x1 * x1 + y1 * y1);
+        double epsilon = d2 < d3 ? d2 * m_epsilon : d3 * m_epsilon;
+        if (epsilon <= g_double_epsilon) {
+            epsilon = g_double_epsilon;
+        }
+        return double_equals(d1, d2 * d3, epsilon);
+    }
+
+    void SketchLine2dLine2dAngleEquation::CalculateValue(const SketchVector& variable, SketchVector& value) {
+        int start_x_index0 = m_entities[0]->GetCurrentVariableIndex(m_variable_indices[0]);
+        int start_y_index0 = m_entities[1]->GetCurrentVariableIndex(m_variable_indices[1]);
+        int end_x_index0 = m_entities[2]->GetCurrentVariableIndex(m_variable_indices[2]);
+        int end_y_index0 = m_entities[3]->GetCurrentVariableIndex(m_variable_indices[3]);
+        int start_x_index1 = m_entities[4]->GetCurrentVariableIndex(m_variable_indices[4]);
+        int start_y_index1 = m_entities[5]->GetCurrentVariableIndex(m_variable_indices[5]);
+        int end_x_index1 = m_entities[6]->GetCurrentVariableIndex(m_variable_indices[6]);
+        int end_y_index1 = m_entities[7]->GetCurrentVariableIndex(m_variable_indices[7]);
+        int angle_index = m_entities[8]->GetCurrentVariableIndex(m_variable_indices[8]);
+        Interval start_x0 = variable.Get(start_x_index0);
+        Interval start_y0 = variable.Get(start_y_index0);
+        Interval end_x0 = variable.Get(end_x_index0);
+        Interval end_y0 = variable.Get(end_y_index0);
+        Interval start_x1 = variable.Get(start_x_index1);
+        Interval start_y1 = variable.Get(start_y_index1);
+        Interval end_x1 = variable.Get(end_x_index1);
+        Interval end_y1 = variable.Get(end_y_index1);
+        Interval angle = variable.Get(angle_index);
+        Interval a, b;
+        sincos(angle, &b, &a);
+        Interval x0 = end_x0 - start_x0;
+        Interval y0 = end_y0 - start_y0;
+        Interval x1 = end_x1 - start_x1;
+        Interval y1 = end_y1 - start_y1;
+        Interval d1 = sqr((a * x0 - b * y0) * x1 + (b * x0 + a * y0) * y1);
+        Interval d2 = sqr(x0) + sqr(y0);
+        Interval d3 = sqr(x1) + sqr(y1);
+        value.Set(m_current_equation_index, d1 - d2 * d3);
+    }
+
+    void SketchLine2dLine2dAngleEquation::CalculatePartialDerivative(const SketchVector& variable, SketchMatrix& partial_derivative) {
+        int start_x_index0 = m_entities[0]->GetCurrentVariableIndex(m_variable_indices[0]);
+        int start_y_index0 = m_entities[1]->GetCurrentVariableIndex(m_variable_indices[1]);
+        int end_x_index0 = m_entities[2]->GetCurrentVariableIndex(m_variable_indices[2]);
+        int end_y_index0 = m_entities[3]->GetCurrentVariableIndex(m_variable_indices[3]);
+        int start_x_index1 = m_entities[4]->GetCurrentVariableIndex(m_variable_indices[4]);
+        int start_y_index1 = m_entities[5]->GetCurrentVariableIndex(m_variable_indices[5]);
+        int end_x_index1 = m_entities[6]->GetCurrentVariableIndex(m_variable_indices[6]);
+        int end_y_index1 = m_entities[7]->GetCurrentVariableIndex(m_variable_indices[7]);
+        int angle_index = m_entities[8]->GetCurrentVariableIndex(m_variable_indices[8]);
+        Interval start_x0 = variable.Get(start_x_index0);
+        Interval start_y0 = variable.Get(start_y_index0);
+        Interval end_x0 = variable.Get(end_x_index0);
+        Interval end_y0 = variable.Get(end_y_index0);
+        Interval start_x1 = variable.Get(start_x_index1);
+        Interval start_y1 = variable.Get(start_y_index1);
+        Interval end_x1 = variable.Get(end_x_index1);
+        Interval end_y1 = variable.Get(end_y_index1);
+        Interval angle = variable.Get(angle_index);
+        Interval a, b;
+        sincos(angle, &b, &a);
+        Interval x0 = end_x0 - start_x0;
+        Interval y0 = end_y0 - start_y0;
+        Interval x1 = end_x1 - start_x1;
+        Interval y1 = end_y1 - start_y1;
+        Interval d1 = sqr((a * x0 - b * y0) * x1 + (b * x0 + a * y0) * y1);
+        Interval d2 = sqr(x0) + sqr(y0);
+        Interval d3 = sqr(x1) + sqr(y1);
+        Interval dx0 = 2 * d1 * (a * x1 + b * y1) - 2 * x0 * d3;
+        Interval dy0 = 2 * d1 * (-b * x1 + a * y1) - 2 * y0 * d3;
+        Interval dx1 = 2 * d1 * (a * x0 - b * y0) - 2 * x1 * d2;
+        Interval dy1 = 2 * d1 * (b * x0 + a * y0) - 2 * y1 * d2;
+        Interval da = 2 * d1 * (x1 * (-b * x0 - a * y0) + y1 * (a * x0 - b * y0));
+        *partial_derivative.Get(m_current_equation_index, start_x_index0) = -dx0;
+        *partial_derivative.Get(m_current_equation_index, start_y_index0) = -dy0;
+        *partial_derivative.Get(m_current_equation_index, end_x_index0) = dx0;
+        *partial_derivative.Get(m_current_equation_index, end_y_index0) = dy0;
+        *partial_derivative.Get(m_current_equation_index, start_x_index1) = -dx1;
+        *partial_derivative.Get(m_current_equation_index, start_y_index1) = -dy1;
+        *partial_derivative.Get(m_current_equation_index, end_x_index1) = dx1;
+        *partial_derivative.Get(m_current_equation_index, end_y_index1) = dy1;
+        *partial_derivative.Get(m_current_equation_index, angle_index) = da;
+    }
+
+    double SketchLine2dLine2dAngleEquation::GetValueEpsilon(const SketchVector& variable) {
+        int start_x_index0 = m_entities[0]->GetCurrentVariableIndex(m_variable_indices[0]);
+        int start_y_index0 = m_entities[1]->GetCurrentVariableIndex(m_variable_indices[1]);
+        int end_x_index0 = m_entities[2]->GetCurrentVariableIndex(m_variable_indices[2]);
+        int end_y_index0 = m_entities[3]->GetCurrentVariableIndex(m_variable_indices[3]);
+        int start_x_index1 = m_entities[4]->GetCurrentVariableIndex(m_variable_indices[4]);
+        int start_y_index1 = m_entities[5]->GetCurrentVariableIndex(m_variable_indices[5]);
+        int end_x_index1 = m_entities[6]->GetCurrentVariableIndex(m_variable_indices[6]);
+        int end_y_index1 = m_entities[7]->GetCurrentVariableIndex(m_variable_indices[7]);
+        Interval start_x0 = variable.Get(start_x_index0);
+        Interval start_y0 = variable.Get(start_y_index0);
+        Interval end_x0 = variable.Get(end_x_index0);
+        Interval end_y0 = variable.Get(end_y_index0);
+        Interval start_x1 = variable.Get(start_x_index1);
+        Interval start_y1 = variable.Get(start_y_index1);
+        Interval end_x1 = variable.Get(end_x_index1);
+        Interval end_y1 = variable.Get(end_y_index1);
+        Interval x0 = end_x0 - start_x0;
+        Interval y0 = end_y0 - start_y0;
+        Interval x1 = end_x1 - start_x1;
+        Interval y1 = end_y1 - start_y1;
+        Interval d2 = sqrt(sqr(x0) + sqr(y0));
+        Interval d3 = sqrt(sqr(x1) + sqr(y1));
+        double epsilon = (d2.Min < d3.Min ? d2.Min * m_epsilon : d3.Min * m_epsilon) * (d2 * d3).Min;
+        if (epsilon <= g_double_epsilon) {
+            epsilon = g_double_epsilon;
+        }
+        return epsilon;
+    }
+
+    SketchFixLine2dLine2dAngleEquation::SketchFixLine2dLine2dAngleEquation(
+        SketchVariableEntity* entity0, int start_x_variable_index0, int start_y_variable_index0, int end_x_variable_index0, int end_y_variable_index0,
+        SketchVariableEntity* entity1, int start_x_variable_index1, int start_y_variable_index1, int end_x_variable_index1, int end_y_variable_index1,
+        double angle, double epsilon) :
+        SketchEquation8V(entity0, start_x_variable_index0, entity0, start_y_variable_index0,
+            entity0, end_x_variable_index0, entity0, end_y_variable_index0,
+            entity1, start_x_variable_index1, entity1, start_y_variable_index1,
+            entity1, end_x_variable_index1, entity1, end_y_variable_index1, epsilon),
+        m_angle(angle) {
+    }
+
+    bool SketchFixLine2dLine2dAngleEquation::CheckCurrent() {
+        double start_x0 = m_entities[0]->GetCurrentVariable(m_variable_indices[0]);
+        double start_y0 = m_entities[1]->GetCurrentVariable(m_variable_indices[1]);
+        double end_x0 = m_entities[2]->GetCurrentVariable(m_variable_indices[2]);
+        double end_y0 = m_entities[3]->GetCurrentVariable(m_variable_indices[3]);
+        double start_x1 = m_entities[4]->GetCurrentVariable(m_variable_indices[4]);
+        double start_y1 = m_entities[5]->GetCurrentVariable(m_variable_indices[5]);
+        double end_x1 = m_entities[6]->GetCurrentVariable(m_variable_indices[6]);
+        double end_y1 = m_entities[7]->GetCurrentVariable(m_variable_indices[7]);
+        double a = cos(m_angle);
+        double b = sin(m_angle);
+        double x0 = end_x0 - start_x0;
+        double y0 = end_y0 - start_y0;
+        double x1 = end_x1 - start_x1;
+        double y1 = end_y1 - start_y1;
+        double d1 = (a * x0 - b * y0) * x1 + (b * x0 + a * y0) * y1;
+        double d2 = sqrt(x0 * x0 + y0 * y0);
+        double d3 = sqrt(x1 * x1 + y1 * y1);
+        double epsilon = d2 < d3 ? d2 * m_epsilon : d3 * m_epsilon;
+        if (epsilon <= g_double_epsilon) {
+            epsilon = g_double_epsilon;
+        }
+        return double_equals(d1, d2 * d3, epsilon);
+    }
+
+    void SketchFixLine2dLine2dAngleEquation::CalculateValue(const SketchVector& variable, SketchVector& value) {
+        int start_x_index0 = m_entities[0]->GetCurrentVariableIndex(m_variable_indices[0]);
+        int start_y_index0 = m_entities[1]->GetCurrentVariableIndex(m_variable_indices[1]);
+        int end_x_index0 = m_entities[2]->GetCurrentVariableIndex(m_variable_indices[2]);
+        int end_y_index0 = m_entities[3]->GetCurrentVariableIndex(m_variable_indices[3]);
+        int start_x_index1 = m_entities[4]->GetCurrentVariableIndex(m_variable_indices[4]);
+        int start_y_index1 = m_entities[5]->GetCurrentVariableIndex(m_variable_indices[5]);
+        int end_x_index1 = m_entities[6]->GetCurrentVariableIndex(m_variable_indices[6]);
+        int end_y_index1 = m_entities[7]->GetCurrentVariableIndex(m_variable_indices[7]);
+        Interval start_x0 = variable.Get(start_x_index0);
+        Interval start_y0 = variable.Get(start_y_index0);
+        Interval end_x0 = variable.Get(end_x_index0);
+        Interval end_y0 = variable.Get(end_y_index0);
+        Interval start_x1 = variable.Get(start_x_index1);
+        Interval start_y1 = variable.Get(start_y_index1);
+        Interval end_x1 = variable.Get(end_x_index1);
+        Interval end_y1 = variable.Get(end_y_index1);
+        double a = cos(m_angle);
+        double b = sin(m_angle);
+        Interval x0 = end_x0 - start_x0;
+        Interval y0 = end_y0 - start_y0;
+        Interval x1 = end_x1 - start_x1;
+        Interval y1 = end_y1 - start_y1;
+        Interval d1 = sqr((a * x0 - b * y0) * x1 + (b * x0 + a * y0) * y1);
+        Interval d2 = sqr(x0) + sqr(y0);
+        Interval d3 = sqr(x1) + sqr(y1);
+        value.Set(m_current_equation_index, d1 - d2 * d3);
+    }
+
+    void SketchFixLine2dLine2dAngleEquation::CalculatePartialDerivative(const SketchVector& variable, SketchMatrix& partial_derivative) {
+        int start_x_index0 = m_entities[0]->GetCurrentVariableIndex(m_variable_indices[0]);
+        int start_y_index0 = m_entities[1]->GetCurrentVariableIndex(m_variable_indices[1]);
+        int end_x_index0 = m_entities[2]->GetCurrentVariableIndex(m_variable_indices[2]);
+        int end_y_index0 = m_entities[3]->GetCurrentVariableIndex(m_variable_indices[3]);
+        int start_x_index1 = m_entities[4]->GetCurrentVariableIndex(m_variable_indices[4]);
+        int start_y_index1 = m_entities[5]->GetCurrentVariableIndex(m_variable_indices[5]);
+        int end_x_index1 = m_entities[6]->GetCurrentVariableIndex(m_variable_indices[6]);
+        int end_y_index1 = m_entities[7]->GetCurrentVariableIndex(m_variable_indices[7]);
+        Interval start_x0 = variable.Get(start_x_index0);
+        Interval start_y0 = variable.Get(start_y_index0);
+        Interval end_x0 = variable.Get(end_x_index0);
+        Interval end_y0 = variable.Get(end_y_index0);
+        Interval start_x1 = variable.Get(start_x_index1);
+        Interval start_y1 = variable.Get(start_y_index1);
+        Interval end_x1 = variable.Get(end_x_index1);
+        Interval end_y1 = variable.Get(end_y_index1);
+        double a = cos(m_angle);
+        double b = sin(m_angle);
+        Interval x0 = end_x0 - start_x0;
+        Interval y0 = end_y0 - start_y0;
+        Interval x1 = end_x1 - start_x1;
+        Interval y1 = end_y1 - start_y1;
+        Interval d1 = sqr((a * x0 - b * y0) * x1 + (b * x0 + a * y0) * y1);
+        Interval d2 = sqr(x0) + sqr(y0);
+        Interval d3 = sqr(x1) + sqr(y1);
+        Interval dx0 = 2 * d1 * (a * x1 + b * y1) - 2 * x0 * d3;
+        Interval dy0 = 2 * d1 * (-b * x1 + a * y1) - 2 * y0 * d3;
+        Interval dx1 = 2 * d1 * (a * x0 - b * y0) - 2 * x1 * d2;
+        Interval dy1 = 2 * d1 * (b * x0 + a * y0) - 2 * y1 * d2;
+        *partial_derivative.Get(m_current_equation_index, start_x_index0) = -dx0;
+        *partial_derivative.Get(m_current_equation_index, start_y_index0) = -dy0;
+        *partial_derivative.Get(m_current_equation_index, end_x_index0) = dx0;
+        *partial_derivative.Get(m_current_equation_index, end_y_index0) = dy0;
+        *partial_derivative.Get(m_current_equation_index, start_x_index1) = -dx1;
+        *partial_derivative.Get(m_current_equation_index, start_y_index1) = -dy1;
+        *partial_derivative.Get(m_current_equation_index, end_x_index1) = dx1;
+        *partial_derivative.Get(m_current_equation_index, end_y_index1) = dy1;
+    }
+
+    double SketchFixLine2dLine2dAngleEquation::GetValueEpsilon(const SketchVector& variable) {
+        int start_x_index0 = m_entities[0]->GetCurrentVariableIndex(m_variable_indices[0]);
+        int start_y_index0 = m_entities[1]->GetCurrentVariableIndex(m_variable_indices[1]);
+        int end_x_index0 = m_entities[2]->GetCurrentVariableIndex(m_variable_indices[2]);
+        int end_y_index0 = m_entities[3]->GetCurrentVariableIndex(m_variable_indices[3]);
+        int start_x_index1 = m_entities[4]->GetCurrentVariableIndex(m_variable_indices[4]);
+        int start_y_index1 = m_entities[5]->GetCurrentVariableIndex(m_variable_indices[5]);
+        int end_x_index1 = m_entities[6]->GetCurrentVariableIndex(m_variable_indices[6]);
+        int end_y_index1 = m_entities[7]->GetCurrentVariableIndex(m_variable_indices[7]);
+        Interval start_x0 = variable.Get(start_x_index0);
+        Interval start_y0 = variable.Get(start_y_index0);
+        Interval end_x0 = variable.Get(end_x_index0);
+        Interval end_y0 = variable.Get(end_y_index0);
+        Interval start_x1 = variable.Get(start_x_index1);
+        Interval start_y1 = variable.Get(start_y_index1);
+        Interval end_x1 = variable.Get(end_x_index1);
+        Interval end_y1 = variable.Get(end_y_index1);
+        Interval x0 = end_x0 - start_x0;
+        Interval y0 = end_y0 - start_y0;
+        Interval x1 = end_x1 - start_x1;
+        Interval y1 = end_y1 - start_y1;
+        Interval d2 = sqrt(sqr(x0) + sqr(y0));
+        Interval d3 = sqrt(sqr(x1) + sqr(y1));
+        double epsilon = (d2.Min < d3.Min ? d2.Min * m_epsilon : d3.Min * m_epsilon) * (d2 * d3).Min;
+        if (epsilon <= g_double_epsilon) {
+            epsilon = g_double_epsilon;
+        }
+        return epsilon;
+    }
 }
