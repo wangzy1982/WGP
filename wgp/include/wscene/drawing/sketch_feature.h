@@ -58,11 +58,17 @@ namespace wgp {
 
     class WGP_API SketchFeature : public Feature {
     public:
-        SketchFeature(ModelInstance* model_instance, SceneId id, FeatureSchema* feature_schema);
+        SketchFeature(Model* model, SceneId id, FeatureSchema* feature_schema);
         virtual ~SketchFeature();
         Sketch* GetSketch() const;
         virtual bool OnChildFieldChanged(Feature* child, FeatureFieldSchema* schema);
+        bool AddGeometry(SketchGeometry* geometry);
+        bool RemoveGeometry(int index);
+        bool AddConstraint(SketchConstraint* constraint, SketchAction* action);
+        bool RemoveConstraint(int index);
         bool Solve(SketchAction* action);
+    protected:
+        bool UpdateChildren();
     protected:
         friend class SketchFeatureSchema;
         Array<SketchGeometryFeature*> m_geometries;
@@ -88,7 +94,7 @@ namespace wgp {
 
     class WGP_API SketchGeometryFeature : public Feature {
     public:
-        SketchGeometryFeature(ModelInstance* model_instance, SceneId id, FeatureSchema* feature_schema);
+        SketchGeometryFeature(Model* model, SceneId id, FeatureSchema* feature_schema);
         int GetIndex() const;
         SketchGeometry* GetGeometry() const;
         virtual bool OnChildFieldChanged(Feature* child, FeatureFieldSchema* schema);
@@ -116,7 +122,9 @@ namespace wgp {
 
     class WGP_API SketchConstraintFeature : public Feature {
     public:
-        SketchConstraintFeature(ModelInstance* model_instance, SceneId id, FeatureSchema* feature_schema);
+        SketchConstraintFeature(Model* model, SceneId id, FeatureSchema* feature_schema);
+        int GetIndex() const;
+        SketchConstraint* GetConstraint() const;
         virtual bool OnChildFieldChanged(Feature* child, FeatureFieldSchema* schema);
     protected:
         friend class SketchConstraintFeatureSchema;
@@ -143,7 +151,8 @@ namespace wgp {
 
     class WGP_API SketchLine2dFeature : public SketchGeometryFeature {
     public:
-        SketchLine2dFeature(ModelInstance* model_instance, SceneId id, FeatureSchema* feature_schema);
+        SketchLine2dFeature(Model* model, SceneId id, FeatureSchema* feature_schema);
+        virtual void Accept(FeatureVisitor* visitor);
     protected:
         friend class SketchGeometryFeatureSchema;
     };
@@ -158,7 +167,8 @@ namespace wgp {
 
     class WGP_API SketchPoint2dEqualConstraintFeature : public SketchConstraintFeature {
     public:
-        SketchPoint2dEqualConstraintFeature(ModelInstance* model_instance, SceneId id, FeatureSchema* feature_schema);
+        SketchPoint2dEqualConstraintFeature(Model* model, SceneId id, FeatureSchema* feature_schema);
+        virtual void Accept(FeatureVisitor* visitor);
     protected:
         friend class SketchConstraintFeatureSchema;
     };
@@ -173,7 +183,8 @@ namespace wgp {
 
     class WGP_API SketchFixPoint2dConstraintFeature : public SketchConstraintFeature {
     public:
-        SketchFixPoint2dConstraintFeature(ModelInstance* model_instance, SceneId id, FeatureSchema* feature_schema);
+        SketchFixPoint2dConstraintFeature(Model* model, SceneId id, FeatureSchema* feature_schema);
+        virtual void Accept(FeatureVisitor* visitor);
     protected:
         friend class SketchConstraintFeatureSchema;
     };
@@ -188,7 +199,8 @@ namespace wgp {
 
     class WGP_API SketchFixPoint2dPoint2dDistanceConstraintFeature : public SketchConstraintFeature {
     public:
-        SketchFixPoint2dPoint2dDistanceConstraintFeature(ModelInstance* model_instance, SceneId id, FeatureSchema* feature_schema);
+        SketchFixPoint2dPoint2dDistanceConstraintFeature(Model* model, SceneId id, FeatureSchema* feature_schema);
+        virtual void Accept(FeatureVisitor* visitor);
     protected:
         friend class SketchConstraintFeatureSchema;
     };
@@ -203,7 +215,8 @@ namespace wgp {
 
     class WGP_API SketchFixLine2dLine2dAngleConstraintFeature : public SketchConstraintFeature {
     public:
-        SketchFixLine2dLine2dAngleConstraintFeature(ModelInstance* model_instance, SceneId id, FeatureSchema* feature_schema);
+        SketchFixLine2dLine2dAngleConstraintFeature(Model* model, SceneId id, FeatureSchema* feature_schema);
+        virtual void Accept(FeatureVisitor* visitor);
     protected:
         friend class SketchConstraintFeatureSchema;
     };

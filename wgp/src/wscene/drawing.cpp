@@ -34,6 +34,12 @@ namespace wgp {
         m_feature_schemas.Append(feature_schema);
     }
 
+    Model* Drawing::AddModel(SceneId id, const char* name) {
+        Model* model = new Model(this, id, name);
+        m_models.Append(model);
+        return model;
+    }
+
     int Drawing::GetModelCount() const {
         return m_models.GetCount();
     }
@@ -42,21 +48,13 @@ namespace wgp {
         return m_models.Get(index);
     }
 
-    void Drawing::AddModel(Model* model) {
-        m_models.Append(model);
-    }
-
     Model::Model(Drawing* drawing, SceneId id, const char* name) :
         m_drawing(drawing),
         m_id(id),
-        m_default_instance(nullptr),
         m_name(clone_string(name)) {
     }
 
     Model::~Model() {
-        for (int i = 0; i < m_instances.GetCount(); ++i) {
-            delete m_instances.Get(i);
-        }
         delete[] m_name;
     }
 
@@ -70,30 +68,6 @@ namespace wgp {
 
     const char* Model::GetName() const {
         return m_name;
-    }
-
-    int Model::GetInstanceCount() const {
-        return m_instances.GetCount();
-    }
-
-    ModelInstance* Model::GetInstance(int index) const {
-        return m_instances.Get(index);
-    }
-
-    ModelInstance::ModelInstance(Model* model, SceneId id) :
-        m_model(model),
-        m_id(id) {
-    }
-
-    ModelInstance::~ModelInstance() {
-    }
-
-    Model* ModelInstance::GetModel() const {
-        return m_model;
-    }
-
-    SceneId ModelInstance::GetId() const {
-        return m_id;
     }
 
     FeatureFieldSchema::FeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const char* name) :
@@ -152,8 +126,8 @@ namespace wgp {
         return m_field_schemas.Get(index);
     }
 
-    Feature::Feature(ModelInstance* model_instance, SceneId id, FeatureSchema* feature_schema) :
-        m_model_instance(model_instance),
+    Feature::Feature(Model* model, SceneId id, FeatureSchema* feature_schema) :
+        m_model(model),
         m_feature_schema(feature_schema),
         m_id(id),
         m_parent(nullptr) {
@@ -162,8 +136,8 @@ namespace wgp {
     Feature::~Feature() {
     }
 
-    ModelInstance* Feature::GetModelInstance() const {
-        return m_model_instance;
+    Model* Feature::GetModel() const {
+        return m_model;
     }
 
     FeatureSchema* Feature::GetFeatureSchema() const {
@@ -178,8 +152,8 @@ namespace wgp {
         return m_parent;
     }
 
-    void Feature::SetParent(Feature* parent) {
-        m_parent = parent;
+    void Feature::SetChildParent(Feature* child) {
+        child->m_parent = this;
     }
 
 }

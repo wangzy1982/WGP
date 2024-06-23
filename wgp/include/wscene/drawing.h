@@ -10,13 +10,13 @@
 #include "wstd/utils.h"
 #include "wstd/vector3d.h"
 #include "wstd/quaternion.h"
+#include "feature_visitor.h"
 
 namespace wgp {
 
     typedef int64_t SceneId;
 
     class Model;
-    class ModelInstance;
     class FeatureSchema;
     class Feature;
 
@@ -29,9 +29,9 @@ namespace wgp {
         int GetFeatureSchemaCount() const;
         FeatureSchema* GetFeatureSchema(int index) const;
         void AddFeatureSchema(FeatureSchema* feature_schema);
+        Model* AddModel(SceneId id, const char* name);
         int GetModelCount() const;
         Model* GetModel(int index) const;
-        void AddModel(Model* model);
     private:
         Array<FeatureSchema*> m_feature_schemas;
         Array<Model*> m_models;
@@ -45,25 +45,10 @@ namespace wgp {
         Drawing* GetDrawing() const;
         SceneId GetId() const;
         const char* GetName() const;
-        int GetInstanceCount() const;
-        ModelInstance* GetInstance(int index) const;
     private:
         Drawing* m_drawing;
         SceneId m_id;
         char* m_name;
-        ModelInstance* m_default_instance;
-        Array<ModelInstance*> m_instances;
-    };
-
-    class WGP_API ModelInstance {
-    public:
-        ModelInstance(Model* model, SceneId id);
-        virtual ~ModelInstance();
-        Model* GetModel() const;
-        SceneId GetId() const;
-    private:
-        Model* m_model;
-        SceneId m_id;
     };
 
     class WGP_API FeatureFieldSchema {
@@ -88,8 +73,6 @@ namespace wgp {
         void AddFieldSchema(FeatureFieldSchema* field_schema);
         int GetFieldSchemaCount() const;
         FeatureFieldSchema* GetFieldSchema(int index) const;
-    public:
-        virtual bool BeforeSetField(FeatureFieldSchema* field_schema, Feature* feature, void* value_address) = 0;
     protected:
         Drawing* m_drawing;
         SceneId m_id;
@@ -99,16 +82,18 @@ namespace wgp {
 
     class WGP_API Feature {
     public:
-        Feature(ModelInstance* model_instance, SceneId id, FeatureSchema* feature_schema);
+        Feature(Model* model, SceneId id, FeatureSchema* feature_schema);
         virtual ~Feature();
-        ModelInstance* GetModelInstance() const;
+        Model* GetModel() const;
         FeatureSchema* GetFeatureSchema() const;
         SceneId GetId() const;
         Feature* GetParent() const;
-        void SetParent(Feature* parent);
         virtual bool OnChildFieldChanged(Feature* child, FeatureFieldSchema* schema) = 0;
+        virtual void Accept(FeatureVisitor* visitor) = 0;
     protected:
-        ModelInstance* m_model_instance;
+        void SetChildParent(Feature* child);
+    protected:
+        Model* m_model;
         FeatureSchema* m_feature_schema;
         SceneId m_id;
         Feature* m_parent;
