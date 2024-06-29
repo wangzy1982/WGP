@@ -325,14 +325,15 @@ namespace wgp {
 
     SketchAction::~SketchAction() {
         for (int i = 0; i < m_constraints.GetCount(); ++i) {
-            delete m_constraints.Get(i);
+            m_constraints.Get(i)->DecRef();
         }
         for (int i = 0; i < m_strategis.GetCount(); ++i) {
-            delete m_strategis.Get(i);
+            m_strategis.Get(i)->DecRef();
         }
     }
 
     void SketchAction::AddConstraint(SketchConstraint* constraint) {
+        constraint->IncRef();
         m_constraints.Append(constraint);
     }
 
@@ -345,6 +346,7 @@ namespace wgp {
     }
 
     void SketchAction::AddStrategy(SketchStrategy* strategy) {
+        strategy->IncRef();
         m_strategis.Append(strategy);
     }
 
@@ -369,11 +371,11 @@ namespace wgp {
 
     void Sketch::Clear() {
         for (int i = 0; i < m_constraints.GetCount(); ++i) {
-            delete m_constraints.Get(i);
+            m_constraints.Get(i)->DecRef();
         }
         m_constraints.Clear();
         for (int i = 0; i < m_geometries.GetCount(); ++i) {
-            delete m_geometries.Get(i);
+            m_geometries.Get(i)->DecRef();
         }
         m_geometries.Clear();
     }
@@ -387,6 +389,7 @@ namespace wgp {
     }
 
     void Sketch::AddGeometry(SketchGeometry* geometry) {
+        geometry->IncRef();
         Array<SketchEquation*> equations;
         for (int i = 0; i < geometry->GetVariableCount(); ++i) {
             geometry->SetCurrentVariableIndex(i, -1);
@@ -422,7 +425,7 @@ namespace wgp {
                 }
             }
         }
-        delete geometry;
+        geometry->DecRef();
         m_geometries.Remove(index);
     }
 
@@ -435,6 +438,7 @@ namespace wgp {
     }
 
     bool Sketch::AddConstraint(SketchConstraint* constraint, SketchAction* action) {
+        constraint->IncRef();
         Array<SketchEquation*> equations;
         m_constraints.Append(constraint);
         for (int i = 0; i < constraint->GetEquationCount(); ++i) {
@@ -456,7 +460,7 @@ namespace wgp {
             SketchEquation* equation = constraint->GetEquation(i);
             RemoveEquationRelation(equation);
         }
-        delete constraint;
+        constraint->DecRef();
         m_constraints.Remove(index);
     }
 

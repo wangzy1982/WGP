@@ -3,9 +3,256 @@
     Copyright (c) 2024 Zuoyuan Wang
 */
 #include "wscene/drawing/sketch_feature.h"
+#include "wscene/drawing/command_log.h"
 
 namespace wgp {
 
+    SketchFeatureSchema::SketchFeatureSchema(Drawing* drawing, SceneId id, const char* name, SceneId sketch_field_schema_id) :
+        FeatureSchema(drawing, id, name) {
+        SketchFeatureFieldSchema* sketch_field_schema = new SketchFeatureFieldSchema(
+            this, sketch_field_schema_id, "Sketch", GetSketch, DirectSetSketch);
+        AddFieldSchema(sketch_field_schema);
+    }
+
+    SketchFeatureFieldSchema* SketchFeatureSchema::GetSketchFieldSchema() const {
+        return (SketchFeatureFieldSchema*)GetFieldSchema(0);
+    }
+
+    Sketch* SketchFeatureSchema::GetSketch(Feature* feature, FeatureFieldSchema* field_schema) {
+        return ((SketchFeature*)feature)->m_sketch;
+    }
+
+    void SketchFeatureSchema::DirectSetSketch(Feature* feature, FeatureFieldSchema* field_schema, Sketch* sketch) {
+        throw "Not Supported";
+    }
+
+    SketchFeature::SketchFeature(Model* model, SceneId id, FeatureSchema* feature_schema) :
+        Feature(model, id, feature_schema, nullptr),
+        m_sketch(new Sketch(10000)) {
+        m_sketch->IncRef();
+    }
+
+    SketchFeature::~SketchFeature() {
+        m_sketch->DecRef();
+    }
+
+    Sketch* SketchFeature::GetSketch() const {
+        return m_sketch;
+    }
+
+    SketchGeometryFeatureSchema::SketchGeometryFeatureSchema(Drawing* drawing, SceneId id, const char* name, SceneId geometry_field_schema_id) :
+        FeatureSchema(drawing, id, name) {
+        SketchGeometryFeatureFieldSchema* geometry_field_schema = new SketchGeometryFeatureFieldSchema(
+            this, geometry_field_schema_id, "Geometry", GetGeometry, DirectSetGeometry);
+        AddFieldSchema(geometry_field_schema);
+    }
+
+    SketchGeometryFeatureFieldSchema* SketchGeometryFeatureSchema::GetGeometryFieldSchema() const {
+        return (SketchGeometryFeatureFieldSchema*)GetFieldSchema(1);
+    }
+
+    SketchGeometry* SketchGeometryFeatureSchema::GetGeometry(Feature* feature, FeatureFieldSchema* field_schema) {
+        return ((SketchGeometryFeature*)feature)->m_geometry;
+    }
+
+    void SketchGeometryFeatureSchema::DirectSetGeometry(Feature* feature, FeatureFieldSchema* field_schema, SketchGeometry* geometry) {
+        throw "Not Supported";
+    }
+
+    SketchGeometryFeature::SketchGeometryFeature(Model* model, SceneId id, FeatureSchema* feature_schema, SketchGeometry* geometry) :
+        Feature(model, id, feature_schema, nullptr),
+        m_geometry(geometry) {
+        if (m_geometry) {
+            m_geometry->IncRef();
+        }
+    }
+
+    SketchGeometryFeature::~SketchGeometryFeature() {
+        if (m_geometry) {
+            m_geometry->DecRef();
+        }
+    }
+
+    SketchGeometry* SketchGeometryFeature::GetGeometry() const {
+        return m_geometry;
+    }
+
+    SketchConstraintFeatureSchema::SketchConstraintFeatureSchema(Drawing* drawing, SceneId id, const char* name, SceneId constraint_field_schema_id) :
+        FeatureSchema(drawing, id, name) {
+        SketchConstraintFeatureFieldSchema* constraint_field_schema = new SketchConstraintFeatureFieldSchema(
+            this, constraint_field_schema_id, "Constraint", GetConstraint, DirectSetConstraint);
+        AddFieldSchema(constraint_field_schema);
+    }
+
+    SketchConstraintFeatureFieldSchema* SketchConstraintFeatureSchema::GetConstraintFieldSchema() const {
+        return (SketchConstraintFeatureFieldSchema*)GetFieldSchema(1);
+    }
+
+    SketchConstraint* SketchConstraintFeatureSchema::GetConstraint(Feature* feature, FeatureFieldSchema* field_schema) {
+        return ((SketchConstraintFeature*)feature)->m_constraint;
+    }
+
+    void SketchConstraintFeatureSchema::DirectSetConstraint(Feature* feature, FeatureFieldSchema* field_schema, SketchConstraint* constraint) {
+        throw "Not Supported";
+    }
+
+    SketchConstraintFeature::SketchConstraintFeature(Model* model, SceneId id, FeatureSchema* feature_schema, SketchConstraint* constraint) :
+        Feature(model, id, feature_schema, nullptr),
+        m_constraint(constraint) {
+        if (m_constraint) {
+            m_constraint->IncRef();
+        }
+    }
+
+    SketchConstraintFeature::~SketchConstraintFeature() {
+        if (m_constraint) {
+            m_constraint->DecRef();
+        }
+    }
+
+    SketchConstraint* SketchConstraintFeature::GetConstraint() const {
+        return m_constraint;
+    }
+
+    SketchLine2dFeatureSchema::SketchLine2dFeatureSchema(Drawing* drawing, SceneId id, const char* name,
+        SceneId geometry_field_schema_id, SceneId start_point_field_schema_id, SceneId end_point_field_schema_id) :
+        SketchGeometryFeatureSchema(drawing, id, name, geometry_field_schema_id) {
+        Vector2dFeatureFieldSchema* start_point_field_schema = new Vector2dFeatureFieldSchema(
+            this, start_point_field_schema_id, "StartPoint", GetStartPoint, DirectSetStartPoint);
+        AddFieldSchema(start_point_field_schema);
+        Vector2dFeatureFieldSchema* end_point_field_schema = new Vector2dFeatureFieldSchema(
+            this, end_point_field_schema_id, "EndPoint", GetEndPoint, DirectSetEndPoint);
+        AddFieldSchema(end_point_field_schema);
+    }
+
+    Vector2dFeatureFieldSchema* SketchLine2dFeatureSchema::GetStartPointFieldSchema() const {
+        return (Vector2dFeatureFieldSchema*)GetFieldSchema(SketchGeometryFeatureSchema::GetFieldCount());
+    }
+
+    Vector2dFeatureFieldSchema* SketchLine2dFeatureSchema::GetEndPointFieldSchema() const {
+        return (Vector2dFeatureFieldSchema*)GetFieldSchema(SketchGeometryFeatureSchema::GetFieldCount() + 1);
+    }
+
+    Vector2d SketchLine2dFeatureSchema::GetStartPoint(Feature* feature, FeatureFieldSchema* field_schema) {
+        SketchLine2dFeature* line2d_feature = (SketchLine2dFeature*)feature;
+        SketchLine2d* line2d = (SketchLine2d*)line2d_feature;
+        return Vector2d(line2d->GetCurrentVariable(0), line2d->GetCurrentVariable(1));
+    }
+
+    void SketchLine2dFeatureSchema::DirectSetStartPoint(Feature* feature, FeatureFieldSchema* field_schema, const Vector2d& point) {
+        throw "Not Supported";
+    }
+
+    Vector2d SketchLine2dFeatureSchema::GetEndPoint(Feature* feature, FeatureFieldSchema* field_schema) {
+        SketchLine2dFeature* line2d_feature = (SketchLine2dFeature*)feature;
+        SketchLine2d* line2d = (SketchLine2d*)line2d_feature;
+        return Vector2d(line2d->GetCurrentVariable(2), line2d->GetCurrentVariable(3));
+    }
+
+    void SketchLine2dFeatureSchema::DirectSetEndPoint(Feature* feature, FeatureFieldSchema* field_schema, const Vector2d& point) {
+        throw "Not Supported";
+    }
+
+    SketchLine2dFeature::SketchLine2dFeature(Model* model, SceneId id, FeatureSchema* feature_schema, SketchLine2d* geometry) :
+        SketchGeometryFeature(model, id, feature_schema, geometry) {
+    }
+
+    void SketchLine2dFeature::Accept(FeatureVisitor* visitor) {
+        visitor->Visit(this);
+    }
+
+    SketchPoint2dEqualConstraintFeatureSchema::SketchPoint2dEqualConstraintFeatureSchema(Drawing* drawing, SceneId id, const char* name,
+        SceneId constraint_field_schema_id) :
+        SketchConstraintFeatureSchema(drawing, id, name, constraint_field_schema_id) {
+    }
+
+    SketchPoint2dEqualConstraintFeature::SketchPoint2dEqualConstraintFeature(Model* model, SceneId id, FeatureSchema* feature_schema,
+        SketchPoint2dEqualConstraint* constraint) :
+        SketchConstraintFeature(model, id, feature_schema, constraint) {
+    }
+
+    void SketchPoint2dEqualConstraintFeature::Accept(FeatureVisitor* visitor) {
+        visitor->Visit(this);
+    }
+
+    SketchFixPoint2dConstraintFeatureSchema::SketchFixPoint2dConstraintFeatureSchema(Drawing* drawing, SceneId id, const char* name,
+        SceneId constraint_field_schema_id) :
+        SketchConstraintFeatureSchema(drawing, id, name, constraint_field_schema_id) {
+    }
+
+    SketchFixPoint2dConstraintFeature::SketchFixPoint2dConstraintFeature(Model* model, SceneId id, FeatureSchema* feature_schema,
+        SketchFixPoint2dConstraint* constraint) :
+        SketchConstraintFeature(model, id, feature_schema, constraint) {
+    }
+
+    void SketchFixPoint2dConstraintFeature::Accept(FeatureVisitor* visitor) {
+        visitor->Visit(this);
+    }
+
+    SketchFixPoint2dPoint2dDistanceConstraintFeatureSchema::SketchFixPoint2dPoint2dDistanceConstraintFeatureSchema(Drawing* drawing, SceneId id, const char* name,
+        SceneId constraint_field_schema_id) :
+        SketchConstraintFeatureSchema(drawing, id, name, constraint_field_schema_id) {
+    }
+
+    SketchFixPoint2dPoint2dDistanceConstraintFeature::SketchFixPoint2dPoint2dDistanceConstraintFeature(Model* model, SceneId id, FeatureSchema* feature_schema,
+        SketchFixPoint2dPoint2dDistanceConstraint* constraint) :
+        SketchConstraintFeature(model, id, feature_schema, constraint) {
+    }
+
+    void SketchFixPoint2dPoint2dDistanceConstraintFeature::Accept(FeatureVisitor* visitor) {
+        visitor->Visit(this);
+    }
+
+    SketchFixLine2dLine2dAngleConstraintFeatureSchema::SketchFixLine2dLine2dAngleConstraintFeatureSchema(Drawing* drawing, SceneId id, const char* name,
+        SceneId constraint_field_schema_id) :
+        SketchConstraintFeatureSchema(drawing, id, name, constraint_field_schema_id) {
+    }
+
+    SketchFixLine2dLine2dAngleConstraintFeature::SketchFixLine2dLine2dAngleConstraintFeature(Model* model, SceneId id, FeatureSchema* feature_schema,
+        SketchFixLine2dLine2dAngleConstraint* constraint) :
+        SketchConstraintFeature(model, id, feature_schema, constraint) {
+    }
+
+    void SketchFixLine2dLine2dAngleConstraintFeature::Accept(FeatureVisitor* visitor) {
+        visitor->Visit(this);
+    }
+
+    bool SketchModelExecutor::Execute(ModelEditCommand* command, Array<ModelEditCommand*>& inner_commands, Array<CommandLog*>& logs) {
+        //todo
+        return false;
+    }
+
+    Model* SketchModelHelper::NewSketchModel(Drawing* drawing, SceneId id, SceneId sketch_feature_id, const char* name) {
+        Model* model = new Model(drawing, id, name, new SketchModelExecutor());
+        Array<CommandLog*> logs;
+        model->AddFeature(new SketchFeature(model, sketch_feature_id, drawing->GetSketchFeatureSchema()), logs);
+        for (int i = 0; i < logs.GetCount(); ++i) {
+            delete logs.Get(i);
+        }
+        logs.Clear();
+        return model;
+    }
+
+    bool SketchModelHelper::AddSketchLine2d(Model* model, SceneId geometry_id, const Vector2d& start_point, const Vector2d& end_point) {
+        Array<CommandLog*> logs;
+        SketchFeature* sketch_feature = (SketchFeature*)model->GetFeature(0);
+        SketchLine2d* geometry = new SketchLine2d(sketch_feature->GetSketch(), start_point, end_point);
+        SketchLine2dFeature* geometry_feature = new SketchLine2dFeature(model, geometry_id, model->GetDrawing()->GetSketchFeatureSchema(), geometry);
+        ModelEditCommand edit_command;
+        edit_command.SetLog(new AddFeatureCommandLog(model, geometry_feature));
+        if (model->Execute(&edit_command, logs)) {
+            model->GetDrawing()->Log(std::move(logs));
+            return true;
+        }
+        for (int i = logs.GetCount() - 1; i >= 0; --i) {
+            CommandLog* log = logs.Get(i);
+            log->Undo();
+            delete log;
+        }
+        return false;
+    }
+
+    /*
     SketchFeatureSchema::SketchFeatureSchema(Drawing* drawing, SceneId id, const char* name,
         SceneId sketch_field_schema_id, SketchLine2dFeatureSchema* line2d_feature_schema,
         SketchPoint2dEqualConstraintFeatureSchema* point2d_equal_constraint_feature_schema,
@@ -415,35 +662,15 @@ namespace wgp {
         return true;
     }
 
-    SketchGeometryFeatureSchema::SketchGeometryFeatureSchema(Drawing* drawing, SceneId id, const char* name,
-        SceneId index_field_schema_id, SceneId geometry_field_schema_id) :
+    SketchGeometryFeatureSchema::SketchGeometryFeatureSchema(Drawing* drawing, SceneId id, const char* name, SceneId geometry_field_schema_id) :
         FeatureSchema(drawing, id, name) {
-        IntFeatureFieldSchema* index_field_schema = new IntFeatureFieldSchema(
-            this, index_field_schema_id, "Index", GetIndex, SetIndex, DirectSetIndex);
-        AddFieldSchema(index_field_schema);
         SketchGeometryFeatureFieldSchema* geometry_field_schema = new SketchGeometryFeatureFieldSchema(
             this, geometry_field_schema_id, "Geometry", GetGeometry, SetGeometry, DirectSetGeometry);
         AddFieldSchema(geometry_field_schema);
     }
 
-    IntFeatureFieldSchema* SketchGeometryFeatureSchema::GetIndexFieldSchema() const {
-        return (IntFeatureFieldSchema*)GetFieldSchema(0);
-    }
-
     SketchGeometryFeatureFieldSchema* SketchGeometryFeatureSchema::GetGeometryFieldSchema() const {
         return (SketchGeometryFeatureFieldSchema*)GetFieldSchema(1);
-    }
-
-    int SketchGeometryFeatureSchema::GetIndex(Feature* feature, FeatureFieldSchema* field_schema) {
-        return ((SketchGeometryFeature*)feature)->m_index;
-    }
-
-    bool SketchGeometryFeatureSchema::SetIndex(Feature* feature, FeatureFieldSchema* field_schema, int index) {
-        return false;
-    }
-
-    void SketchGeometryFeatureSchema::DirectSetIndex(Feature* feature, FeatureFieldSchema* field_schema, int index) {
-        ((SketchGeometryFeature*)feature)->m_index = index;
     }
 
     SketchGeometry* SketchGeometryFeatureSchema::GetGeometry(Feature* feature, FeatureFieldSchema* field_schema) {
@@ -460,12 +687,7 @@ namespace wgp {
 
     SketchGeometryFeature::SketchGeometryFeature(Model* model, SceneId id, FeatureSchema* feature_schema) :
         Feature(model, id, feature_schema),
-        m_index(-1),
         m_geometry(nullptr) {
-    }
-
-    int SketchGeometryFeature::GetIndex() const {
-        return m_index;
     }
 
     SketchGeometry* SketchGeometryFeature::GetGeometry() const {
@@ -476,35 +698,15 @@ namespace wgp {
         return false;
     }
 
-    SketchConstraintFeatureSchema::SketchConstraintFeatureSchema(Drawing* drawing, SceneId id, const char* name,
-        SceneId index_field_schema_id, SceneId constraint_field_schema_id) :
+    SketchConstraintFeatureSchema::SketchConstraintFeatureSchema(Drawing* drawing, SceneId id, const char* name, SceneId constraint_field_schema_id) :
         FeatureSchema(drawing, id, name) {
-        IntFeatureFieldSchema* index_field_schema = new IntFeatureFieldSchema(
-            this, index_field_schema_id, "Index", GetIndex, SetIndex, DirectSetIndex);
-        AddFieldSchema(index_field_schema);
         SketchConstraintFeatureFieldSchema* constraint_field_schema = new SketchConstraintFeatureFieldSchema(
             this, constraint_field_schema_id, "Constraint", GetConstraint, SetConstraint, DirectSetConstraint);
         AddFieldSchema(constraint_field_schema);
     }
 
-    IntFeatureFieldSchema* SketchConstraintFeatureSchema::GetIndexFieldSchema() const {
-        return (IntFeatureFieldSchema*)GetFieldSchema(0);
-    }
-
     SketchConstraintFeatureFieldSchema* SketchConstraintFeatureSchema::GetConstraintFieldSchema() const {
         return (SketchConstraintFeatureFieldSchema*)GetFieldSchema(1);
-    }
-
-    int SketchConstraintFeatureSchema::GetIndex(Feature* feature, FeatureFieldSchema* field_schema) {
-        return ((SketchConstraintFeature*)feature)->m_index;
-    }
-
-    bool SketchConstraintFeatureSchema::SetIndex(Feature* feature, FeatureFieldSchema* field_schema, int index) {
-        return false;
-    }
-
-    void SketchConstraintFeatureSchema::DirectSetIndex(Feature* feature, FeatureFieldSchema* field_schema, int index) {
-        ((SketchConstraintFeature*)feature)->m_index = index;
     }
 
     SketchConstraint* SketchConstraintFeatureSchema::GetConstraint(Feature* feature, FeatureFieldSchema* field_schema) {
@@ -521,12 +723,7 @@ namespace wgp {
 
     SketchConstraintFeature::SketchConstraintFeature(Model* model, SceneId id, FeatureSchema* feature_schema) :
         Feature(model, id, feature_schema),
-        m_index(-1),
         m_constraint(nullptr) {
-    }
-
-    int SketchConstraintFeature::GetIndex() const {
-        return m_index;
     }
 
     SketchConstraint* SketchConstraintFeature::GetConstraint() const {
@@ -538,9 +735,8 @@ namespace wgp {
     }
 
     SketchLine2dFeatureSchema::SketchLine2dFeatureSchema(Drawing* drawing, SceneId id, const char* name,
-        SceneId index_field_schema_id, SceneId geometry_field_schema_id,
-        SceneId start_point_field_schema_id, SceneId end_point_field_schema_id) :
-        SketchGeometryFeatureSchema(drawing, id, name, index_field_schema_id, geometry_field_schema_id) {
+        SceneId geometry_field_schema_id, SceneId start_point_field_schema_id, SceneId end_point_field_schema_id) :
+        SketchGeometryFeatureSchema(drawing, id, name, geometry_field_schema_id) {
         Vector2dFeatureFieldSchema* start_point_field_schema = new Vector2dFeatureFieldSchema(
             this, start_point_field_schema_id, "StartPoint", GetStartPoint, SetStartPoint, DirectSetStartPoint);
         AddFieldSchema(start_point_field_schema);
@@ -622,8 +818,8 @@ namespace wgp {
     }
 
     SketchPoint2dEqualConstraintFeatureSchema::SketchPoint2dEqualConstraintFeatureSchema(Drawing* drawing, SceneId id, const char* name,
-        SceneId index_field_schema_id, SceneId constraint_field_schema_id) :
-        SketchConstraintFeatureSchema(drawing, id, name, index_field_schema_id, constraint_field_schema_id) {
+        SceneId constraint_field_schema_id) :
+        SketchConstraintFeatureSchema(drawing, id, name, constraint_field_schema_id) {
     }
 
     SketchPoint2dEqualConstraintFeature::SketchPoint2dEqualConstraintFeature(Model* model, SceneId id, FeatureSchema* feature_schema) :
@@ -635,8 +831,8 @@ namespace wgp {
     }
 
     SketchFixPoint2dConstraintFeatureSchema::SketchFixPoint2dConstraintFeatureSchema(Drawing* drawing, SceneId id, const char* name,
-        SceneId index_field_schema_id, SceneId constraint_field_schema_id) :
-        SketchConstraintFeatureSchema(drawing, id, name, index_field_schema_id, constraint_field_schema_id) {
+        SceneId constraint_field_schema_id) :
+        SketchConstraintFeatureSchema(drawing, id, name, constraint_field_schema_id) {
     }
 
     SketchFixPoint2dConstraintFeature::SketchFixPoint2dConstraintFeature(Model* model, SceneId id, FeatureSchema* feature_schema) :
@@ -648,8 +844,8 @@ namespace wgp {
     }
 
     SketchFixPoint2dPoint2dDistanceConstraintFeatureSchema::SketchFixPoint2dPoint2dDistanceConstraintFeatureSchema(Drawing* drawing, SceneId id, const char* name,
-        SceneId index_field_schema_id, SceneId constraint_field_schema_id) :
-        SketchConstraintFeatureSchema(drawing, id, name, index_field_schema_id, constraint_field_schema_id) {
+        SceneId constraint_field_schema_id) :
+        SketchConstraintFeatureSchema(drawing, id, name, constraint_field_schema_id) {
     }
 
     SketchFixPoint2dPoint2dDistanceConstraintFeature::SketchFixPoint2dPoint2dDistanceConstraintFeature(Model* model, SceneId id, FeatureSchema* feature_schema) :
@@ -661,8 +857,8 @@ namespace wgp {
     }
 
     SketchFixLine2dLine2dAngleConstraintFeatureSchema::SketchFixLine2dLine2dAngleConstraintFeatureSchema(Drawing* drawing, SceneId id, const char* name,
-        SceneId index_field_schema_id, SceneId constraint_field_schema_id) :
-        SketchConstraintFeatureSchema(drawing, id, name, index_field_schema_id, constraint_field_schema_id) {
+        SceneId constraint_field_schema_id) :
+        SketchConstraintFeatureSchema(drawing, id, name, constraint_field_schema_id) {
     }
 
     SketchFixLine2dLine2dAngleConstraintFeature::SketchFixLine2dLine2dAngleConstraintFeature(Model* model, SceneId id, FeatureSchema* feature_schema) :
@@ -672,4 +868,6 @@ namespace wgp {
     void SketchFixLine2dLine2dAngleConstraintFeature::Accept(FeatureVisitor* visitor) {
         visitor->Visit(this);
     }
+    */
+
 }

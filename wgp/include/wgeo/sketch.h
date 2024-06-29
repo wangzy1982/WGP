@@ -5,6 +5,7 @@
 #ifndef _WGP_GEO_SKETCH_
 #define _WGP_GEO_SKETCH_
 
+#include "wstd/ptr.h"
 #include "wstd/interval.h"
 #include "wstd/solver.h"
 #include "wstd/vector2d.h"
@@ -51,7 +52,7 @@ namespace wgp {
 
     class SketchEquation;
 
-    class WGP_API SketchEquations {
+    class WGP_API SketchEquations : public RefObject {
     public:
         SketchEquations(Sketch* owner);
         virtual ~SketchEquations() {}
@@ -213,7 +214,7 @@ namespace wgp {
         Array<SketchStrategy*> m_strategis;
     };
 
-    class WGP_API Sketch {
+    class WGP_API Sketch : public RefObject {
     public:
         Sketch(double sketch_size);
         virtual ~Sketch();

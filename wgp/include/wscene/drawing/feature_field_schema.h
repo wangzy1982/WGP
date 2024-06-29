@@ -10,57 +10,7 @@
 
 namespace wgp {
 
-    typedef int (*GetAsIntFunc)(Feature* feature, FeatureFieldSchema* field_schema);
-    typedef bool (*SetAsIntFunc)(Feature* feature, FeatureFieldSchema* field_schema, int value);
-    typedef void (*DirectSetAsIntFunc)(Feature* feature, FeatureFieldSchema* field_schema, int value);
-
-    class WGP_API IntFeatureFieldSchema : public FeatureFieldSchema {
-    public:
-        IntFeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const char* name,
-            GetAsIntFunc get_func, SetAsIntFunc set_func, DirectSetAsIntFunc direct_set_func);
-        int GetAsInt(Feature* feature);
-        bool SetAsInt(Feature* feature, int value);
-        void DirectSetAsInt(Feature* feature, int value);
-    private:
-        GetAsIntFunc m_get_func;
-        SetAsIntFunc m_set_func;
-        DirectSetAsIntFunc m_direct_set_func;
-    };
-
-    typedef double (*GetAsDoubleFunc)(Feature* feature, FeatureFieldSchema* field_schema);
-    typedef bool (*SetAsDoubleFunc)(Feature* feature, FeatureFieldSchema* field_schema, double value);
-    typedef void (*DirectSetAsDoubleFunc)(Feature* feature, FeatureFieldSchema* field_schema, double value);
-
-    class WGP_API DoubleFeatureFieldSchema : public FeatureFieldSchema {
-    public:
-        DoubleFeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const char* name,
-            GetAsDoubleFunc get_func, SetAsDoubleFunc set_func, DirectSetAsDoubleFunc direct_set_func);
-        double GetAsDouble(Feature* feature);
-        bool SetAsDouble(Feature* feature, double value);
-        void DirectSetAsDouble(Feature* feature, double value);
-    private:
-        GetAsDoubleFunc m_get_func;
-        SetAsDoubleFunc m_set_func;
-        DirectSetAsDoubleFunc m_direct_set_func;
-    };
-
-    typedef Vector2d (*GetAsVector2dFunc)(Feature* feature, FeatureFieldSchema* field_schema);
-    typedef bool (*SetAsVector2dFunc)(Feature* feature, FeatureFieldSchema* field_schema, const Vector2d& vt);
-    typedef void (*DirectSetAsVector2dFunc)(Feature* feature, FeatureFieldSchema* field_schema, const Vector2d& vt);
-
-    class WGP_API Vector2dFeatureFieldSchema : public FeatureFieldSchema {
-    public:
-        Vector2dFeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const char* name,
-            GetAsVector2dFunc get_func, SetAsVector2dFunc set_func, DirectSetAsVector2dFunc direct_set_func);
-        Vector2d GetAsVector2d(Feature* feature);
-        bool SetAsVector2d(Feature* feature, const Vector2d& vt);
-        void DirectSetAsVector2d(Feature* feature, const Vector2d& vt);
-    private:
-        GetAsVector2dFunc m_get_func;
-        SetAsVector2dFunc m_set_func;
-        DirectSetAsVector2dFunc m_direct_set_func;
-    };
-
+    /*
     typedef SketchGeometry* (*GetAsSketchGeometryFunc)(Feature* feature, FeatureFieldSchema* field_schema);
     typedef bool (*SetAsSketchGeometryFunc)(Feature* feature, FeatureFieldSchema* field_schema, SketchGeometry* value);
     typedef void (*DirectSetAsSketchGeometryFunc)(Feature* feature, FeatureFieldSchema* field_schema, SketchGeometry* value);
@@ -111,6 +61,7 @@ namespace wgp {
         SetAsSketchFunc m_set_func;
         DirectSetAsSketchFunc m_direct_set_func;
     };
+    */
 
 }
 
