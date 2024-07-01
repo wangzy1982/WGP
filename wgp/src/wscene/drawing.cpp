@@ -11,7 +11,8 @@ namespace wgp {
 
     Drawing::Drawing() : 
         m_next_id(1),
-        m_sketch_feature_schema(nullptr) {
+        m_sketch_feature_schema(nullptr),
+        m_sketch_line2d_feature_schema(nullptr) {
     }
 
     Drawing::~Drawing() {
@@ -49,6 +50,13 @@ namespace wgp {
             m_sketch_feature_schema = new SketchFeatureSchema(this, AllocId(), "Sketch", AllocId());
         }
         return m_sketch_feature_schema;
+    }
+
+    SketchLine2dFeatureSchema* Drawing::GetSketchLine2dFeatureSchema() {
+        if (!m_sketch_line2d_feature_schema) {
+            m_sketch_line2d_feature_schema = new SketchLine2dFeatureSchema(this, AllocId(), "Sketch", AllocId(), AllocId(), AllocId());
+        }
+        return m_sketch_line2d_feature_schema;
     }
 
     ModelEditCommand::ModelEditCommand() : m_log(nullptr) {
@@ -143,7 +151,7 @@ namespace wgp {
         if (m_executor) {
             int log_start = logs.GetCount();
             Array<ModelEditCommand*> inner_commands;
-            if (!m_executor->Execute(command, inner_commands, logs)) {
+            if (!m_executor->Execute(this, command, inner_commands, logs)) {
                 for (int i = 0; i < inner_commands.GetCount(); ++i) {
                     delete inner_commands.Get(i);
                 }
@@ -283,6 +291,13 @@ namespace wgp {
                 return false;
             }
         }
+        Feature* output_feature = feature->GetOutput();
+        if (output_feature) {
+            if (!TopoSortAffectedFeatures(output_feature, sorted_features)) {
+                feature->m_runtime_state = 0;
+                return false;
+            }
+        }
         sorted_features.Append(feature);
         feature->m_runtime_state = 1;
         return true;
@@ -321,6 +336,8 @@ namespace wgp {
     const char* FeatureFieldSchema::GetName() const {
         return m_name;
     }
+
+    TYPE_IMP_0(FeatureSchema)
 
     FeatureSchema::FeatureSchema(Drawing* drawing, SceneId id, const char* name) :
         m_drawing(drawing),
@@ -442,4 +459,75 @@ namespace wgp {
     }
 
     TYPE_IMP_0(CommandLog)
+
+    TYPE_IMP_1(GroupCommandLog, CommandLog::GetTypeInstance())
+
+    GroupCommandLog::GroupCommandLog(int capacity) :
+        m_logs(capacity),
+        m_refresher(nullptr) {
+    }
+
+    GroupCommandLog::GroupCommandLog() :
+        m_refresher(nullptr) {
+    }
+
+    GroupCommandLog::~GroupCommandLog() {
+        delete m_refresher;
+        for (int i = 0; i < m_logs.GetCount(); ++i) {
+            delete m_logs.Get(i);
+        }
+    }
+
+    void GroupCommandLog::AppendAffectedFeature(Array<Feature*>& features) {
+        for (int i = 0; i < m_logs.GetCount(); ++i) {
+            m_logs.Get(i)->AppendAffectedFeature(features);
+        }
+        if (m_refresher) {
+            m_refresher->AppendAffectedFeature(features);
+        }
+    }
+
+    void GroupCommandLog::AppendRecheckRelationFeature(Array<Feature*>& features) {
+        for (int i = 0; i < m_logs.GetCount(); ++i) {
+            m_logs.Get(i)->AppendRecheckRelationFeature(features);
+        }
+        if (m_refresher) {
+            m_refresher->AppendRecheckRelationFeature(features);
+        }
+    }
+
+    void GroupCommandLog::Undo() {
+        for (int i = m_logs.GetCount() - 1; i >= 0; --i) {
+            m_logs.Get(i)->Undo();
+        }
+        if (m_refresher) {
+            m_refresher->AfterUndo();
+        }
+    }
+
+    void GroupCommandLog::Redo() {
+        for (int i = 0; i < m_logs.GetCount(); ++i) {
+            m_logs.Get(i)->Redo();
+        }
+        if (m_refresher) {
+            m_refresher->AfterRedo();
+        }
+    }
+
+    void GroupCommandLog::AppendLog(CommandLog* log) {
+        m_logs.Append(log);
+    }
+
+    int GroupCommandLog::GetLogCount() const {
+        return m_logs.GetCount();
+    }
+
+    CommandLog* GroupCommandLog::GetLog(int index) const {
+        return m_logs.Get(index);
+    }
+
+    void GroupCommandLog::SetRefersher(GroupCommandLogRefresher* refresher) {
+        delete m_refresher;
+        m_refresher = refresher;
+    }
 }

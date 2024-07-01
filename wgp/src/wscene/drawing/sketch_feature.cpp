@@ -7,6 +7,8 @@
 
 namespace wgp {
 
+    TYPE_IMP_1(SketchFeatureSchema, FeatureSchema::GetTypeInstance())
+
     SketchFeatureSchema::SketchFeatureSchema(Drawing* drawing, SceneId id, const char* name, SceneId sketch_field_schema_id) :
         FeatureSchema(drawing, id, name) {
         SketchFeatureFieldSchema* sketch_field_schema = new SketchFeatureFieldSchema(
@@ -39,6 +41,8 @@ namespace wgp {
     Sketch* SketchFeature::GetSketch() const {
         return m_sketch;
     }
+
+    TYPE_IMP_1(SketchGeometryFeatureSchema, FeatureSchema::GetTypeInstance())
 
     SketchGeometryFeatureSchema::SketchGeometryFeatureSchema(Drawing* drawing, SceneId id, const char* name, SceneId geometry_field_schema_id) :
         FeatureSchema(drawing, id, name) {
@@ -77,6 +81,8 @@ namespace wgp {
         return m_geometry;
     }
 
+    TYPE_IMP_1(SketchConstraintFeatureSchema, FeatureSchema::GetTypeInstance())
+
     SketchConstraintFeatureSchema::SketchConstraintFeatureSchema(Drawing* drawing, SceneId id, const char* name, SceneId constraint_field_schema_id) :
         FeatureSchema(drawing, id, name) {
         SketchConstraintFeatureFieldSchema* constraint_field_schema = new SketchConstraintFeatureFieldSchema(
@@ -113,6 +119,8 @@ namespace wgp {
     SketchConstraint* SketchConstraintFeature::GetConstraint() const {
         return m_constraint;
     }
+
+    TYPE_IMP_1(SketchLine2dFeatureSchema, SketchGeometryFeatureSchema::GetTypeInstance())
 
     SketchLine2dFeatureSchema::SketchLine2dFeatureSchema(Drawing* drawing, SceneId id, const char* name,
         SceneId geometry_field_schema_id, SceneId start_point_field_schema_id, SceneId end_point_field_schema_id) :
@@ -161,6 +169,8 @@ namespace wgp {
         visitor->Visit(this);
     }
 
+    TYPE_IMP_1(SketchPoint2dEqualConstraintFeatureSchema, SketchConstraintFeatureSchema::GetTypeInstance())
+
     SketchPoint2dEqualConstraintFeatureSchema::SketchPoint2dEqualConstraintFeatureSchema(Drawing* drawing, SceneId id, const char* name,
         SceneId constraint_field_schema_id) :
         SketchConstraintFeatureSchema(drawing, id, name, constraint_field_schema_id) {
@@ -174,6 +184,8 @@ namespace wgp {
     void SketchPoint2dEqualConstraintFeature::Accept(FeatureVisitor* visitor) {
         visitor->Visit(this);
     }
+
+    TYPE_IMP_1(SketchFixPoint2dConstraintFeatureSchema, SketchConstraintFeatureSchema::GetTypeInstance())
 
     SketchFixPoint2dConstraintFeatureSchema::SketchFixPoint2dConstraintFeatureSchema(Drawing* drawing, SceneId id, const char* name,
         SceneId constraint_field_schema_id) :
@@ -189,6 +201,8 @@ namespace wgp {
         visitor->Visit(this);
     }
 
+    TYPE_IMP_1(SketchFixPoint2dPoint2dDistanceConstraintFeatureSchema, SketchConstraintFeatureSchema::GetTypeInstance())
+
     SketchFixPoint2dPoint2dDistanceConstraintFeatureSchema::SketchFixPoint2dPoint2dDistanceConstraintFeatureSchema(Drawing* drawing, SceneId id, const char* name,
         SceneId constraint_field_schema_id) :
         SketchConstraintFeatureSchema(drawing, id, name, constraint_field_schema_id) {
@@ -202,6 +216,8 @@ namespace wgp {
     void SketchFixPoint2dPoint2dDistanceConstraintFeature::Accept(FeatureVisitor* visitor) {
         visitor->Visit(this);
     }
+
+    TYPE_IMP_1(SketchFixLine2dLine2dAngleConstraintFeatureSchema, SketchConstraintFeatureSchema::GetTypeInstance())
 
     SketchFixLine2dLine2dAngleConstraintFeatureSchema::SketchFixLine2dLine2dAngleConstraintFeatureSchema(Drawing* drawing, SceneId id, const char* name,
         SceneId constraint_field_schema_id) :
@@ -217,9 +233,238 @@ namespace wgp {
         visitor->Visit(this);
     }
 
-    bool SketchModelExecutor::Execute(ModelEditCommand* command, Array<ModelEditCommand*>& inner_commands, Array<CommandLog*>& logs) {
-        //todo
-        return false;
+    SketchFeatureRefresher::SketchFeatureRefresher(SketchFeature* feature)
+        : m_feature(feature) {
+        m_feature->IncRef();
+    }
+
+    SketchFeatureRefresher::~SketchFeatureRefresher() {
+        m_feature->DecRef();
+    }
+
+    void SketchFeatureRefresher::AppendAffectedFeature(Array<Feature*>& features) {
+        features.Append(m_feature);
+    }
+
+    void SketchFeatureRefresher::AppendRecheckRelationFeature(Array<Feature*>& features) {
+    }
+
+    void SketchFeatureRefresher::AfterUndo() {
+        Model* model = m_feature->GetModel();
+        Sketch* sketch = m_feature->GetSketch();
+        for (int i = sketch->GetGeometryCount() - 1; i >= 0; --i) {
+            SketchGeometry* geometry = sketch->GetGeometry(i);
+            bool b = true;
+            for (int j = 0; j < model->GetFeatureCount(); ++j) {
+                Feature* feature = model->GetFeature(j);
+                if (feature->GetFeatureSchema()->GetType()->IsImplement(SketchGeometryFeatureSchema::GetTypeInstance())) {
+                    SketchGeometry* geometry2 = ((SketchGeometryFeature*)feature)->GetGeometry();
+                    if (geometry == geometry2) {
+                        b = false;
+                        break;
+                    }
+                }
+            }
+            if (b) {
+                sketch->RemoveGeometry(i);
+            }
+        }
+        for (int i = sketch->GetConstraintCount() - 1; i >= 0; --i) {
+            SketchConstraint* constraint = sketch->GetConstraint(i);
+            bool b = true;
+            for (int j = 0; j < model->GetFeatureCount(); ++j) {
+                Feature* feature = model->GetFeature(j);
+                if (feature->GetFeatureSchema()->GetType()->IsImplement(SketchConstraintFeatureSchema::GetTypeInstance())) {
+                    SketchConstraint* constraint2 = ((SketchConstraintFeature*)feature)->GetConstraint();
+                    if (constraint == constraint2) {
+                        b = false;
+                        break;
+                    }
+                }
+            }
+            if (b) {
+                sketch->RemoveConstraint(i);
+            }
+        }
+        for (int j = 0; j < model->GetFeatureCount(); ++j) {
+            Feature* feature = model->GetFeature(j);
+            if (feature->GetFeatureSchema()->GetType()->IsImplement(SketchGeometryFeatureSchema::GetTypeInstance())) {
+                SketchGeometry* geometry2 = ((SketchGeometryFeature*)feature)->GetGeometry();
+                bool b = true;
+                for (int i = 0; i < sketch->GetGeometryCount(); ++i) {
+                    SketchGeometry* geometry = sketch->GetGeometry(i);
+                    if (geometry == geometry2) {
+                        b = false;
+                        break;
+                    }
+                }
+                if (b) {
+                    sketch->AddGeometry(geometry2, false);
+                }
+            }
+            else if (feature->GetFeatureSchema()->GetType()->IsImplement(SketchConstraintFeatureSchema::GetTypeInstance())) {
+                SketchConstraint* constraint2 = ((SketchConstraintFeature*)feature)->GetConstraint();
+                bool b = true;
+                for (int i = 0; i < sketch->GetConstraintCount(); ++i) {
+                    SketchConstraint* constraint = sketch->GetConstraint(i);
+                    if (constraint == constraint2) {
+                        b = false;
+                        break;
+                    }
+                }
+                if (b) {
+                    sketch->AddConstraint(constraint2, false, nullptr);
+                }
+            }
+        }
+    }
+
+    void SketchFeatureRefresher::AfterRedo() {
+        AfterUndo();
+    }
+
+    bool SketchModelExecutor::Execute(Model* model, ModelEditCommand* command, Array<ModelEditCommand*>& inner_commands, Array<CommandLog*>& logs) {
+        if (command->GetPath()->GetCount() > 0) {
+            return false;
+        }
+        CommandLog* log = command->GetLog();
+        if (log->GetType() == AddFeatureCommandLog::GetTypeInstance()) {
+            Feature* feature = ((AddFeatureCommandLog*)log)->GetFeature();
+            if (feature->GetFeatureSchema() == model->GetDrawing()->GetSketchLine2dFeatureSchema()) {
+                Sketch* sketch = ((SketchFeature*)model->GetFeature(0))->GetSketch();
+                Array<SketchEntityVariable> old_variables;
+                GetSketchVariables(sketch, old_variables);
+                sketch->AddGeometry(((SketchLine2dFeature*)feature)->GetGeometry(), true);
+                Array<SketchEntityVariable> new_variables;
+                GetSketchVariables(sketch, new_variables);
+                RefreshAfterSketchChanged(sketch, model, &old_variables, &new_variables, logs);
+            }
+        }
+        return true;
+    }
+
+    void SketchModelExecutor::GetSketchVariables(Sketch* sketch, Array<SketchEntityVariable>& variables) {
+        for (int i = 0; i < sketch->GetGeometryCount(); ++i) {
+            SketchGeometry* geometry = sketch->GetGeometry(i);
+            for (int j = 0; j < geometry->GetVariableCount(); ++j) {
+                SketchEntityVariable variable;
+                variable.Entity = geometry;
+                variable.Index = j;
+                variable.CurrentValue = geometry->GetCurrentVariable(j);
+                geometry->IncRef();
+                variables.Append(variable);
+            }
+        }
+    }
+
+    void SketchModelExecutor::RefreshAfterSketchChanged(Sketch* sketch, Model* model, Array<SketchEntityVariable>* old_variables,
+        Array<SketchEntityVariable>* new_variables, Array<CommandLog*>& logs) {
+        GroupCommandLog* log = new GroupCommandLog();
+        for (int i = 0; i < sketch->GetGeometryCount(); ++i) {
+            SketchGeometry* geometry = sketch->GetGeometry(i);
+            bool b = true;
+            for (int j = 0; j < model->GetFeatureCount(); ++j) {
+                Feature* feature = model->GetFeature(j);
+                if (feature->GetFeatureSchema()->GetType()->IsImplement(SketchGeometryFeatureSchema::GetTypeInstance())) {
+                    SketchGeometry* geometry2 = ((SketchGeometryFeature*)feature)->GetGeometry();
+                    if (geometry == geometry2) {
+                        b = false;
+                        break;
+                    }
+                }
+            }
+            if (b) {
+                if (geometry->GetType() == SketchLine2d::GetTypeInstance()) {
+                    SketchLine2dFeature* geometry_feature = new SketchLine2dFeature(model, model->GetDrawing()->AllocId(), 
+                        model->GetDrawing()->GetSketchLine2dFeatureSchema(), (SketchLine2d*)geometry);
+                    AddFeatureCommandLog* log1 = new AddFeatureCommandLog(model, geometry_feature);
+                    log->AppendLog(log1);
+                }
+            }
+        }
+        for (int i = 0; i < sketch->GetConstraintCount(); ++i) {
+            SketchConstraint* constraint = sketch->GetConstraint(i);
+            bool b = true;
+            for (int j = 0; j < model->GetFeatureCount(); ++j) {
+                Feature* feature = model->GetFeature(j);
+                if (feature->GetFeatureSchema()->GetType()->IsImplement(SketchConstraintFeatureSchema::GetTypeInstance())) {
+                    SketchConstraint* constraint2 = ((SketchConstraintFeature*)feature)->GetConstraint();
+                    if (constraint == constraint2) {
+                        b = false;
+                        break;
+                    }
+                }
+            }
+            if (b) {
+                //todo
+            }
+        }
+        for (int j = model->GetFeatureCount() - 1; j >= 0; --j) {
+            Feature* feature = model->GetFeature(j);
+            if (feature->GetFeatureSchema()->GetType()->IsImplement(SketchGeometryFeatureSchema::GetTypeInstance())) {
+                SketchGeometry* geometry2 = ((SketchGeometryFeature*)feature)->GetGeometry();
+                bool b = true;
+                for (int i = 0; i < sketch->GetGeometryCount(); ++i) {
+                    SketchGeometry* geometry = sketch->GetGeometry(i);
+                    if (geometry == geometry2) {
+                        b = false;
+                        break;
+                    }
+                }
+                if (b) {
+                    RemoveFeatureCommandLog* log1 = new RemoveFeatureCommandLog(model, feature);
+                    log->AppendLog(log1);
+                }
+            }
+            else if (feature->GetFeatureSchema()->GetType()->IsImplement(SketchConstraintFeatureSchema::GetTypeInstance())) {
+                SketchConstraint* constraint2 = ((SketchConstraintFeature*)feature)->GetConstraint();
+                bool b = true;
+                for (int i = 0; i < sketch->GetConstraintCount(); ++i) {
+                    SketchConstraint* constraint = sketch->GetConstraint(i);
+                    if (constraint == constraint2) {
+                        b = false;
+                        break;
+                    }
+                }
+                if (b) {
+                    RemoveFeatureCommandLog* log1 = new RemoveFeatureCommandLog(model, feature);
+                    log->AppendLog(log1);
+                }
+            }
+        }
+        log->Redo();
+        log->SetRefersher(new SketchFeatureRefresher((SketchFeature*)model->GetFeature(0)));
+        logs.Append(log);
+        for (int i = 0; i < new_variables->GetCount(); ++i) {
+            SketchEntityVariable* variable1 = new_variables->GetPointer(i);
+            for (int j = 0; j < old_variables->GetCount(); ++j) {
+                SketchEntityVariable* variable2 = old_variables->GetPointer(j);
+                if (variable1->Entity == variable2->Entity && variable1->Index == variable2->Index) {
+                    if (variable1->CurrentValue != variable2->CurrentValue) {
+                        for (int k = 0; k < model->GetFeatureCount(); ++k) {
+                            Feature* feature = model->GetFeature(k);
+                            if (feature->GetFeatureSchema()->GetType()->IsImplement(SketchGeometryFeatureSchema::GetTypeInstance())) {
+                                SketchGeometry* geometry = ((SketchGeometryFeature*)feature)->GetGeometry();
+                                if (geometry == variable1->Entity) {
+                                    SetSketchGeometryVariableCommandLog* log1 = new SetSketchGeometryVariableCommandLog(feature,
+                                        ((SketchGeometryFeatureSchema*)feature->GetFeatureSchema())->GetGeometryFieldSchema(),
+                                        variable1->Index, variable2->CurrentValue, variable1->CurrentValue);
+                                    logs.Append(log1);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+        for (int i = 0; i < new_variables->GetCount(); ++i) {
+            new_variables->GetPointer(i)->Entity->DecRef();
+        }
+        for (int i = 0; i < old_variables->GetCount(); ++i) {
+            old_variables->GetPointer(i)->Entity->DecRef();
+        }
     }
 
     Model* SketchModelHelper::NewSketchModel(Drawing* drawing, SceneId id, SceneId sketch_feature_id, const char* name) {
@@ -237,7 +482,7 @@ namespace wgp {
         Array<CommandLog*> logs;
         SketchFeature* sketch_feature = (SketchFeature*)model->GetFeature(0);
         SketchLine2d* geometry = new SketchLine2d(sketch_feature->GetSketch(), start_point, end_point);
-        SketchLine2dFeature* geometry_feature = new SketchLine2dFeature(model, geometry_id, model->GetDrawing()->GetSketchFeatureSchema(), geometry);
+        SketchLine2dFeature* geometry_feature = new SketchLine2dFeature(model, geometry_id, model->GetDrawing()->GetSketchLine2dFeatureSchema(), geometry);
         ModelEditCommand edit_command;
         edit_command.SetLog(new AddFeatureCommandLog(model, geometry_feature));
         if (model->Execute(&edit_command, logs)) {

@@ -133,8 +133,12 @@ namespace wgp {
     SketchVariableEntity::SketchVariableEntity(Sketch* owner) : SketchEquations(owner) {
     }
 
+    TYPE_IMP_0(SketchGeometry)
+
     SketchGeometry::SketchGeometry(Sketch* owner) : SketchVariableEntity(owner) {
     }
+
+    TYPE_IMP_0(SketchConstraint)
 
     SketchConstraint::SketchConstraint(Sketch* owner) : SketchEquations(owner) {
     }
@@ -388,7 +392,7 @@ namespace wgp {
         return m_geometries.Get(index);
     }
 
-    void Sketch::AddGeometry(SketchGeometry* geometry) {
+    void Sketch::AddGeometry(SketchGeometry* geometry, bool solve) {
         geometry->IncRef();
         Array<SketchEquation*> equations;
         for (int i = 0; i < geometry->GetVariableCount(); ++i) {
@@ -400,8 +404,10 @@ namespace wgp {
             AddEquationRelation(equation);
             equations.Append(equation);
         }
-        SketchSolver solver(this);
-        solver.Solve(equations, nullptr);
+        if (solve) {
+            SketchSolver solver(this);
+            solver.Solve(equations, nullptr);
+        }
     }
 
     void Sketch::RemoveGeometry(int index) {
@@ -437,7 +443,7 @@ namespace wgp {
         return m_constraints.Get(index);
     }
 
-    bool Sketch::AddConstraint(SketchConstraint* constraint, SketchAction* action) {
+    bool Sketch::AddConstraint(SketchConstraint* constraint, bool solve, SketchAction* action) {
         constraint->IncRef();
         Array<SketchEquation*> equations;
         m_constraints.Append(constraint);
@@ -446,10 +452,12 @@ namespace wgp {
             AddEquationRelation(equation);
             equations.Append(equation);
         }
-        SketchSolver solver(this);
-        if (!solver.Solve(equations, action)) {
-            RemoveConstraint(m_constraints.GetCount() - 1);
-            return false;
+        if (solve) {
+            SketchSolver solver(this);
+            if (!solver.Solve(equations, action)) {
+                RemoveConstraint(m_constraints.GetCount() - 1);
+                return false;
+            }
         }
         return true;
     }

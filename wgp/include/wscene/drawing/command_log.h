@@ -17,6 +17,8 @@ namespace wgp {
     public:
         AddFeatureCommandLog(Model* model, Feature* feature);
         virtual ~AddFeatureCommandLog();
+        Model* GetModel() const;
+        Feature* GetFeature() const;
         virtual void AppendAffectedFeature(Array<Feature*>& features);
         virtual void AppendRecheckRelationFeature(Array<Feature*>& features);
         virtual void Undo();
@@ -144,6 +146,25 @@ namespace wgp {
         SketchFeatureFieldSchema* m_field_schema;
         Sketch* m_old_value;
         Sketch* m_new_value;
+    };
+
+    class WGP_API SetSketchGeometryVariableCommandLog : public CommandLog {
+    public:
+        TYPE_DEF_1(SetSketchGeometryVariableCommandLog)
+    public:
+        SetSketchGeometryVariableCommandLog(Feature* feature, SketchGeometryFeatureFieldSchema* field_schema,
+            int variable_index, double old_value, double new_value);
+        virtual ~SetSketchGeometryVariableCommandLog();
+        virtual void AppendAffectedFeature(Array<Feature*>& features);
+        virtual void AppendRecheckRelationFeature(Array<Feature*>& features);
+        virtual void Undo();
+        virtual void Redo();
+    protected:
+        Feature* m_feature;
+        SketchGeometryFeatureFieldSchema* m_field_schema;
+        int m_variable_index;
+        double m_old_value;
+        double m_new_value;
     };
 
 }

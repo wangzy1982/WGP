@@ -23,7 +23,10 @@ namespace wgp {
     class FeatureSchema;
     class Feature;
     class CommandLog;
-    
+
+    class SketchFeatureSchema;
+    class SketchLine2dFeatureSchema;
+
     class WGP_API Drawing {
     public:
         Drawing();
@@ -34,13 +37,14 @@ namespace wgp {
         Model* GetModel(int index) const;
         void Log(Array<CommandLog*>&& logs);
     public:
-        friend class SketchFeatureSchema;
         SketchFeatureSchema* GetSketchFeatureSchema();
+        SketchLine2dFeatureSchema* GetSketchLine2dFeatureSchema();
     private:
         Array<Model*> m_models;
         SceneId m_next_id;
     private:
         SketchFeatureSchema* m_sketch_feature_schema;
+        SketchLine2dFeatureSchema* m_sketch_line2d_feature_schema;
     };
 
     class WGP_API ModelEditCommand {
@@ -61,7 +65,7 @@ namespace wgp {
     class WGP_API ModelExecutor {
     public:
         virtual ~ModelExecutor() {}
-        virtual bool Execute(ModelEditCommand* command, Array<ModelEditCommand*>& inner_commands, Array<CommandLog*>& logs) = 0;
+        virtual bool Execute(Model* model, ModelEditCommand* command, Array<ModelEditCommand*>& inner_commands, Array<CommandLog*>& logs) = 0;
     };
 
     class WGP_API Model : public RefObject {
@@ -107,6 +111,8 @@ namespace wgp {
     };
 
     class WGP_API FeatureSchema {
+    public:
+        TYPE_DEF_0(FeatureSchema)
     public:
         FeatureSchema(Drawing* drawing, SceneId id, const char* name);
         virtual ~FeatureSchema();
@@ -184,6 +190,35 @@ namespace wgp {
         virtual void Undo() = 0;
         virtual void Redo() = 0;
     };
+
+    class WGP_API GroupCommandLogRefresher {
+    public:
+        virtual void AppendAffectedFeature(Array<Feature*>& features) = 0;
+        virtual void AppendRecheckRelationFeature(Array<Feature*>& features) = 0;
+        virtual void AfterUndo() = 0;
+        virtual void AfterRedo() = 0;
+    };
+
+    class WGP_API GroupCommandLog : public CommandLog {
+    public:
+        TYPE_DEF_1(GroupCommandLog)
+    public:
+        GroupCommandLog(int capacity);
+        GroupCommandLog();
+        virtual ~GroupCommandLog();
+        virtual void AppendAffectedFeature(Array<Feature*>& features);
+        virtual void AppendRecheckRelationFeature(Array<Feature*>& features);
+        virtual void Undo();
+        virtual void Redo();
+        void AppendLog(CommandLog* log);
+        int GetLogCount() const;
+        CommandLog* GetLog(int index) const;
+        void SetRefersher(GroupCommandLogRefresher* refresher);
+    protected:
+        Array<CommandLog*> m_logs;
+        GroupCommandLogRefresher* m_refresher;
+    };
+
 }
 
 #endif

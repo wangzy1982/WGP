@@ -9,6 +9,7 @@
 #include "wstd/interval.h"
 #include "wstd/solver.h"
 #include "wstd/vector2d.h"
+#include "wstd/type.h"
 
 namespace wgp {
 
@@ -102,23 +103,19 @@ namespace wgp {
         virtual void SetCurrentVariableIndex(int index, int variable_index) = 0;
     };
 
-    class WGP_API SketchGeometryType {
-    };
-    
     class WGP_API SketchGeometry : public SketchVariableEntity {
     public:
+        TYPE_DEF_0(SketchGeometry)
+    public:
         SketchGeometry(Sketch* owner);
-        virtual SketchGeometryType* GetType() const = 0;
         virtual bool IsStrategy() { return false; }
-    };
-
-    class WGP_API SketchConstraintType {
     };
 
     class WGP_API SketchConstraint : public SketchEquations {
     public:
+        TYPE_DEF_0(SketchConstraint)
+    public:
         SketchConstraint(Sketch* owner);
-        virtual SketchConstraintType* GetType() const = 0;
         virtual bool IsStrategy() { return false; }
     };
 
@@ -222,11 +219,11 @@ namespace wgp {
         void Clear();
         int GetGeometryCount() const;
         SketchGeometry* GetGeometry(int index) const;
-        void AddGeometry(SketchGeometry* geometry);
+        void AddGeometry(SketchGeometry* geometry, bool solve);
         void RemoveGeometry(int index);
         int GetConstraintCount() const;
         SketchConstraint* GetConstraint(int index) const;
-        bool AddConstraint(SketchConstraint* constraint, SketchAction* action);
+        bool AddConstraint(SketchConstraint* constraint, bool solve, SketchAction* action);
         void RemoveConstraint(int index);
     public:
         bool Solve(SketchAction* action);

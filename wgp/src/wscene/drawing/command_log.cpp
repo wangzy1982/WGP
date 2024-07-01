@@ -20,6 +20,14 @@ namespace wgp {
         m_model->DecRef();
     }
 
+    Model* AddFeatureCommandLog::GetModel() const {
+        return m_model;
+    }
+
+    Feature* AddFeatureCommandLog::GetFeature() const {
+        return m_feature;
+    }
+
     void AddFeatureCommandLog::AppendAffectedFeature(Array<Feature*>& features) {
         features.Append(m_feature);
     }
@@ -432,4 +440,36 @@ namespace wgp {
         }
         m_field_schema->m_direct_set_func(m_feature, m_field_schema, m_new_value);
     }
+
+    TYPE_IMP_1(SetSketchGeometryVariableCommandLog, CommandLog::GetTypeInstance())
+        
+    SetSketchGeometryVariableCommandLog::SetSketchGeometryVariableCommandLog(Feature* feature, SketchGeometryFeatureFieldSchema* field_schema,
+        int variable_index, double old_value, double new_value) :
+        m_feature(feature),
+        m_field_schema(field_schema),
+        m_variable_index(variable_index),
+        m_old_value(old_value),
+        m_new_value(new_value) {
+        m_feature->IncRef();
+    }
+
+    SetSketchGeometryVariableCommandLog::~SetSketchGeometryVariableCommandLog() {
+        m_feature->DecRef();
+    }
+
+    void SetSketchGeometryVariableCommandLog::AppendAffectedFeature(Array<Feature*>& features) {
+        features.Append(m_feature);
+    }
+
+    void SetSketchGeometryVariableCommandLog::AppendRecheckRelationFeature(Array<Feature*>& features) {
+    }
+
+    void SetSketchGeometryVariableCommandLog::Undo() {
+        m_field_schema->GetAsSketchGeometry(m_feature)->SetCurrentVariable(m_variable_index, m_old_value);
+    }
+
+    void SetSketchGeometryVariableCommandLog::Redo() {
+        m_field_schema->GetAsSketchGeometry(m_feature)->SetCurrentVariable(m_variable_index, m_new_value);
+    }
+
 }

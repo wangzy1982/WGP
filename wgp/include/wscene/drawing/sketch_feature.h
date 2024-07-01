@@ -15,6 +15,8 @@ namespace wgp {
 
     class WGP_API SketchFeatureSchema : public FeatureSchema {
     public:
+        TYPE_DEF_1(SketchFeatureSchema)
+    public:
         SketchFeatureSchema(Drawing* drawing, SceneId id, const char* name, SceneId sketch_field_schema_id);
         SketchFeatureFieldSchema* GetSketchFieldSchema() const;
     protected:
@@ -34,6 +36,8 @@ namespace wgp {
     };
 
     class WGP_API SketchGeometryFeatureSchema : public FeatureSchema {
+    public:
+        TYPE_DEF_1(SketchGeometryFeatureSchema)
     public:
         SketchGeometryFeatureSchema(Drawing* drawing, SceneId id, const char* name, SceneId geometry_field_schema_id);
         SketchGeometryFeatureFieldSchema* GetGeometryFieldSchema() const;
@@ -55,6 +59,8 @@ namespace wgp {
 
     class WGP_API SketchConstraintFeatureSchema : public FeatureSchema {
     public:
+        TYPE_DEF_1(SketchConstraintFeatureSchema)
+    public:
         SketchConstraintFeatureSchema(Drawing* drawing, SceneId id, const char* name, SceneId constraint_field_schema_id);
         SketchConstraintFeatureFieldSchema* GetConstraintFieldSchema() const;
     protected:
@@ -74,6 +80,8 @@ namespace wgp {
     };
 
     class WGP_API SketchLine2dFeatureSchema : public SketchGeometryFeatureSchema {
+    public:
+        TYPE_DEF_1(SketchLine2dFeatureSchema)
     public:
         SketchLine2dFeatureSchema(Drawing* drawing, SceneId id, const char* name,
             SceneId geometry_field_schema_id, SceneId start_point_field_schema_id, SceneId end_point_field_schema_id);
@@ -97,6 +105,8 @@ namespace wgp {
 
     class WGP_API SketchPoint2dEqualConstraintFeatureSchema : public SketchConstraintFeatureSchema {
     public:
+        TYPE_DEF_1(SketchPoint2dEqualConstraintFeatureSchema)
+    public:
         SketchPoint2dEqualConstraintFeatureSchema(Drawing* drawing, SceneId id, const char* name, SceneId constraint_field_schema_id);
     protected:
         static int GetFieldCount() { return SketchConstraintFeatureSchema::GetFieldCount(); }
@@ -112,6 +122,8 @@ namespace wgp {
 
     class WGP_API SketchFixPoint2dConstraintFeatureSchema : public SketchConstraintFeatureSchema {
     public:
+        TYPE_DEF_1(SketchFixPoint2dConstraintFeatureSchema)
+    public:
         SketchFixPoint2dConstraintFeatureSchema(Drawing* drawing, SceneId id, const char* name, SceneId constraint_field_schema_id);
     protected:
         static int GetFieldCount() { return SketchConstraintFeatureSchema::GetFieldCount(); }
@@ -126,6 +138,8 @@ namespace wgp {
     };
 
     class WGP_API SketchFixPoint2dPoint2dDistanceConstraintFeatureSchema : public SketchConstraintFeatureSchema {
+    public:
+        TYPE_DEF_1(SketchFixPoint2dPoint2dDistanceConstraintFeatureSchema)
     public:
         SketchFixPoint2dPoint2dDistanceConstraintFeatureSchema(Drawing* drawing, SceneId id, const char* name, SceneId constraint_field_schema_id);
     protected:
@@ -143,6 +157,8 @@ namespace wgp {
 
     class WGP_API SketchFixLine2dLine2dAngleConstraintFeatureSchema : public SketchConstraintFeatureSchema {
     public:
+        TYPE_DEF_1(SketchFixLine2dLine2dAngleConstraintFeatureSchema)
+    public:
         SketchFixLine2dLine2dAngleConstraintFeatureSchema(Drawing* drawing, SceneId id, const char* name, SceneId constraint_field_schema_id);
     protected:
         static int GetFieldCount() { return SketchConstraintFeatureSchema::GetFieldCount(); }
@@ -157,9 +173,25 @@ namespace wgp {
         friend class SketchConstraintFeatureSchema;
     };
 
+    class WGP_API SketchFeatureRefresher : public GroupCommandLogRefresher {
+    public:
+        SketchFeatureRefresher(SketchFeature* feature);
+        virtual ~SketchFeatureRefresher();
+        virtual void AppendAffectedFeature(Array<Feature*>& features);
+        virtual void AppendRecheckRelationFeature(Array<Feature*>& features);
+        virtual void AfterUndo();
+        virtual void AfterRedo();
+    private:
+        SketchFeature* m_feature;
+    };
+
     class WGP_API SketchModelExecutor : public ModelExecutor {
     public:
-        virtual bool Execute(ModelEditCommand* command, Array<ModelEditCommand*>& inner_commands, Array<CommandLog*>& logs);
+        virtual bool Execute(Model* model, ModelEditCommand* command, Array<ModelEditCommand*>& inner_commands, Array<CommandLog*>& logs);
+    private:
+        void GetSketchVariables(Sketch* sketch, Array<SketchEntityVariable>& variables);
+        void RefreshAfterSketchChanged(Sketch* sketch, Model* model, Array<SketchEntityVariable>* old_variables,
+            Array<SketchEntityVariable>* new_variables, Array<CommandLog*>& logs);
     };
 
     class WGP_API SketchModelHelper {

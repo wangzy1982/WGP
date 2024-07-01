@@ -20,6 +20,7 @@ namespace wgp {
         Type(Type* base_type_0, Type* base_type_1, Type* base_type_2, Type* base_type_3, Type* base_type_4);
         Type(Type* base_type_0, Type* base_type_1, Type* base_type_2, Type* base_type_3, Type* base_type_4, Type* base_type_5);
         virtual ~Type();
+        bool IsImplement(Type* type) const;
     private:
         int m_base_type_count;
         Type** m_base_types;
@@ -116,6 +117,18 @@ namespace wgp {
 
     inline Type::~Type() {
         delete[] m_base_types;
+    }
+
+    inline bool Type::IsImplement(Type* type) const {
+        if (this == type) {
+            return true;
+        }
+        for (int i = 0; i < m_base_type_count; ++i) {
+            if (m_base_types[i]->IsImplement(type)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
 
