@@ -11,6 +11,35 @@
 
 namespace wgp {
 
+    class WGP_API AddModelCommandLog : public CommandLog {
+    public:
+        TYPE_DEF_1(AddModelCommandLog)
+    public:
+        AddModelCommandLog(Model* model);
+        virtual ~AddModelCommandLog();
+        Model* GetModel() const;
+        virtual void AppendAffectedFeature(Array<Feature*>& features);
+        virtual void AppendRecheckRelationFeature(Array<Feature*>& features);
+        virtual void Undo();
+        virtual void Redo();
+    protected:
+        Model* m_model;
+    };
+
+    class WGP_API RemoveModelCommandLog : public CommandLog {
+    public:
+        TYPE_DEF_1(RemoveModelCommandLog)
+    public:
+        RemoveModelCommandLog(Model* model);
+        virtual ~RemoveModelCommandLog();
+        virtual void AppendAffectedFeature(Array<Feature*>& features);
+        virtual void AppendRecheckRelationFeature(Array<Feature*>& features);
+        virtual void Undo();
+        virtual void Redo();
+    protected:
+        Model* m_model;
+    };
+
     class WGP_API AddFeatureCommandLog : public CommandLog {
     public:
         TYPE_DEF_1(AddFeatureCommandLog)

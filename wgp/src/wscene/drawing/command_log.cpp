@@ -6,6 +6,78 @@
 
 namespace wgp {
 
+    TYPE_IMP_1(AddModelCommandLog, CommandLog::GetTypeInstance())
+
+    AddModelCommandLog::AddModelCommandLog(Model* model) :
+        m_model(model) {
+        m_model->IncRef();
+    }
+
+    AddModelCommandLog::~AddModelCommandLog() {
+        m_model->DecRef();
+    }
+
+    void AddModelCommandLog::AppendAffectedFeature(Array<Feature*>& features) {
+    }
+
+    void AddModelCommandLog::AppendRecheckRelationFeature(Array<Feature*>& features) {
+    }
+
+    void AddModelCommandLog::Undo() {
+        Drawing* drawing = m_model->GetDrawing();
+        for (int i = 0; i < drawing->m_models.GetCount(); ++i) {
+            Model* model = drawing->m_models.Get(i);
+            if (model == m_model) {
+                m_model->m_is_alone = true;
+                m_model->DecRef();
+                drawing->m_models.Remove(i);
+                break;
+            }
+        }
+    }
+
+    void AddModelCommandLog::Redo() {
+        m_model->m_is_alone = false;
+        m_model->IncRef();
+        m_model->GetDrawing()->m_models.Append(m_model);
+    }
+
+    TYPE_IMP_1(RemoveModelCommandLog, CommandLog::GetTypeInstance())
+
+    RemoveModelCommandLog::RemoveModelCommandLog(Model* model) : 
+        m_model(model) {
+        m_model->IncRef();
+    }
+
+    RemoveModelCommandLog::~RemoveModelCommandLog() {
+        m_model->DecRef();
+    }
+
+    void RemoveModelCommandLog::AppendAffectedFeature(Array<Feature*>& features) {
+    }
+
+    void RemoveModelCommandLog::AppendRecheckRelationFeature(Array<Feature*>& features) {
+    }
+
+    void RemoveModelCommandLog::Undo() {
+        m_model->m_is_alone = false;
+        m_model->IncRef();
+        m_model->GetDrawing()->m_models.Append(m_model);
+    }
+
+    void RemoveModelCommandLog::Redo() {
+        Drawing* drawing = m_model->GetDrawing();
+        for (int i = 0; i < drawing->m_models.GetCount(); ++i) {
+            Model* model = drawing->m_models.Get(i);
+            if (model == m_model) {
+                m_model->m_is_alone = true;
+                m_model->DecRef();
+                drawing->m_models.Remove(i);
+                break;
+            }
+        }
+    }
+
     TYPE_IMP_1(AddFeatureCommandLog, CommandLog::GetTypeInstance())
 
     AddFeatureCommandLog::AddFeatureCommandLog(Model* model, Feature* feature) :
@@ -40,17 +112,18 @@ namespace wgp {
         for (int i = 0; i < m_model->m_features.GetCount(); ++i) {
             Feature* feature = m_model->m_features.Get(i);
             if (feature == m_feature) {
-                for (int j = 0; j < m_feature->GetInputCount(); ++j) {
-                    Feature* input = m_feature->GetInput(j);
-                    if (input) {
-                        for (int k = 0; k < input->m_affected_features.GetCount(); ++k) {
-                            if (input->m_affected_features.Get(k) == m_feature) {
-                                input->m_affected_features.Remove(k);
-                                break;
-                            }
+                if (m_feature->GetFeatureSchema() == m_model->GetDrawing()->GetReferenceFeatureSchema()) {
+                    ReferenceFeature* reference_feature = (ReferenceFeature*)m_feature;
+                    Model* reference_model = reference_feature->GetReferenceModel();
+                    for (int j = 0; j < reference_model->m_reference_features.GetCount(); ++j) {
+                        Feature* feature2 = reference_model->m_reference_features.Get(j);
+                        if (feature2 == m_feature) {
+                            reference_model->m_reference_features.Remove(j);
+                            break;
                         }
                     }
                 }
+                m_feature->m_is_alone = true;
                 m_feature->DecRef();
                 m_model->m_features.Remove(i);
                 break;
@@ -59,13 +132,13 @@ namespace wgp {
     }
 
     void AddFeatureCommandLog::Redo() {
+        m_feature->m_is_alone = false;
         m_feature->IncRef();
         m_model->m_features.Append(m_feature);
-        for (int j = 0; j < m_feature->GetInputCount(); ++j) {
-            Feature* input = m_feature->GetInput(j);
-            if (input) {
-                input->m_affected_features.Append(m_feature);
-            }
+        if (m_feature->GetFeatureSchema() == m_model->GetDrawing()->GetReferenceFeatureSchema()) {
+            ReferenceFeature* reference_feature = (ReferenceFeature*)m_feature;
+            Model* reference_model = reference_feature->GetReferenceModel();
+            reference_model->m_reference_features.Append(m_feature);
         }
     }
 
@@ -90,13 +163,13 @@ namespace wgp {
     }
 
     void RemoveFeatureCommandLog::Undo() {
+        m_feature->m_is_alone = false;
         m_feature->IncRef();
         m_model->m_features.Append(m_feature);
-        for (int j = 0; j < m_feature->GetInputCount(); ++j) {
-            Feature* input = m_feature->GetInput(j);
-            if (input) {
-                input->m_affected_features.Append(m_feature);
-            }
+        if (m_feature->GetFeatureSchema() == m_model->GetDrawing()->GetReferenceFeatureSchema()) {
+            ReferenceFeature* reference_feature = (ReferenceFeature*)m_feature;
+            Model* reference_model = reference_feature->GetReferenceModel();
+            reference_model->m_reference_features.Append(m_feature);
         }
     }
 
@@ -104,17 +177,18 @@ namespace wgp {
         for (int i = 0; i < m_model->m_features.GetCount(); ++i) {
             Feature* feature = m_model->m_features.Get(i);
             if (feature == m_feature) {
-                for (int j = 0; j < m_feature->GetInputCount(); ++j) {
-                    Feature* input = m_feature->GetInput(j);
-                    if (input) {
-                        for (int k = 0; k < input->m_affected_features.GetCount(); ++k) {
-                            if (input->m_affected_features.Get(k) == m_feature) {
-                                input->m_affected_features.Remove(k);
-                                break;
-                            }
+                if (m_feature->GetFeatureSchema() == m_model->GetDrawing()->GetReferenceFeatureSchema()) {
+                    ReferenceFeature* reference_feature = (ReferenceFeature*)m_feature;
+                    Model* reference_model = reference_feature->GetReferenceModel();
+                    for (int j = 0; j < reference_model->m_reference_features.GetCount(); ++j) {
+                        Feature* feature2 = reference_model->m_reference_features.Get(j);
+                        if (feature2 == m_feature) {
+                            reference_model->m_reference_features.Remove(j);
+                            break;
                         }
                     }
                 }
+                m_feature->m_is_alone = true;
                 m_feature->DecRef();
                 m_model->m_features.Remove(i);
                 break;

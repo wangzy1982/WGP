@@ -196,8 +196,21 @@ namespace wgp {
 
     class WGP_API SketchModelHelper {
     public:
-        static Model* NewSketchModel(Drawing* drawing, SceneId id, SceneId sketch_feature_id, const char* name);
+        static Model* AddSketchModel(Drawing* drawing, SceneId id, SceneId sketch_feature_id, const char* name);
         static bool AddSketchLine2d(Model* model, SceneId geometry_id, const Vector2d& start_point, const Vector2d& end_point);
+        static bool AddSketchPoint2dEqualConstraint(Model* model, SceneId constraint_id,
+            SketchGeometryFeature* geometry0, int x_variable_index0, int y_variable_index0,
+            SketchGeometryFeature* geometry1, int x_variable_index1, int y_variable_index1, double epsilon);
+        static bool AddSketchFixPoint2dConstraint(Model* model, SceneId constraint_id,
+            SketchGeometryFeature* geometry, int x_variable_index, int y_variable_index, const Vector2d& point, double epsilon);
+        static bool AddSketchFixPoint2dPoint2dDistanceConstraint(Model* model, SceneId constraint_id,
+            SketchGeometryFeature* entity0, int x_variable_index0, int y_variable_index0,
+            SketchGeometryFeature* entity1, int x_variable_index1, int y_variable_index1,
+            double distance, double epsilon);
+        static bool AddSketchFixLine2dLine2dAngleConstraint(Model* model, SceneId constraint_id,
+            SketchGeometryFeature* entity0, int start_x_variable_index0, int start_y_variable_index0, int end_x_variable_index0, int end_y_variable_index0,
+            SketchGeometryFeature* entity1, int start_x_variable_index1, int start_y_variable_index1, int end_x_variable_index1, int end_y_variable_index1,
+            double angle, double epsilon);
     };
     /*
     class SketchGeometryFeatureSchema;

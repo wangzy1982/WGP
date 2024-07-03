@@ -11,8 +11,13 @@ namespace wgp {
 
     Drawing::Drawing() : 
         m_next_id(1),
+        m_reference_feature_schema(nullptr),
         m_sketch_feature_schema(nullptr),
-        m_sketch_line2d_feature_schema(nullptr) {
+        m_sketch_line2d_feature_schema(nullptr),
+        m_sketch_point2d_equal_constraint_feature_schema(nullptr),
+        m_sketch_fix_point2d_constraint_feature_schema(nullptr),
+        m_sketch_fix_point2d_point2d_distance_constraint_feature_schema(nullptr),
+        m_sketch_fix_line2d_line2d_angle_constraint_feature_schema(nullptr) {
     }
 
     Drawing::~Drawing() {
@@ -20,7 +25,9 @@ namespace wgp {
             Model* model = m_models.Get(i);
             model->DecRef();
         }
-        delete m_sketch_feature_schema;
+        for (int i = 0; i < m_feature_schemas.GetCount(); ++i) {
+            delete m_feature_schemas.Get(i);
+        }
     }
 
     SceneId Drawing::AllocId() {
@@ -33,6 +40,22 @@ namespace wgp {
         }
     }
 
+    void Drawing::AddModel(Model* model, Array<CommandLog*>& logs) {
+        AddModelCommandLog* log = new AddModelCommandLog(model);
+        log->Redo();
+        logs.Append(log);
+    }
+
+    bool Drawing::RemoveModel(Model* model, Array<CommandLog*>& logs) {
+        if (model->m_reference_features.GetCount() > 0) {
+            return false;
+        }
+        RemoveModelCommandLog* log = new RemoveModelCommandLog(model);
+        log->Redo();
+        logs.Append(log);
+        return true;
+    }
+
     int Drawing::GetModelCount() const {
         return m_models.GetCount();
     }
@@ -41,22 +64,141 @@ namespace wgp {
         return m_models.Get(index);
     }
 
+    bool Drawing::Sync(const Array<Feature*>& affected_features, Array<CommandLog*>& logs) {
+        bool success = true;
+        Array<Feature*> sorted_features(affected_features.GetCount() * 10);
+        for (int i = 0; i < affected_features.GetCount(); ++i) {
+            if (!TopoSortAffectedFeatures(affected_features.Get(i), sorted_features)) {
+                success = false;
+                break;
+            }
+        }
+        if (success) {
+            for (int i = sorted_features.GetCount() - 1; i >= 0; --i) {
+                Feature* output_feature = sorted_features.Get(i)->GetOutput();
+                if (output_feature) {
+                    for (int j = 0; j < output_feature->m_executor_features.GetCount(); ++j) {
+                        if (!TopoSortAffectedFeatures(output_feature->m_executor_features.Get(j), sorted_features)) {
+                            success = false;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (success) {
+                for (int i = sorted_features.GetCount() - 1; i >= 0; --i) {
+                    Feature* feature = sorted_features.Get(i);
+                    if (!feature->Calculate(logs)) {
+                        success = false;
+                        break;
+                    }
+                }
+            }
+        }
+        for (int i = 0; i < sorted_features.GetCount(); ++i) {
+            sorted_features.Get(i)->m_runtime_state = 0;
+        }
+        return success;
+    }
+
     void Drawing::Log(Array<CommandLog*>&& logs) {
         //todo
+    }
+
+    bool Drawing::TopoSortAffectedFeatures(Feature* feature, Array<Feature*>& sorted_features) {
+        if (feature->m_is_alone) {
+            return true;
+        }
+        if (feature->m_runtime_state == 2) {
+            return false;
+        }
+        if (feature->m_runtime_state == 1) {
+            return true;
+        }
+        assert(feature->m_runtime_state == 0);
+        feature->m_runtime_state = 2;
+        for (int i = 0; i < feature->m_affected_features.GetCount(); ++i) {
+            if (!TopoSortAffectedFeatures(feature->m_affected_features.Get(i), sorted_features)) {
+                feature->m_runtime_state = 0;
+                return false;
+            }
+        }
+        Feature* output_feature = feature->GetOutput();
+        if (output_feature) {
+            if (!TopoSortAffectedFeatures(output_feature, sorted_features)) {
+                feature->m_runtime_state = 0;
+                return false;
+            }
+        }
+        for (int i = 0; i < feature->m_model->m_reference_features.GetCount(); ++i) {
+            if (!TopoSortAffectedFeatures(feature->m_model->m_reference_features.Get(i), sorted_features)) {
+                feature->m_runtime_state = 0;
+                return false;
+            }
+        }
+        sorted_features.Append(feature);
+        feature->m_runtime_state = 1;
+        return true;
+    }
+
+    ReferenceFeatureSchema* Drawing::GetReferenceFeatureSchema() {
+        if (!m_reference_feature_schema) {
+            m_reference_feature_schema = new ReferenceFeatureSchema(this, AllocId(), "Reference");
+            m_feature_schemas.Append(m_reference_feature_schema);
+        }
+        return m_reference_feature_schema;
     }
 
     SketchFeatureSchema* Drawing::GetSketchFeatureSchema() {
         if (!m_sketch_feature_schema) {
             m_sketch_feature_schema = new SketchFeatureSchema(this, AllocId(), "Sketch", AllocId());
+            m_feature_schemas.Append(m_sketch_feature_schema);
         }
         return m_sketch_feature_schema;
     }
 
     SketchLine2dFeatureSchema* Drawing::GetSketchLine2dFeatureSchema() {
         if (!m_sketch_line2d_feature_schema) {
-            m_sketch_line2d_feature_schema = new SketchLine2dFeatureSchema(this, AllocId(), "Sketch", AllocId(), AllocId(), AllocId());
+            m_sketch_line2d_feature_schema = new SketchLine2dFeatureSchema(this, AllocId(), "SketchLine2d", AllocId(), AllocId(), AllocId());
+            m_feature_schemas.Append(m_sketch_line2d_feature_schema);
         }
         return m_sketch_line2d_feature_schema;
+    }
+
+    SketchPoint2dEqualConstraintFeatureSchema* Drawing::GetSketchPoint2dEqualConstraintFeatureSchema() {
+        if (!m_sketch_point2d_equal_constraint_feature_schema) {
+            m_sketch_point2d_equal_constraint_feature_schema = new SketchPoint2dEqualConstraintFeatureSchema(
+                this, AllocId(), "SketchPoint2dEqualConstraint", AllocId());
+            m_feature_schemas.Append(m_sketch_point2d_equal_constraint_feature_schema);
+        }
+        return m_sketch_point2d_equal_constraint_feature_schema;
+    }
+
+    SketchFixPoint2dConstraintFeatureSchema* Drawing::GetSketchFixPoint2dConstraintFeatureSchema() {
+        if (!m_sketch_fix_point2d_constraint_feature_schema) {
+            m_sketch_fix_point2d_constraint_feature_schema = new SketchFixPoint2dConstraintFeatureSchema(
+                this, AllocId(), "SketchFixPoint2dConstraint", AllocId());
+            m_feature_schemas.Append(m_sketch_fix_point2d_constraint_feature_schema);
+        }
+        return m_sketch_fix_point2d_constraint_feature_schema;
+    }
+
+    SketchFixPoint2dPoint2dDistanceConstraintFeatureSchema* Drawing::GetSketchFixPoint2dPoint2dDistanceConstraintFeatureSchema() {
+        if (!m_sketch_fix_point2d_point2d_distance_constraint_feature_schema) {
+            m_sketch_fix_point2d_point2d_distance_constraint_feature_schema = new SketchFixPoint2dPoint2dDistanceConstraintFeatureSchema(
+                this, AllocId(), "SketchFixPoint2dPoint2dDistanceConstraint", AllocId());
+            m_feature_schemas.Append(m_sketch_fix_point2d_point2d_distance_constraint_feature_schema);
+        }
+        return m_sketch_fix_point2d_point2d_distance_constraint_feature_schema;
+    }
+
+    SketchFixLine2dLine2dAngleConstraintFeatureSchema* Drawing::GetSketchFixLine2dLine2dAngleConstraintFeatureSchema() {
+        if (!m_sketch_fix_line2d_line2d_angle_constraint_feature_schema) {
+            m_sketch_fix_line2d_line2d_angle_constraint_feature_schema = new SketchFixLine2dLine2dAngleConstraintFeatureSchema(
+                this, AllocId(), "SketchFixLine2dLine2dAngleConstraint", AllocId());
+            m_feature_schemas.Append(m_sketch_fix_line2d_line2d_angle_constraint_feature_schema);
+        }
+        return m_sketch_fix_line2d_line2d_angle_constraint_feature_schema;
     }
 
     ModelEditCommand::ModelEditCommand() : m_log(nullptr) {
@@ -98,6 +240,7 @@ namespace wgp {
         m_drawing(drawing),
         m_id(id),
         m_name(clone_string(name)),
+        m_is_alone(true),
         m_executor(executor) {
     }
 
@@ -121,13 +264,20 @@ namespace wgp {
         return m_name;
     }
 
-    void Model::AddFeature(Feature* feature, Array<CommandLog*>& logs) {
+    bool Model::AddFeature(Feature* feature, Array<CommandLog*>& logs) {
+        if (m_is_alone) {
+            return false;
+        }
         AddFeatureCommandLog* log = new AddFeatureCommandLog(this, feature);
         log->Redo();
         logs.Append(log);
+        return true;
     }
 
     bool Model::RemoveFeature(Feature* feature, Array<CommandLog*>& logs) {
+        if (m_is_alone) {
+            return false;
+        }
         if (feature->m_affected_features.GetCount() > 0) {
             return false;
         }
@@ -145,8 +295,10 @@ namespace wgp {
         return m_features.Get(index);
     }
 
-    bool Model::Execute(ModelEditCommand* command, Array<CommandLog*>& logs) {
-        Array<Feature*> affected_features;
+    bool Model::Execute(ModelEditCommand* command, Array<Feature*>& affected_features, Array<CommandLog*>& logs) {
+        if (m_is_alone) {
+            return false;
+        }
         Array<Feature*> recheck_relation_features;
         if (m_executor) {
             int log_start = logs.GetCount();
@@ -170,7 +322,10 @@ namespace wgp {
                         Feature* inner_feature = inner_command->GetPath()->Get(0);
                         inner_command->PopPathFirst();
                         affected_features.Append(inner_feature);
-                        //todo
+                        assert(inner_feature->GetFeatureSchema() == m_drawing->GetReferenceFeatureSchema());
+                        if (!((ReferenceFeature*)inner_feature)->GetModel()->Execute(inner_command, affected_features, logs)) {
+                            success = false;
+                        }
                     }
                     else {
                         CommandLog* log = command->GetLog();
@@ -192,7 +347,10 @@ namespace wgp {
                 Feature* inner_feature = command->GetPath()->Get(0);
                 command->PopPathFirst();
                 affected_features.Append(inner_feature);
-                //todo
+                assert(inner_feature->GetFeatureSchema() == m_drawing->GetReferenceFeatureSchema());
+                if (!((ReferenceFeature*)inner_feature)->GetModel()->Execute(command, affected_features, logs)) {
+                    return false;
+                }
             }
             else {
                 CommandLog* log = command->GetLog();
@@ -206,40 +364,7 @@ namespace wgp {
         if (!CheckRelations(recheck_relation_features)) {
             return false;
         }
-        bool success = true;
-        Array<Feature*> sorted_features(m_features.GetCount());
-        for (int i = 0; i < affected_features.GetCount(); ++i) {
-            if (!TopoSortAffectedFeatures(affected_features.Get(i), sorted_features)) {
-                success = false;
-                break;
-            }
-        }
-        if (success) {
-            for (int i = sorted_features.GetCount() - 1; i >= 0; --i) {
-                Feature* output_feature = sorted_features.Get(i)->GetOutput();
-                if (output_feature) {
-                    for (int j = 0; j < output_feature->m_executor_features.GetCount(); ++j) {
-                        if (!TopoSortAffectedFeatures(output_feature->m_executor_features.Get(j), sorted_features)) {
-                            success = false;
-                            break;
-                        }
-                    }
-                }
-            }
-            if (success) {
-                for (int i = sorted_features.GetCount() - 1; i >= 0; --i) {
-                    Feature* feature = sorted_features.Get(i);
-                    if (!feature->Calculate(logs)) {
-                        success = false;
-                        break;
-                    }
-                }
-            }
-        }
-        for (int i = 0; i < sorted_features.GetCount(); ++i) {
-            sorted_features.Get(i)->m_runtime_state = 0;
-        }
-        return success;
+        return true;
     }
 
     bool Model::CheckRelations(const Array<Feature*>& features) {
@@ -254,29 +379,13 @@ namespace wgp {
         for (int i = 0; i < sorted_features.GetCount(); ++i) {
             sorted_features.Get(i)->m_runtime_state = 0;
         }
-        for (int i = 0; i < features.GetCount(); ++i) {
-            Feature* feature = features.Get(i);
-            for (int j = 0; j < feature->m_executor_features.GetCount(); ++j) {
-                Feature* feature1 = feature->m_executor_features.Get(j);
-                for (int k = j + 1; k < feature->m_executor_features.GetCount(); ++k) {
-                    Feature* feature2 = feature->m_executor_features.Get(k);
-                    if (feature1 != feature2 && !IsAffectedBy(feature1, feature2) && !IsAffectedBy(feature2, feature1)) {
-                        success = false;
-                        break;
-                    }
-                }
-                if (!success) {
-                    break;
-                }
-            }
-            if (!success) {
-                break;
-            }
-        }
         return success;
     }
 
     bool Model::TopoSortAffectedFeatures(Feature* feature, Array<Feature*>& sorted_features) {
+        if (feature->m_is_alone) {
+            return true;
+        }
         if (feature->m_runtime_state == 2) {
             return false;
         }
@@ -391,7 +500,8 @@ namespace wgp {
         m_feature_schema(feature_schema),
         m_id(id),
         m_executor(executor),
-        m_runtime_state(0) {
+        m_runtime_state(0),
+        m_is_alone(true) {
     }
 
     Feature::~Feature() {
@@ -410,7 +520,14 @@ namespace wgp {
         return m_id;
     }
 
+    bool Feature::IsAlone() const {
+        return m_is_alone;
+    }
+
     bool Feature::SetInput(int index, Feature* feature, Array<CommandLog*>& logs) {
+        if (m_is_alone) {
+            return false;
+        }
         if (!m_executor || !m_executor->SetInputEnable(index, feature)) {
             return false;
         }
@@ -421,6 +538,9 @@ namespace wgp {
     }
 
     bool Feature::SetOutput(Feature* feature, Array<CommandLog*>& logs) {
+        if (m_is_alone) {
+            return false;
+        }
         if (!m_executor || !m_executor->SetOutputEnable(feature)) {
             return false;
         }
@@ -456,6 +576,26 @@ namespace wgp {
             return m_executor->Calculate(logs);
         }
         return true;
+    }
+
+    TYPE_IMP_1(ReferenceFeatureSchema, FeatureSchema::GetTypeInstance())
+
+    ReferenceFeatureSchema::ReferenceFeatureSchema(Drawing* drawing, SceneId id, const char* name) :
+        FeatureSchema(drawing, id, name) {
+    }
+    
+    ReferenceFeature::ReferenceFeature(Model* model, SceneId id, FeatureExecutor* executor, Model* reference_model) :
+        Feature(model, id, model->GetDrawing()->GetReferenceFeatureSchema(), executor),
+        m_reference_model(reference_model) {
+        m_reference_model->IncRef();
+    }
+
+    ReferenceFeature::~ReferenceFeature() {
+        m_reference_model->DecRef();
+    }
+
+    Model* ReferenceFeature::GetReferenceModel() const {
+        return m_reference_model;
     }
 
     TYPE_IMP_0(CommandLog)

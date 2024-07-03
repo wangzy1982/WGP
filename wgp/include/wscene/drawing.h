@@ -24,8 +24,13 @@ namespace wgp {
     class Feature;
     class CommandLog;
 
+    class ReferenceFeatureSchema;
     class SketchFeatureSchema;
     class SketchLine2dFeatureSchema;
+    class SketchPoint2dEqualConstraintFeatureSchema;
+    class SketchFixPoint2dConstraintFeatureSchema;
+    class SketchFixPoint2dPoint2dDistanceConstraintFeatureSchema;
+    class SketchFixLine2dLine2dAngleConstraintFeatureSchema;
 
     class WGP_API Drawing {
     public:
@@ -33,18 +38,36 @@ namespace wgp {
         virtual ~Drawing();
         SceneId AllocId();
         void UpdateNextId(SceneId id);
+        void AddModel(Model* model, Array<CommandLog*>& logs);
+        bool RemoveModel(Model* model, Array<CommandLog*>& logs);
         int GetModelCount() const;
         Model* GetModel(int index) const;
+        bool Sync(const Array<Feature*>& affected_features, Array<CommandLog*>& logs);
         void Log(Array<CommandLog*>&& logs);
     public:
+        ReferenceFeatureSchema* GetReferenceFeatureSchema();
         SketchFeatureSchema* GetSketchFeatureSchema();
         SketchLine2dFeatureSchema* GetSketchLine2dFeatureSchema();
+        SketchPoint2dEqualConstraintFeatureSchema* GetSketchPoint2dEqualConstraintFeatureSchema();
+        SketchFixPoint2dConstraintFeatureSchema* GetSketchFixPoint2dConstraintFeatureSchema();
+        SketchFixPoint2dPoint2dDistanceConstraintFeatureSchema* GetSketchFixPoint2dPoint2dDistanceConstraintFeatureSchema();
+        SketchFixLine2dLine2dAngleConstraintFeatureSchema* GetSketchFixLine2dLine2dAngleConstraintFeatureSchema();
     private:
+        bool TopoSortAffectedFeatures(Feature* feature, Array<Feature*>& sorted_features);
+    private:
+        friend class AddModelCommandLog;
+        friend class RemoveModelCommandLog;
         Array<Model*> m_models;
         SceneId m_next_id;
+        Array<FeatureSchema*> m_feature_schemas;
     private:
+        ReferenceFeatureSchema* m_reference_feature_schema;
         SketchFeatureSchema* m_sketch_feature_schema;
         SketchLine2dFeatureSchema* m_sketch_line2d_feature_schema;
+        SketchPoint2dEqualConstraintFeatureSchema* m_sketch_point2d_equal_constraint_feature_schema;
+        SketchFixPoint2dConstraintFeatureSchema* m_sketch_fix_point2d_constraint_feature_schema;
+        SketchFixPoint2dPoint2dDistanceConstraintFeatureSchema* m_sketch_fix_point2d_point2d_distance_constraint_feature_schema;
+        SketchFixLine2dLine2dAngleConstraintFeatureSchema* m_sketch_fix_line2d_line2d_angle_constraint_feature_schema;
     };
 
     class WGP_API ModelEditCommand {
@@ -75,25 +98,28 @@ namespace wgp {
         Drawing* GetDrawing() const;
         SceneId GetId() const;
         const char* GetName() const;
-        void AddFeature(Feature* feature, Array<CommandLog*>& logs);
+        bool AddFeature(Feature* feature, Array<CommandLog*>& logs);
         bool RemoveFeature(Feature* feature, Array<CommandLog*>& logs);
         int GetFeatureCount() const;
         Feature* GetFeature(int index) const;
-        bool Execute(ModelEditCommand* command, Array<CommandLog*>& logs);
-    public:
-        bool CheckRelations(const Array<Feature*>& features);
+        bool Execute(ModelEditCommand* command, Array<Feature*>& affected_features, Array<CommandLog*>& logs);
     private:
         bool TopoSortAffectedFeatures(Feature* feature, Array<Feature*>& sorted_features);
         bool IsAffectedBy(Feature* feature1, Feature* feature2);
+        bool CheckRelations(const Array<Feature*>& features);
     private:
         friend class Drawing;
+        friend class AddModelCommandLog;
+        friend class RemoveModelCommandLog;
         friend class AddFeatureCommandLog;
         friend class RemoveFeatureCommandLog;
         Drawing* m_drawing;
         SceneId m_id;
         char* m_name;
+        bool m_is_alone;
         ModelExecutor* m_executor;
         Array<Feature*> m_features;
+        Array<Feature*> m_reference_features;
     };
 
     class WGP_API FeatureFieldSchema {
@@ -157,6 +183,7 @@ namespace wgp {
         Model* GetModel() const;
         FeatureSchema* GetFeatureSchema() const;
         SceneId GetId() const;
+        bool IsAlone() const;
         bool SetInput(int index, Feature* feature, Array<CommandLog*>& logs);
         bool SetOutput(Feature* feature, Array<CommandLog*>& logs);
         int GetInputCount() const;
@@ -164,6 +191,7 @@ namespace wgp {
         Feature* GetOutput() const;
         bool Calculate(Array<CommandLog*>& logs);
     protected:
+        friend class Drawing;
         friend class Model;
         friend class AddFeatureCommandLog;
         friend class RemoveFeatureCommandLog;
@@ -172,11 +200,28 @@ namespace wgp {
         Model* m_model;
         FeatureSchema* m_feature_schema;
         SceneId m_id;
+        bool m_is_alone;
         FeatureExecutor* m_executor;
         Array<Feature*> m_affected_features;
         Array<Feature*> m_executor_features;
     protected:
         int m_runtime_state;
+    };
+
+    class WGP_API ReferenceFeatureSchema : public FeatureSchema {
+    public:
+        TYPE_DEF_1(ReferenceFeatureSchema)
+    public:
+        ReferenceFeatureSchema(Drawing* drawing, SceneId id, const char* name);
+    };
+
+    class WGP_API ReferenceFeature : public Feature {
+    public:
+        ReferenceFeature(Model* model, SceneId id, FeatureExecutor* executor, Model* reference_model);
+        virtual ~ReferenceFeature();
+        Model* GetReferenceModel() const;
+    protected:
+        Model* m_reference_model;
     };
 
     class WGP_API CommandLog {

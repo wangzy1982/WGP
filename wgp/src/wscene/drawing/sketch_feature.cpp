@@ -339,6 +339,62 @@ namespace wgp {
                 GetSketchVariables(sketch, new_variables);
                 RefreshAfterSketchChanged(sketch, model, &old_variables, &new_variables, logs);
             }
+            else if (feature->GetFeatureSchema() == model->GetDrawing()->GetSketchPoint2dEqualConstraintFeatureSchema()) {
+                Sketch* sketch = ((SketchFeature*)model->GetFeature(0))->GetSketch();
+                Array<SketchEntityVariable> old_variables;
+                GetSketchVariables(sketch, old_variables);
+                if (!sketch->AddConstraint(((SketchPoint2dEqualConstraintFeature*)feature)->GetConstraint(), true, nullptr)) {
+                    for (int i = 0; i < old_variables.GetCount(); ++i) {
+                        old_variables.GetPointer(i)->Entity->DecRef();
+                    }
+                    return false;
+                }
+                Array<SketchEntityVariable> new_variables;
+                GetSketchVariables(sketch, new_variables);
+                RefreshAfterSketchChanged(sketch, model, &old_variables, &new_variables, logs);
+            }
+            else if (feature->GetFeatureSchema() == model->GetDrawing()->GetSketchFixPoint2dConstraintFeatureSchema()) {
+                Sketch* sketch = ((SketchFeature*)model->GetFeature(0))->GetSketch();
+                Array<SketchEntityVariable> old_variables;
+                GetSketchVariables(sketch, old_variables);
+                if (!sketch->AddConstraint(((SketchFixPoint2dConstraintFeature*)feature)->GetConstraint(), true, nullptr)) {
+                    for (int i = 0; i < old_variables.GetCount(); ++i) {
+                        old_variables.GetPointer(i)->Entity->DecRef();
+                    }
+                    return false;
+                }
+                Array<SketchEntityVariable> new_variables;
+                GetSketchVariables(sketch, new_variables);
+                RefreshAfterSketchChanged(sketch, model, &old_variables, &new_variables, logs);
+            }
+            else if (feature->GetFeatureSchema() == model->GetDrawing()->GetSketchFixPoint2dPoint2dDistanceConstraintFeatureSchema()) {
+                Sketch* sketch = ((SketchFeature*)model->GetFeature(0))->GetSketch();
+                Array<SketchEntityVariable> old_variables;
+                GetSketchVariables(sketch, old_variables);
+                if (!sketch->AddConstraint(((SketchFixPoint2dPoint2dDistanceConstraintFeature*)feature)->GetConstraint(), true, nullptr)) {
+                    for (int i = 0; i < old_variables.GetCount(); ++i) {
+                        old_variables.GetPointer(i)->Entity->DecRef();
+                    }
+                    return false;
+                }
+                Array<SketchEntityVariable> new_variables;
+                GetSketchVariables(sketch, new_variables);
+                RefreshAfterSketchChanged(sketch, model, &old_variables, &new_variables, logs);
+            }
+            else if (feature->GetFeatureSchema() == model->GetDrawing()->GetSketchFixLine2dLine2dAngleConstraintFeatureSchema()) {
+                Sketch* sketch = ((SketchFeature*)model->GetFeature(0))->GetSketch();
+                Array<SketchEntityVariable> old_variables;
+                GetSketchVariables(sketch, old_variables);
+                if (!sketch->AddConstraint(((SketchFixLine2dLine2dAngleConstraintFeature*)feature)->GetConstraint(), true, nullptr)) {
+                    for (int i = 0; i < old_variables.GetCount(); ++i) {
+                        old_variables.GetPointer(i)->Entity->DecRef();
+                    }
+                    return false;
+                }
+                Array<SketchEntityVariable> new_variables;
+                GetSketchVariables(sketch, new_variables);
+                RefreshAfterSketchChanged(sketch, model, &old_variables, &new_variables, logs);
+            }
         }
         return true;
     }
@@ -396,7 +452,32 @@ namespace wgp {
                 }
             }
             if (b) {
-                //todo
+                if (constraint->GetType() == SketchPoint2dEqualConstraint::GetTypeInstance()) {
+                    SketchPoint2dEqualConstraintFeature* constraint_feature = new SketchPoint2dEqualConstraintFeature(model, model->GetDrawing()->AllocId(),
+                        model->GetDrawing()->GetSketchPoint2dEqualConstraintFeatureSchema(), (SketchPoint2dEqualConstraint*)constraint);
+                    AddFeatureCommandLog* log1 = new AddFeatureCommandLog(model, constraint_feature);
+                    log->AppendLog(log1);
+                } 
+                else if (constraint->GetType() == SketchFixPoint2dConstraint::GetTypeInstance()) {
+                    SketchFixPoint2dConstraintFeature* constraint_feature = new SketchFixPoint2dConstraintFeature(model, model->GetDrawing()->AllocId(),
+                        model->GetDrawing()->GetSketchFixPoint2dConstraintFeatureSchema(), (SketchFixPoint2dConstraint*)constraint);
+                    AddFeatureCommandLog* log1 = new AddFeatureCommandLog(model, constraint_feature);
+                    log->AppendLog(log1);
+                }
+                else if (constraint->GetType() == SketchFixPoint2dPoint2dDistanceConstraint::GetTypeInstance()) {
+                    SketchFixPoint2dPoint2dDistanceConstraintFeature* constraint_feature = new SketchFixPoint2dPoint2dDistanceConstraintFeature(
+                        model, model->GetDrawing()->AllocId(), model->GetDrawing()->GetSketchFixPoint2dPoint2dDistanceConstraintFeatureSchema(), 
+                        (SketchFixPoint2dPoint2dDistanceConstraint*)constraint);
+                    AddFeatureCommandLog* log1 = new AddFeatureCommandLog(model, constraint_feature);
+                    log->AppendLog(log1);
+                }
+                else if (constraint->GetType() == SketchFixLine2dLine2dAngleConstraint::GetTypeInstance()) {
+                    SketchFixLine2dLine2dAngleConstraintFeature* constraint_feature = new SketchFixLine2dLine2dAngleConstraintFeature(
+                        model, model->GetDrawing()->AllocId(), model->GetDrawing()->GetSketchFixLine2dLine2dAngleConstraintFeatureSchema(), 
+                        (SketchFixLine2dLine2dAngleConstraint*)constraint);
+                    AddFeatureCommandLog* log1 = new AddFeatureCommandLog(model, constraint_feature);
+                    log->AppendLog(log1);
+                }
             }
         }
         for (int j = model->GetFeatureCount() - 1; j >= 0; --j) {
@@ -467,14 +548,12 @@ namespace wgp {
         }
     }
 
-    Model* SketchModelHelper::NewSketchModel(Drawing* drawing, SceneId id, SceneId sketch_feature_id, const char* name) {
+    Model* SketchModelHelper::AddSketchModel(Drawing* drawing, SceneId id, SceneId sketch_feature_id, const char* name) {
         Model* model = new Model(drawing, id, name, new SketchModelExecutor());
         Array<CommandLog*> logs;
+        drawing->AddModel(model, logs);
         model->AddFeature(new SketchFeature(model, sketch_feature_id, drawing->GetSketchFeatureSchema()), logs);
-        for (int i = 0; i < logs.GetCount(); ++i) {
-            delete logs.Get(i);
-        }
-        logs.Clear();
+        drawing->Log(std::move(logs));
         return model;
     }
 
@@ -485,9 +564,120 @@ namespace wgp {
         SketchLine2dFeature* geometry_feature = new SketchLine2dFeature(model, geometry_id, model->GetDrawing()->GetSketchLine2dFeatureSchema(), geometry);
         ModelEditCommand edit_command;
         edit_command.SetLog(new AddFeatureCommandLog(model, geometry_feature));
-        if (model->Execute(&edit_command, logs)) {
-            model->GetDrawing()->Log(std::move(logs));
-            return true;
+        Array<Feature*> affected_features;
+        if (model->Execute(&edit_command, affected_features, logs)) {
+            if (model->GetDrawing()->Sync(affected_features, logs)) {
+                model->GetDrawing()->Log(std::move(logs));
+                return true;
+            }
+        }
+        for (int i = logs.GetCount() - 1; i >= 0; --i) {
+            CommandLog* log = logs.Get(i);
+            log->Undo();
+            delete log;
+        }
+        return false;
+    }
+
+    bool SketchModelHelper::AddSketchPoint2dEqualConstraint(Model* model, SceneId constraint_id,
+        SketchGeometryFeature* geometry0, int x_variable_index0, int y_variable_index0,
+        SketchGeometryFeature* geometry1, int x_variable_index1, int y_variable_index1, double epsilon) {
+        Array<CommandLog*> logs;
+        SketchFeature* sketch_feature = (SketchFeature*)model->GetFeature(0);
+        SketchPoint2dEqualConstraint* constraint = new SketchPoint2dEqualConstraint(sketch_feature->GetSketch(),
+            geometry0->GetGeometry(), x_variable_index0, y_variable_index0,
+            geometry1->GetGeometry(), x_variable_index1, y_variable_index1, epsilon);
+        SketchPoint2dEqualConstraintFeature* constraint_feature = new SketchPoint2dEqualConstraintFeature(model, constraint_id, 
+            model->GetDrawing()->GetSketchPoint2dEqualConstraintFeatureSchema(), constraint);
+        ModelEditCommand edit_command;
+        edit_command.SetLog(new AddFeatureCommandLog(model, constraint_feature));
+        Array<Feature*> affected_features;
+        if (model->Execute(&edit_command, affected_features, logs)) {
+            if (model->GetDrawing()->Sync(affected_features, logs)) {
+                model->GetDrawing()->Log(std::move(logs));
+                return true;
+            }
+        }
+        for (int i = logs.GetCount() - 1; i >= 0; --i) {
+            CommandLog* log = logs.Get(i);
+            log->Undo();
+            delete log;
+        }
+        return false;
+    }
+
+    bool SketchModelHelper::AddSketchFixPoint2dConstraint(Model* model, SceneId constraint_id,
+        SketchGeometryFeature* geometry, int x_variable_index, int y_variable_index, const Vector2d& point, double epsilon) {
+        Array<CommandLog*> logs;
+        SketchFeature* sketch_feature = (SketchFeature*)model->GetFeature(0);
+        SketchFixPoint2dConstraint* constraint = new SketchFixPoint2dConstraint(sketch_feature->GetSketch(),
+            geometry->GetGeometry(), x_variable_index, y_variable_index, point, epsilon);
+        SketchFixPoint2dConstraintFeature* constraint_feature = new SketchFixPoint2dConstraintFeature(model, constraint_id,
+            model->GetDrawing()->GetSketchFixPoint2dConstraintFeatureSchema(), constraint);
+        ModelEditCommand edit_command;
+        edit_command.SetLog(new AddFeatureCommandLog(model, constraint_feature));
+        Array<Feature*> affected_features;
+        if (model->Execute(&edit_command, affected_features, logs)) {
+            if (model->GetDrawing()->Sync(affected_features, logs)) {
+                model->GetDrawing()->Log(std::move(logs));
+                return true;
+            }
+        }
+        for (int i = logs.GetCount() - 1; i >= 0; --i) {
+            CommandLog* log = logs.Get(i);
+            log->Undo();
+            delete log;
+        }
+        return false;
+    }
+
+    bool SketchModelHelper::AddSketchFixPoint2dPoint2dDistanceConstraint(Model* model, SceneId constraint_id,
+        SketchGeometryFeature* entity0, int x_variable_index0, int y_variable_index0,
+        SketchGeometryFeature* entity1, int x_variable_index1, int y_variable_index1,
+        double distance, double epsilon) {
+        Array<CommandLog*> logs;
+        SketchFeature* sketch_feature = (SketchFeature*)model->GetFeature(0);
+        SketchFixPoint2dPoint2dDistanceConstraint* constraint = new SketchFixPoint2dPoint2dDistanceConstraint(sketch_feature->GetSketch(),
+            entity0->GetGeometry(), x_variable_index0, y_variable_index0, 
+            entity1->GetGeometry(), x_variable_index1, y_variable_index1, distance, epsilon);
+        SketchFixPoint2dPoint2dDistanceConstraintFeature* constraint_feature = new SketchFixPoint2dPoint2dDistanceConstraintFeature(model, constraint_id,
+            model->GetDrawing()->GetSketchFixPoint2dPoint2dDistanceConstraintFeatureSchema(), constraint);
+        ModelEditCommand edit_command;
+        edit_command.SetLog(new AddFeatureCommandLog(model, constraint_feature));
+        Array<Feature*> affected_features;
+        if (model->Execute(&edit_command, affected_features, logs)) {
+            if (model->GetDrawing()->Sync(affected_features, logs)) {
+                model->GetDrawing()->Log(std::move(logs));
+                return true;
+            }
+        }
+        for (int i = logs.GetCount() - 1; i >= 0; --i) {
+            CommandLog* log = logs.Get(i);
+            log->Undo();
+            delete log;
+        }
+        return false;
+    }
+
+    bool SketchModelHelper::AddSketchFixLine2dLine2dAngleConstraint(Model* model, SceneId constraint_id,
+        SketchGeometryFeature* entity0, int start_x_variable_index0, int start_y_variable_index0, int end_x_variable_index0, int end_y_variable_index0,
+        SketchGeometryFeature* entity1, int start_x_variable_index1, int start_y_variable_index1, int end_x_variable_index1, int end_y_variable_index1,
+        double angle, double epsilon) {
+        Array<CommandLog*> logs;
+        SketchFeature* sketch_feature = (SketchFeature*)model->GetFeature(0);
+        SketchFixLine2dLine2dAngleConstraint* constraint = new SketchFixLine2dLine2dAngleConstraint(sketch_feature->GetSketch(),
+            entity0->GetGeometry(), start_x_variable_index0, start_y_variable_index0, end_x_variable_index0, end_y_variable_index0,
+            entity1->GetGeometry(), start_x_variable_index1, start_y_variable_index1, end_x_variable_index1, end_y_variable_index1, angle, epsilon);
+        SketchFixLine2dLine2dAngleConstraintFeature* constraint_feature = new SketchFixLine2dLine2dAngleConstraintFeature(model, constraint_id,
+            model->GetDrawing()->GetSketchFixLine2dLine2dAngleConstraintFeatureSchema(), constraint);
+        ModelEditCommand edit_command;
+        edit_command.SetLog(new AddFeatureCommandLog(model, constraint_feature));
+        Array<Feature*> affected_features;
+        if (model->Execute(&edit_command, affected_features, logs)) {
+            if (model->GetDrawing()->Sync(affected_features, logs)) {
+                model->GetDrawing()->Log(std::move(logs));
+                return true;
+            }
         }
         for (int i = logs.GetCount() - 1; i >= 0; --i) {
             CommandLog* log = logs.Get(i);
