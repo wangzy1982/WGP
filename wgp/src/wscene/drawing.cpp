@@ -2,10 +2,11 @@
     Original Author: Zuoyuan Wang
     Copyright (c) 2024 Zuoyuan Wang
 */
+#include <assert.h>
 #include "wscene/drawing.h"
 #include "wscene/drawing/command_log.h"
+#include "wscene/drawing/field_schema.h"
 #include "wscene/drawing/sketch_feature.h"
-#include <assert.h>
 
 namespace wgp {
 
@@ -21,6 +22,10 @@ namespace wgp {
     }
 
     Drawing::~Drawing() {
+        for (int i = 0; i < m_observers.GetCount(); ++i) {
+            DrawingObserver* observer = m_observers.Get(i);
+            observer->DecRef();
+        }
         for (int i = 0; i < m_models.GetCount(); ++i) {
             Model* model = m_models.Get(i);
             model->DecRef();
@@ -102,7 +107,25 @@ namespace wgp {
     }
 
     void Drawing::Log(Array<CommandLog*>&& logs) {
+        Array<CommandLog*> current_logs = logs;
         //todo
+        for (int i = 0; i < m_observers.GetCount(); ++i) {
+            m_observers.Get(i)->Notify(current_logs); 
+        }
+    }
+
+    void Drawing::RegisterObserver(DrawingObserver* observer) {
+        observer->IncRef();
+        m_observers.Append(observer);
+    }
+
+    void Drawing::UnregisterObserver(DrawingObserver* observer) {
+        for (int i = 0; i < m_observers.GetCount(); ++i) {
+            if (m_observers.Get(i) == observer) {
+                m_observers.Remove(i);
+                observer->DecRef();
+            }
+        }
     }
 
     bool Drawing::TopoSortAffectedFeatures(Feature* feature, Array<Feature*>& sorted_features) {
@@ -143,7 +166,7 @@ namespace wgp {
 
     ReferenceFeatureSchema* Drawing::GetReferenceFeatureSchema() {
         if (!m_reference_feature_schema) {
-            m_reference_feature_schema = new ReferenceFeatureSchema(this, AllocId(), "Reference");
+            m_reference_feature_schema = new ReferenceFeatureSchema(this, AllocId(), "Reference", AllocId(), AllocId());
             m_feature_schemas.Append(m_reference_feature_schema);
         }
         return m_reference_feature_schema;
@@ -208,7 +231,7 @@ namespace wgp {
         delete m_log;
     }
 
-    ModelEditCommand* ModelEditCommand::AppendPath(Feature* feature) {
+    ModelEditCommand* ModelEditCommand::AppendPath(ReferenceFeature* feature) {
         m_path.Append(feature);
         return this;
     }
@@ -217,7 +240,7 @@ namespace wgp {
         m_path.PopFirst();
     }
 
-    const Array<Feature*>* ModelEditCommand::GetPath() const {
+    const Array<ReferenceFeature*>* ModelEditCommand::GetPath() const {
         return &m_path;
     }
 
@@ -319,11 +342,11 @@ namespace wgp {
                 ModelEditCommand* inner_command = inner_commands.Get(i);
                 if (success) {
                     if (inner_command->GetPath()->GetCount() > 0) {
-                        Feature* inner_feature = inner_command->GetPath()->Get(0);
+                        ReferenceFeature* inner_feature = inner_command->GetPath()->Get(0);
                         inner_command->PopPathFirst();
                         affected_features.Append(inner_feature);
                         assert(inner_feature->GetFeatureSchema() == m_drawing->GetReferenceFeatureSchema());
-                        if (!((ReferenceFeature*)inner_feature)->GetModel()->Execute(inner_command, affected_features, logs)) {
+                        if (!inner_feature->GetModel()->Execute(inner_command, affected_features, logs)) {
                             success = false;
                         }
                     }
@@ -344,11 +367,11 @@ namespace wgp {
         }
         else {
             if (command->GetPath()->GetCount() > 0) {
-                Feature* inner_feature = command->GetPath()->Get(0);
+                ReferenceFeature* inner_feature = command->GetPath()->Get(0);
                 command->PopPathFirst();
                 affected_features.Append(inner_feature);
                 assert(inner_feature->GetFeatureSchema() == m_drawing->GetReferenceFeatureSchema());
-                if (!((ReferenceFeature*)inner_feature)->GetModel()->Execute(command, affected_features, logs)) {
+                if (!inner_feature->GetModel()->Execute(command, affected_features, logs)) {
                     return false;
                 }
             }
@@ -580,8 +603,39 @@ namespace wgp {
 
     TYPE_IMP_1(ReferenceFeatureSchema, FeatureSchema::GetTypeInstance())
 
-    ReferenceFeatureSchema::ReferenceFeatureSchema(Drawing* drawing, SceneId id, const char* name) :
+    ReferenceFeatureSchema::ReferenceFeatureSchema(Drawing* drawing, SceneId id, const char* name,
+        SceneId position_field_schema_id, SceneId rotation_field_schema_id) :
         FeatureSchema(drawing, id, name) {
+        Vector3dFeatureFieldSchema* position_field_schema = new Vector3dFeatureFieldSchema(
+            this, position_field_schema_id, "Position", GetPosition, DirectSetPosition);
+        AddFieldSchema(position_field_schema);
+        QuaternionFeatureFieldSchema* rotation_field_schema = new QuaternionFeatureFieldSchema(
+            this, rotation_field_schema_id, "Rotation", GetRotation, DirectSetRotation);
+        AddFieldSchema(rotation_field_schema);
+    }
+
+    Vector3dFeatureFieldSchema* ReferenceFeatureSchema::GetPositionFieldSchema() const {
+        return (Vector3dFeatureFieldSchema*)GetFieldSchema(0);
+    }
+
+    QuaternionFeatureFieldSchema* ReferenceFeatureSchema::GetRotationFieldSchema() const {
+        return (QuaternionFeatureFieldSchema*)GetFieldSchema(1);
+    }
+
+    Vector3d ReferenceFeatureSchema::GetPosition(Feature* feature, FeatureFieldSchema* field_schema) {
+        return ((ReferenceFeature*)feature)->m_position;
+    }
+
+    void ReferenceFeatureSchema::DirectSetPosition(Feature* feature, FeatureFieldSchema* field_schema, const Vector3d& value) {
+        ((ReferenceFeature*)feature)->m_position = value;
+    }
+
+    Quaternion ReferenceFeatureSchema::GetRotation(Feature* feature, FeatureFieldSchema* field_schema) {
+        return ((ReferenceFeature*)feature)->m_rotation;
+    }
+
+    void ReferenceFeatureSchema::DirectSetRotation(Feature* feature, FeatureFieldSchema* field_schema, const Quaternion& value) {
+        ((ReferenceFeature*)feature)->m_rotation = value;
     }
     
     ReferenceFeature::ReferenceFeature(Model* model, SceneId id, FeatureExecutor* executor, Model* reference_model) :
@@ -596,6 +650,14 @@ namespace wgp {
 
     Model* ReferenceFeature::GetReferenceModel() const {
         return m_reference_model;
+    }
+
+    Vector3d ReferenceFeature::GetPosition() const {
+        return m_position;
+    }
+
+    Quaternion ReferenceFeature::GetRotation() const {
+        return m_rotation;
     }
 
     TYPE_IMP_0(CommandLog)

@@ -31,6 +31,7 @@ namespace wgp {
         double DiagonalLength() const;
         bool IsIntersected(const Vector3d& vt, double epsilon) const;
         bool IsIntersected(const Interval3d& interval3, double epsilon) const;
+        bool IsInner(const Interval3d& interval3) const;
         void Extend(double d);
     };
 
@@ -164,6 +165,10 @@ namespace wgp {
 
     inline bool Interval3d::IsIntersected(const Interval3d& interval3, double epsilon) const {
         return X.IsIntersected(interval3.X, epsilon) && Y.IsIntersected(interval3.Y, epsilon) && Z.IsIntersected(interval3.Z, epsilon);
+    }
+
+    inline bool Interval3d::IsInner(const Interval3d& interval3) const {
+        return X.IsInner(interval3.X) && Y.IsInner(interval3.Y) && Z.IsInner(interval3.Z);
     }
 
     inline void Interval3d::Extend(double d) {

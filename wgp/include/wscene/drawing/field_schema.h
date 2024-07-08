@@ -7,6 +7,8 @@
 
 #include "wscene/drawing.h"
 #include "wstd/vector2d.h"
+#include "wstd/vector3d.h"
+#include "wstd/quaternion.h"
 #include "wstd/type.h"
 #include "wgeo/sketch.h"
 
@@ -92,6 +94,40 @@ namespace wgp {
     private:
         GetAsVector2dFunc m_get_func;
         DirectSetAsVector2dFunc m_direct_set_func;
+    };
+
+    typedef Vector3d (*GetAsVector3dFunc)(Feature* feature, FeatureFieldSchema* field_schema);
+    typedef void (*DirectSetAsVector3dFunc)(Feature* feature, FeatureFieldSchema* field_schema, const Vector3d& value);
+
+    class WGP_API Vector3dFeatureFieldSchema : public FeatureFieldSchema {
+    public:
+        TYPE_DEF_1(Vector3dFeatureFieldSchema)
+    public:
+        Vector3dFeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const char* name,
+            GetAsVector3dFunc get_func, DirectSetAsVector3dFunc direct_set_func);
+        Vector3d GetAsVector3d(Feature* feature);
+        friend class SetAsVector3dCommandLog;
+        SetAsVector3dCommandLog* NewSetCommandLog(Feature* feature, const Vector3d& value);
+    private:
+        GetAsVector3dFunc m_get_func;
+        DirectSetAsVector3dFunc m_direct_set_func;
+    };
+
+    typedef Quaternion (*GetAsQuaternionFunc)(Feature* feature, FeatureFieldSchema* field_schema);
+    typedef void (*DirectSetAsQuaternionFunc)(Feature* feature, FeatureFieldSchema* field_schema, const Quaternion& value);
+
+    class WGP_API QuaternionFeatureFieldSchema : public FeatureFieldSchema {
+    public:
+        TYPE_DEF_1(QuaternionFeatureFieldSchema)
+    public:
+        QuaternionFeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const char* name,
+            GetAsQuaternionFunc get_func, DirectSetAsQuaternionFunc direct_set_func);
+        Quaternion GetAsQuaternion(Feature* feature);
+        friend class SetAsQuaternionCommandLog;
+        SetAsQuaternionCommandLog* NewSetCommandLog(Feature* feature, const Quaternion& value);
+    private:
+        GetAsQuaternionFunc m_get_func;
+        DirectSetAsQuaternionFunc m_direct_set_func;
     };
 
     typedef SketchGeometry* (*GetAsSketchGeometryFunc)(Feature* feature, FeatureFieldSchema* field_schema);

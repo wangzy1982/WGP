@@ -5,6 +5,7 @@
 #ifndef _WGP_SCENE_DRAWING_
 #define _WGP_SCENE_DRAWING_
 
+#include <atomic>
 #include "wbase.h"
 #include "wstd/ptr.h"
 #include "wstd/array.h"
@@ -12,7 +13,6 @@
 #include "wstd/vector3d.h"
 #include "wstd/quaternion.h"
 #include "feature_visitor.h"
-#include <atomic>
 #include "wstd/type.h"
 
 namespace wgp {
@@ -22,7 +22,9 @@ namespace wgp {
     class Model;
     class FeatureSchema;
     class Feature;
+    class ReferenceFeature;
     class CommandLog;
+    class DrawingObserver;
 
     class ReferenceFeatureSchema;
     class SketchFeatureSchema;
@@ -44,6 +46,8 @@ namespace wgp {
         Model* GetModel(int index) const;
         bool Sync(const Array<Feature*>& affected_features, Array<CommandLog*>& logs);
         void Log(Array<CommandLog*>&& logs);
+        void RegisterObserver(DrawingObserver* observer);
+        void UnregisterObserver(DrawingObserver* observer);
     public:
         ReferenceFeatureSchema* GetReferenceFeatureSchema();
         SketchFeatureSchema* GetSketchFeatureSchema();
@@ -60,6 +64,7 @@ namespace wgp {
         Array<Model*> m_models;
         SceneId m_next_id;
         Array<FeatureSchema*> m_feature_schemas;
+        Array<DrawingObserver*> m_observers;
     private:
         ReferenceFeatureSchema* m_reference_feature_schema;
         SketchFeatureSchema* m_sketch_feature_schema;
@@ -70,18 +75,24 @@ namespace wgp {
         SketchFixLine2dLine2dAngleConstraintFeatureSchema* m_sketch_fix_line2d_line2d_angle_constraint_feature_schema;
     };
 
+    class WGP_API DrawingObserver : public RefObject {
+    public:
+        virtual ~DrawingObserver() {}
+        virtual void Notify(const Array<CommandLog*>& logs) = 0;
+    };
+
     class WGP_API ModelEditCommand {
     public:
         ModelEditCommand();
         virtual ~ModelEditCommand();
-        ModelEditCommand* AppendPath(Feature* feature);
+        ModelEditCommand* AppendPath(ReferenceFeature* feature);
         void PopPathFirst();
-        const Array<Feature*>* GetPath() const;
+        const Array<ReferenceFeature*>* GetPath() const;
         void SetLog(CommandLog* log);
         void PopLog();
         CommandLog* GetLog() const;
     protected:
-        Array<Feature*> m_path;
+        Array<ReferenceFeature*> m_path;
         CommandLog* m_log;
     };
 
@@ -208,11 +219,23 @@ namespace wgp {
         int m_runtime_state;
     };
 
+    class Vector3dFeatureFieldSchema;
+    class QuaternionFeatureFieldSchema;
+
     class WGP_API ReferenceFeatureSchema : public FeatureSchema {
     public:
         TYPE_DEF_1(ReferenceFeatureSchema)
     public:
-        ReferenceFeatureSchema(Drawing* drawing, SceneId id, const char* name);
+        ReferenceFeatureSchema(Drawing* drawing, SceneId id, const char* name, 
+            SceneId position_field_schema_id, SceneId rotation_field_schema_id);
+        Vector3dFeatureFieldSchema* GetPositionFieldSchema() const;
+        QuaternionFeatureFieldSchema* GetRotationFieldSchema() const;
+    protected:
+        static int GetFieldCount() { return 2; }
+        static Vector3d GetPosition(Feature* feature, FeatureFieldSchema* field_schema);
+        static void DirectSetPosition(Feature* feature, FeatureFieldSchema* field_schema, const Vector3d& value);
+        static Quaternion GetRotation(Feature* feature, FeatureFieldSchema* field_schema);
+        static void DirectSetRotation(Feature* feature, FeatureFieldSchema* field_schema, const Quaternion& value);
     };
 
     class WGP_API ReferenceFeature : public Feature {
@@ -220,8 +243,13 @@ namespace wgp {
         ReferenceFeature(Model* model, SceneId id, FeatureExecutor* executor, Model* reference_model);
         virtual ~ReferenceFeature();
         Model* GetReferenceModel() const;
+        Vector3d GetPosition() const;
+        Quaternion GetRotation() const;
     protected:
+        friend class ReferenceFeatureSchema;
         Model* m_reference_model;
+        Vector3d m_position;
+        Quaternion m_rotation;
     };
 
     class WGP_API CommandLog {

@@ -2,8 +2,8 @@
     Original Author: Zuoyuan Wang
     Copyright (c) 2024 Zuoyuan Wang
 */
-#ifndef _WGP_GEO_VECTOR3D_
-#define _WGP_GEO_VECTOR3D_
+#ifndef _WGP_STD_VECTOR3D_
+#define _WGP_STD_VECTOR3D_
 
 #include <math.h>
 #include "utils.h"

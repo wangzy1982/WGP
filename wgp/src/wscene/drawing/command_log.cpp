@@ -353,6 +353,66 @@ namespace wgp {
         m_field_schema->m_direct_set_func(m_feature, m_field_schema, m_new_value);
     }
 
+    TYPE_IMP_1(SetAsVector3dCommandLog, CommandLog::GetTypeInstance())
+
+    SetAsVector3dCommandLog::SetAsVector3dCommandLog(Feature* feature, Vector3dFeatureFieldSchema* field_schema,
+            const Vector3d& old_value, const Vector3d& new_value) :
+        m_feature(feature),
+        m_field_schema(field_schema),
+        m_old_value(old_value),
+        m_new_value(new_value) {
+        m_feature->IncRef();
+    }
+
+    SetAsVector3dCommandLog::~SetAsVector3dCommandLog() {
+        m_feature->DecRef();
+    }
+
+    void SetAsVector3dCommandLog::AppendAffectedFeature(Array<Feature*>& features) {
+        features.Append(m_feature);
+    }
+
+    void SetAsVector3dCommandLog::AppendRecheckRelationFeature(Array<Feature*>& features) {
+    }
+
+    void SetAsVector3dCommandLog::Undo() {
+        m_field_schema->m_direct_set_func(m_feature, m_field_schema, m_old_value);
+    }
+
+    void SetAsVector3dCommandLog::Redo() {
+        m_field_schema->m_direct_set_func(m_feature, m_field_schema, m_new_value);
+    }
+
+    TYPE_IMP_1(SetAsQuaternionCommandLog, CommandLog::GetTypeInstance())
+
+    SetAsQuaternionCommandLog::SetAsQuaternionCommandLog(Feature* feature, QuaternionFeatureFieldSchema* field_schema,
+        const Quaternion& old_value, const Quaternion& new_value) :
+        m_feature(feature),
+        m_field_schema(field_schema),
+        m_old_value(old_value),
+        m_new_value(new_value) {
+        m_feature->IncRef();
+    }
+
+    SetAsQuaternionCommandLog::~SetAsQuaternionCommandLog() {
+        m_feature->DecRef();
+    }
+
+    void SetAsQuaternionCommandLog::AppendAffectedFeature(Array<Feature*>& features) {
+        features.Append(m_feature);
+    }
+
+    void SetAsQuaternionCommandLog::AppendRecheckRelationFeature(Array<Feature*>& features) {
+    }
+
+    void SetAsQuaternionCommandLog::Undo() {
+        m_field_schema->m_direct_set_func(m_feature, m_field_schema, m_old_value);
+    }
+
+    void SetAsQuaternionCommandLog::Redo() {
+        m_field_schema->m_direct_set_func(m_feature, m_field_schema, m_new_value);
+    }
+
     TYPE_IMP_1(SetAsSketchGeometryCommandLog, CommandLog::GetTypeInstance())
 
     SetAsSketchGeometryCommandLog::SetAsSketchGeometryCommandLog(Feature* feature, SketchGeometryFeatureFieldSchema* field_schema,

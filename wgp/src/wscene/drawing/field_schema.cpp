@@ -100,6 +100,40 @@ namespace wgp {
         return new SetAsVector2dCommandLog(feature, this, m_get_func(feature, this), value);
     }
 
+    TYPE_IMP_1(Vector3dFeatureFieldSchema, FeatureFieldSchema::GetTypeInstance())
+
+    Vector3dFeatureFieldSchema::Vector3dFeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const char* name,
+            GetAsVector3dFunc get_func, DirectSetAsVector3dFunc direct_set_func) :
+        FeatureFieldSchema(m_feature_schema, id, name),
+        m_get_func(get_func),
+        m_direct_set_func(direct_set_func) {
+    }
+
+    Vector3d Vector3dFeatureFieldSchema::GetAsVector3d(Feature* feature) {
+        return m_get_func(feature, this);
+    }
+
+    SetAsVector3dCommandLog* Vector3dFeatureFieldSchema::NewSetCommandLog(Feature* feature, const Vector3d& value) {
+        return new SetAsVector3dCommandLog(feature, this, m_get_func(feature, this), value);
+    }
+
+    TYPE_IMP_1(QuaternionFeatureFieldSchema, FeatureFieldSchema::GetTypeInstance())
+
+    QuaternionFeatureFieldSchema::QuaternionFeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const char* name,
+            GetAsQuaternionFunc get_func, DirectSetAsQuaternionFunc direct_set_func) :
+        FeatureFieldSchema(m_feature_schema, id, name),
+        m_get_func(get_func),
+        m_direct_set_func(direct_set_func) {
+    }
+
+    Quaternion QuaternionFeatureFieldSchema::GetAsQuaternion(Feature* feature) {
+        return m_get_func(feature, this);
+    }
+
+    SetAsQuaternionCommandLog* QuaternionFeatureFieldSchema::NewSetCommandLog(Feature* feature, const Quaternion& value) {
+        return new SetAsQuaternionCommandLog(feature, this, m_get_func(feature, this), value);
+    }
+
     TYPE_IMP_1(SketchGeometryFeatureFieldSchema, FeatureFieldSchema::GetTypeInstance())
 
     SketchGeometryFeatureFieldSchema::SketchGeometryFeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const char* name,

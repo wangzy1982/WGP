@@ -52,7 +52,7 @@ namespace wgp {
     }
 
     SketchGeometryFeatureFieldSchema* SketchGeometryFeatureSchema::GetGeometryFieldSchema() const {
-        return (SketchGeometryFeatureFieldSchema*)GetFieldSchema(1);
+        return (SketchGeometryFeatureFieldSchema*)GetFieldSchema(0);
     }
 
     SketchGeometry* SketchGeometryFeatureSchema::GetGeometry(Feature* feature, FeatureFieldSchema* field_schema) {
@@ -91,7 +91,7 @@ namespace wgp {
     }
 
     SketchConstraintFeatureFieldSchema* SketchConstraintFeatureSchema::GetConstraintFieldSchema() const {
-        return (SketchConstraintFeatureFieldSchema*)GetFieldSchema(1);
+        return (SketchConstraintFeatureFieldSchema*)GetFieldSchema(0);
     }
 
     SketchConstraint* SketchConstraintFeatureSchema::GetConstraint(Feature* feature, FeatureFieldSchema* field_schema) {

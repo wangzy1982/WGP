@@ -123,6 +123,42 @@ namespace wgp {
         Vector2d m_new_value;
     };
 
+    class WGP_API SetAsVector3dCommandLog : public CommandLog {
+    public:
+        TYPE_DEF_1(SetAsVector3dCommandLog)
+    public:
+        SetAsVector3dCommandLog(Feature* feature, Vector3dFeatureFieldSchema* field_schema,
+            const Vector3d& old_value, const Vector3d& new_value);
+        virtual ~SetAsVector3dCommandLog();
+        virtual void AppendAffectedFeature(Array<Feature*>& features);
+        virtual void AppendRecheckRelationFeature(Array<Feature*>& features);
+        virtual void Undo();
+        virtual void Redo();
+    protected:
+        Feature* m_feature;
+        Vector3dFeatureFieldSchema* m_field_schema;
+        Vector3d m_old_value;
+        Vector3d m_new_value;
+    };
+
+    class WGP_API SetAsQuaternionCommandLog : public CommandLog {
+    public:
+        TYPE_DEF_1(SetAsQuaternionCommandLog)
+    public:
+        SetAsQuaternionCommandLog(Feature* feature, QuaternionFeatureFieldSchema* field_schema,
+            const Quaternion& old_value, const Quaternion& new_value);
+        virtual ~SetAsQuaternionCommandLog();
+        virtual void AppendAffectedFeature(Array<Feature*>& features);
+        virtual void AppendRecheckRelationFeature(Array<Feature*>& features);
+        virtual void Undo();
+        virtual void Redo();
+    protected:
+        Feature* m_feature;
+        QuaternionFeatureFieldSchema* m_field_schema;
+        Quaternion m_old_value;
+        Quaternion m_new_value;
+    };
+
     class WGP_API SetAsSketchGeometryCommandLog : public CommandLog {
     public:
         TYPE_DEF_1(SetAsSketchGeometryCommandLog)
