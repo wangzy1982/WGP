@@ -135,7 +135,7 @@ namespace wgp {
 
     class WGP_API FeatureFieldSchema {
     public:
-        TYPE_DEF_0(FeatureFieldSchema)
+        TYPE_DEF_0(FeatureFieldSchema);
     public:
         FeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const char* name);
         virtual ~FeatureFieldSchema();
@@ -149,7 +149,7 @@ namespace wgp {
 
     class WGP_API FeatureSchema {
     public:
-        TYPE_DEF_0(FeatureSchema)
+        TYPE_DEF_0(FeatureSchema);
     public:
         FeatureSchema(Drawing* drawing, SceneId id, const char* name);
         virtual ~FeatureSchema();
@@ -224,7 +224,7 @@ namespace wgp {
 
     class WGP_API ReferenceFeatureSchema : public FeatureSchema {
     public:
-        TYPE_DEF_1(ReferenceFeatureSchema)
+        TYPE_DEF_1(ReferenceFeatureSchema);
     public:
         ReferenceFeatureSchema(Drawing* drawing, SceneId id, const char* name, 
             SceneId position_field_schema_id, SceneId rotation_field_schema_id);
@@ -254,7 +254,7 @@ namespace wgp {
 
     class WGP_API CommandLog {
     public:
-        TYPE_DEF_0(CommandLog)
+        TYPE_DEF_0(CommandLog);
     public:
         virtual ~CommandLog() {}
     public:
@@ -274,7 +274,7 @@ namespace wgp {
 
     class WGP_API GroupCommandLog : public CommandLog {
     public:
-        TYPE_DEF_1(GroupCommandLog)
+        TYPE_DEF_1(GroupCommandLog);
     public:
         GroupCommandLog(int capacity);
         GroupCommandLog();

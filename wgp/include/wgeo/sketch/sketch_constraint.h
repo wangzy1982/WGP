@@ -12,7 +12,7 @@ namespace wgp {
 
     class WGP_API SketchPoint2dEqualConstraint : public SketchConstraint {
     public:
-        TYPE_DEF_1(SketchPoint2dEqualConstraint)
+        TYPE_DEF_1(SketchPoint2dEqualConstraint);
     public:
         SketchPoint2dEqualConstraint(Sketch* owner, SketchGeometry* geometry0, int x_variable_index0, int y_variable_index0,
             SketchGeometry* geometry1, int x_variable_index1, int y_variable_index1, double epsilon);
@@ -25,7 +25,7 @@ namespace wgp {
 
     class WGP_API SketchFixPoint2dConstraint : public SketchConstraint {
     public:
-        TYPE_DEF_1(SketchFixPoint2dConstraint)
+        TYPE_DEF_1(SketchFixPoint2dConstraint);
     public:
         SketchFixPoint2dConstraint(Sketch* owner, SketchGeometry* geometry, int x_variable_index, int y_variable_index, 
             const Vector2d& point, double epsilon);
@@ -38,7 +38,7 @@ namespace wgp {
 
     class WGP_API SketchFixPoint2dPoint2dDistanceConstraint : public SketchConstraint {
     public:
-        TYPE_DEF_1(SketchFixPoint2dPoint2dDistanceConstraint)
+        TYPE_DEF_1(SketchFixPoint2dPoint2dDistanceConstraint);
     public:
         SketchFixPoint2dPoint2dDistanceConstraint(Sketch* owner,
             SketchVariableEntity* entity0, int x_variable_index0, int y_variable_index0,
@@ -53,7 +53,7 @@ namespace wgp {
 
     class WGP_API SketchFixLine2dLine2dAngleConstraint : public SketchConstraint {
     public:
-        TYPE_DEF_1(SketchFixLine2dLine2dAngleConstraint)
+        TYPE_DEF_1(SketchFixLine2dLine2dAngleConstraint);
     public:
         SketchFixLine2dLine2dAngleConstraint(Sketch* owner,
             SketchVariableEntity* entity0, int start_x_variable_index0, int start_y_variable_index0, int end_x_variable_index0, int end_y_variable_index0,

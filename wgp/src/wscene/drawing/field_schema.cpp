@@ -83,7 +83,7 @@ namespace wgp {
     }
     */
 
-    TYPE_IMP_1(Vector2dFeatureFieldSchema, FeatureFieldSchema::GetTypeInstance())
+    TYPE_IMP_1(Vector2dFeatureFieldSchema, FeatureFieldSchema::GetTypeInstance());
 
     Vector2dFeatureFieldSchema::Vector2dFeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const char* name,
             GetAsVector2dFunc get_func, DirectSetAsVector2dFunc direct_set_func) :
@@ -100,7 +100,7 @@ namespace wgp {
         return new SetAsVector2dCommandLog(feature, this, m_get_func(feature, this), value);
     }
 
-    TYPE_IMP_1(Vector3dFeatureFieldSchema, FeatureFieldSchema::GetTypeInstance())
+    TYPE_IMP_1(Vector3dFeatureFieldSchema, FeatureFieldSchema::GetTypeInstance());
 
     Vector3dFeatureFieldSchema::Vector3dFeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const char* name,
             GetAsVector3dFunc get_func, DirectSetAsVector3dFunc direct_set_func) :
@@ -117,7 +117,7 @@ namespace wgp {
         return new SetAsVector3dCommandLog(feature, this, m_get_func(feature, this), value);
     }
 
-    TYPE_IMP_1(QuaternionFeatureFieldSchema, FeatureFieldSchema::GetTypeInstance())
+    TYPE_IMP_1(QuaternionFeatureFieldSchema, FeatureFieldSchema::GetTypeInstance());
 
     QuaternionFeatureFieldSchema::QuaternionFeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const char* name,
             GetAsQuaternionFunc get_func, DirectSetAsQuaternionFunc direct_set_func) :
@@ -134,7 +134,7 @@ namespace wgp {
         return new SetAsQuaternionCommandLog(feature, this, m_get_func(feature, this), value);
     }
 
-    TYPE_IMP_1(SketchGeometryFeatureFieldSchema, FeatureFieldSchema::GetTypeInstance())
+    TYPE_IMP_1(SketchGeometryFeatureFieldSchema, FeatureFieldSchema::GetTypeInstance());
 
     SketchGeometryFeatureFieldSchema::SketchGeometryFeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const char* name,
         GetAsSketchGeometryFunc get_func, DirectSetAsSketchGeometryFunc direct_set_func) :
@@ -151,7 +151,7 @@ namespace wgp {
         return new SetAsSketchGeometryCommandLog(feature, this, m_get_func(feature, this), value);
     }
 
-    TYPE_IMP_1(SketchConstraintFeatureFieldSchema, FeatureFieldSchema::GetTypeInstance())
+    TYPE_IMP_1(SketchConstraintFeatureFieldSchema, FeatureFieldSchema::GetTypeInstance());
 
     SketchConstraintFeatureFieldSchema::SketchConstraintFeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const char* name,
             GetAsSketchConstraintFunc get_func, DirectSetAsSketchConstraintFunc direct_set_func) :
@@ -168,7 +168,7 @@ namespace wgp {
         return new SetAsSketchConstraintCommandLog(feature, this, m_get_func(feature, this), value);
     }
 
-    TYPE_IMP_1(SketchFeatureFieldSchema, FeatureFieldSchema::GetTypeInstance())
+    TYPE_IMP_1(SketchFeatureFieldSchema, FeatureFieldSchema::GetTypeInstance());
 
     SketchFeatureFieldSchema::SketchFeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const char* name,
             GetAsSketchFunc get_func, DirectSetAsSketchFunc direct_set_func) :

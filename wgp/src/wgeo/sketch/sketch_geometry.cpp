@@ -6,7 +6,7 @@
 
 namespace wgp {
 
-    TYPE_IMP_1(SketchLine2d, SketchGeometry::GetTypeInstance())
+    TYPE_IMP_1(SketchLine2d, SketchGeometry::GetTypeInstance());
 
     SketchLine2d::SketchLine2d(Sketch* owner, const Vector2d& start_point, const Vector2d& end_point) :
         SketchGeometry4V(owner, start_point.X, start_point.Y, end_point.X, end_point.Y) {

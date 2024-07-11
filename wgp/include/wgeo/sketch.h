@@ -105,7 +105,7 @@ namespace wgp {
 
     class WGP_API SketchGeometry : public SketchVariableEntity {
     public:
-        TYPE_DEF_0(SketchGeometry)
+        TYPE_DEF_0(SketchGeometry);
     public:
         SketchGeometry(Sketch* owner);
         virtual bool IsStrategy() { return false; }
@@ -113,7 +113,7 @@ namespace wgp {
 
     class WGP_API SketchConstraint : public SketchEquations {
     public:
-        TYPE_DEF_0(SketchConstraint)
+        TYPE_DEF_0(SketchConstraint);
     public:
         SketchConstraint(Sketch* owner);
         virtual bool IsStrategy() { return false; }

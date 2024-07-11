@@ -133,12 +133,12 @@ namespace wgp {
     SketchVariableEntity::SketchVariableEntity(Sketch* owner) : SketchEquations(owner) {
     }
 
-    TYPE_IMP_0(SketchGeometry)
+    TYPE_IMP_0(SketchGeometry);
 
     SketchGeometry::SketchGeometry(Sketch* owner) : SketchVariableEntity(owner) {
     }
 
-    TYPE_IMP_0(SketchConstraint)
+    TYPE_IMP_0(SketchConstraint);
 
     SketchConstraint::SketchConstraint(Sketch* owner) : SketchEquations(owner) {
     }

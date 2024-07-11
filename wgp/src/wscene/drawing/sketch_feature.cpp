@@ -7,7 +7,7 @@
 
 namespace wgp {
 
-    TYPE_IMP_1(SketchFeatureSchema, FeatureSchema::GetTypeInstance())
+    TYPE_IMP_1(SketchFeatureSchema, FeatureSchema::GetTypeInstance());
 
     SketchFeatureSchema::SketchFeatureSchema(Drawing* drawing, SceneId id, const char* name, SceneId sketch_field_schema_id) :
         FeatureSchema(drawing, id, name) {
@@ -42,7 +42,7 @@ namespace wgp {
         return m_sketch;
     }
 
-    TYPE_IMP_1(SketchGeometryFeatureSchema, FeatureSchema::GetTypeInstance())
+    TYPE_IMP_1(SketchGeometryFeatureSchema, FeatureSchema::GetTypeInstance());
 
     SketchGeometryFeatureSchema::SketchGeometryFeatureSchema(Drawing* drawing, SceneId id, const char* name, SceneId geometry_field_schema_id) :
         FeatureSchema(drawing, id, name) {
@@ -81,7 +81,7 @@ namespace wgp {
         return m_geometry;
     }
 
-    TYPE_IMP_1(SketchConstraintFeatureSchema, FeatureSchema::GetTypeInstance())
+    TYPE_IMP_1(SketchConstraintFeatureSchema, FeatureSchema::GetTypeInstance());
 
     SketchConstraintFeatureSchema::SketchConstraintFeatureSchema(Drawing* drawing, SceneId id, const char* name, SceneId constraint_field_schema_id) :
         FeatureSchema(drawing, id, name) {
@@ -120,7 +120,7 @@ namespace wgp {
         return m_constraint;
     }
 
-    TYPE_IMP_1(SketchLine2dFeatureSchema, SketchGeometryFeatureSchema::GetTypeInstance())
+    TYPE_IMP_1(SketchLine2dFeatureSchema, SketchGeometryFeatureSchema::GetTypeInstance());
 
     SketchLine2dFeatureSchema::SketchLine2dFeatureSchema(Drawing* drawing, SceneId id, const char* name,
         SceneId geometry_field_schema_id, SceneId start_point_field_schema_id, SceneId end_point_field_schema_id) :
@@ -169,7 +169,7 @@ namespace wgp {
         visitor->Visit(this);
     }
 
-    TYPE_IMP_1(SketchPoint2dEqualConstraintFeatureSchema, SketchConstraintFeatureSchema::GetTypeInstance())
+    TYPE_IMP_1(SketchPoint2dEqualConstraintFeatureSchema, SketchConstraintFeatureSchema::GetTypeInstance());
 
     SketchPoint2dEqualConstraintFeatureSchema::SketchPoint2dEqualConstraintFeatureSchema(Drawing* drawing, SceneId id, const char* name,
         SceneId constraint_field_schema_id) :
@@ -185,7 +185,7 @@ namespace wgp {
         visitor->Visit(this);
     }
 
-    TYPE_IMP_1(SketchFixPoint2dConstraintFeatureSchema, SketchConstraintFeatureSchema::GetTypeInstance())
+    TYPE_IMP_1(SketchFixPoint2dConstraintFeatureSchema, SketchConstraintFeatureSchema::GetTypeInstance());
 
     SketchFixPoint2dConstraintFeatureSchema::SketchFixPoint2dConstraintFeatureSchema(Drawing* drawing, SceneId id, const char* name,
         SceneId constraint_field_schema_id) :
@@ -201,7 +201,7 @@ namespace wgp {
         visitor->Visit(this);
     }
 
-    TYPE_IMP_1(SketchFixPoint2dPoint2dDistanceConstraintFeatureSchema, SketchConstraintFeatureSchema::GetTypeInstance())
+    TYPE_IMP_1(SketchFixPoint2dPoint2dDistanceConstraintFeatureSchema, SketchConstraintFeatureSchema::GetTypeInstance());
 
     SketchFixPoint2dPoint2dDistanceConstraintFeatureSchema::SketchFixPoint2dPoint2dDistanceConstraintFeatureSchema(Drawing* drawing, SceneId id, const char* name,
         SceneId constraint_field_schema_id) :
@@ -217,7 +217,7 @@ namespace wgp {
         visitor->Visit(this);
     }
 
-    TYPE_IMP_1(SketchFixLine2dLine2dAngleConstraintFeatureSchema, SketchConstraintFeatureSchema::GetTypeInstance())
+    TYPE_IMP_1(SketchFixLine2dLine2dAngleConstraintFeatureSchema, SketchConstraintFeatureSchema::GetTypeInstance());
 
     SketchFixLine2dLine2dAngleConstraintFeatureSchema::SketchFixLine2dLine2dAngleConstraintFeatureSchema(Drawing* drawing, SceneId id, const char* name,
         SceneId constraint_field_schema_id) :

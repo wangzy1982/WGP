@@ -6,7 +6,7 @@
 
 namespace wgp {
 
-    TYPE_IMP_1(AddModelCommandLog, CommandLog::GetTypeInstance())
+    TYPE_IMP_1(AddModelCommandLog, CommandLog::GetTypeInstance());
 
     AddModelCommandLog::AddModelCommandLog(Model* model) :
         m_model(model) {
@@ -42,7 +42,7 @@ namespace wgp {
         m_model->GetDrawing()->m_models.Append(m_model);
     }
 
-    TYPE_IMP_1(RemoveModelCommandLog, CommandLog::GetTypeInstance())
+    TYPE_IMP_1(RemoveModelCommandLog, CommandLog::GetTypeInstance());
 
     RemoveModelCommandLog::RemoveModelCommandLog(Model* model) : 
         m_model(model) {
@@ -78,7 +78,7 @@ namespace wgp {
         }
     }
 
-    TYPE_IMP_1(AddFeatureCommandLog, CommandLog::GetTypeInstance())
+    TYPE_IMP_1(AddFeatureCommandLog, CommandLog::GetTypeInstance());
 
     AddFeatureCommandLog::AddFeatureCommandLog(Model* model, Feature* feature) :
         m_model(model),
@@ -142,7 +142,7 @@ namespace wgp {
         }
     }
 
-    TYPE_IMP_1(RemoveFeatureCommandLog, CommandLog::GetTypeInstance())
+    TYPE_IMP_1(RemoveFeatureCommandLog, CommandLog::GetTypeInstance());
 
     RemoveFeatureCommandLog::RemoveFeatureCommandLog(Model* model, Feature* feature) :
         m_model(model),
@@ -196,7 +196,7 @@ namespace wgp {
         }
     }
 
-    TYPE_IMP_1(SetFeatureInputCommandLog, CommandLog::GetTypeInstance())
+    TYPE_IMP_1(SetFeatureInputCommandLog, CommandLog::GetTypeInstance());
 
     SetFeatureInputCommandLog::SetFeatureInputCommandLog(Feature* feature, int index, Feature* old_input, Feature* new_input) :
         m_feature(feature),
@@ -260,7 +260,7 @@ namespace wgp {
         }
     }
 
-    TYPE_IMP_1(SetFeatureOutputCommandLog, CommandLog::GetTypeInstance())
+    TYPE_IMP_1(SetFeatureOutputCommandLog, CommandLog::GetTypeInstance());
 
     SetFeatureOutputCommandLog::SetFeatureOutputCommandLog(Feature* feature, Feature* old_output, Feature* new_output) :
         m_feature(feature),
@@ -323,7 +323,7 @@ namespace wgp {
         }
     }
 
-    TYPE_IMP_1(SetAsVector2dCommandLog, CommandLog::GetTypeInstance())
+    TYPE_IMP_1(SetAsVector2dCommandLog, CommandLog::GetTypeInstance());
 
     SetAsVector2dCommandLog::SetAsVector2dCommandLog(Feature* feature, Vector2dFeatureFieldSchema* field_schema,
             const Vector2d& old_value, const Vector2d& new_value) :
@@ -353,7 +353,7 @@ namespace wgp {
         m_field_schema->m_direct_set_func(m_feature, m_field_schema, m_new_value);
     }
 
-    TYPE_IMP_1(SetAsVector3dCommandLog, CommandLog::GetTypeInstance())
+    TYPE_IMP_1(SetAsVector3dCommandLog, CommandLog::GetTypeInstance());
 
     SetAsVector3dCommandLog::SetAsVector3dCommandLog(Feature* feature, Vector3dFeatureFieldSchema* field_schema,
             const Vector3d& old_value, const Vector3d& new_value) :
@@ -383,7 +383,7 @@ namespace wgp {
         m_field_schema->m_direct_set_func(m_feature, m_field_schema, m_new_value);
     }
 
-    TYPE_IMP_1(SetAsQuaternionCommandLog, CommandLog::GetTypeInstance())
+    TYPE_IMP_1(SetAsQuaternionCommandLog, CommandLog::GetTypeInstance());
 
     SetAsQuaternionCommandLog::SetAsQuaternionCommandLog(Feature* feature, QuaternionFeatureFieldSchema* field_schema,
         const Quaternion& old_value, const Quaternion& new_value) :
@@ -413,7 +413,7 @@ namespace wgp {
         m_field_schema->m_direct_set_func(m_feature, m_field_schema, m_new_value);
     }
 
-    TYPE_IMP_1(SetAsSketchGeometryCommandLog, CommandLog::GetTypeInstance())
+    TYPE_IMP_1(SetAsSketchGeometryCommandLog, CommandLog::GetTypeInstance());
 
     SetAsSketchGeometryCommandLog::SetAsSketchGeometryCommandLog(Feature* feature, SketchGeometryFeatureFieldSchema* field_schema,
         SketchGeometry* old_value, SketchGeometry* new_value) :
@@ -467,7 +467,7 @@ namespace wgp {
         m_field_schema->m_direct_set_func(m_feature, m_field_schema, m_new_value);
     }
 
-    TYPE_IMP_1(SetAsSketchConstraintCommandLog, CommandLog::GetTypeInstance())
+    TYPE_IMP_1(SetAsSketchConstraintCommandLog, CommandLog::GetTypeInstance());
 
     SetAsSketchConstraintCommandLog::SetAsSketchConstraintCommandLog(Feature* feature, SketchConstraintFeatureFieldSchema* field_schema,
             SketchConstraint* old_value, SketchConstraint* new_value) :
@@ -521,7 +521,7 @@ namespace wgp {
         m_field_schema->m_direct_set_func(m_feature, m_field_schema, m_new_value);
     }
 
-    TYPE_IMP_1(SetAsSketchCommandLog, CommandLog::GetTypeInstance())
+    TYPE_IMP_1(SetAsSketchCommandLog, CommandLog::GetTypeInstance());
 
     SetAsSketchCommandLog::SetAsSketchCommandLog(Feature* feature, SketchFeatureFieldSchema* field_schema,
             Sketch* old_value, Sketch* new_value) :
@@ -575,7 +575,7 @@ namespace wgp {
         m_field_schema->m_direct_set_func(m_feature, m_field_schema, m_new_value);
     }
 
-    TYPE_IMP_1(SetSketchGeometryVariableCommandLog, CommandLog::GetTypeInstance())
+    TYPE_IMP_1(SetSketchGeometryVariableCommandLog, CommandLog::GetTypeInstance());
         
     SetSketchGeometryVariableCommandLog::SetSketchGeometryVariableCommandLog(Feature* feature, SketchGeometryFeatureFieldSchema* field_schema,
         int variable_index, double old_value, double new_value) :

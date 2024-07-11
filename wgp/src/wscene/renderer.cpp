@@ -55,9 +55,10 @@ namespace wgp {
         return m_classification;
     }
 
-    RenderingObject* NullRenderingObjectFragment::NewRenderingObject() const {
-        return nullptr;
+    void NullRenderingObjectFragment::SetState(int state) {
     }
+
+    TYPE_IMP_0(RenderingMaterial);
 
     RenderingTree::RenderingTree(Model* model, bool is_order_affected_rendering, int complexity) :
         m_model(model),
@@ -97,13 +98,38 @@ namespace wgp {
         }
     }
 
-    void RenderingTree::GetRenderingObjects(int classification, Array<RenderingObject*>& rendering_objects) {
-        Update();
-        //todo
+    Model* RenderingTree::GetModel() const {
+        return m_model;
     }
 
     void RenderingTree::RemoveRenderingObjects(int classification) {
-        //todo
+        if (m_rendering_group_root) {
+            RemoveRenderingObjects(m_rendering_group_root, classification);
+        }
+    }
+
+    void RenderingTree::Render(Renderer* renderer, int classification) {
+        Update();
+        if (m_rendering_group_root) {
+            Render(m_rendering_group_root, renderer, classification);
+        }
+    }
+
+    void RenderingTree::SetState(Feature* feature, const Array<wgp::Feature*>& path, int state) {
+        Update();
+        FeatureInfo* feature_info = GetFeatureInfo(feature, path, false);
+        if (feature_info) {
+            for (int i = 0; i < feature_info->Fragments.GetCount(); ++i) {
+                feature_info->Fragments.Get(i)->SetState(state);
+            }
+        }
+    }
+
+    void RenderingTree::ClearState(int clear_state) {
+        Update();
+        if (m_feature_info_root) {
+            ClearState(m_feature_info_root, clear_state);
+        }
     }
 
     void RenderingTree::Update() {
@@ -926,6 +952,12 @@ namespace wgp {
     }
 
     void RenderingTree::BuildRenderingObjects(RenderingGroup* group) {
+        if (group->LeftChild) {
+            BuildRenderingObjects(group->LeftChild);
+        }
+        if (group->RightChild) {
+            BuildRenderingObjects(group->RightChild);
+        }
         if (group->Classifications.GetCount() == 0) {
             return;
         }
@@ -1021,8 +1053,8 @@ namespace wgp {
                 delete fragment;
             }
             else {
-                rendering_object = fragment->NewRenderingObject();
-                if (rendering_object) {
+                if (fragment->GetRenderingObject()) {
+                    rendering_object = fragment->GetRenderingObject()->NewRenderingObject(fragment);
                     rendering_object->IncRef();
                     rendering_objects.Append(rendering_object);
                     feature_info->Fragments.Append(rendering_object->NewFragment());
@@ -1086,6 +1118,12 @@ namespace wgp {
         if (!group->Root) {
             return;
         }
+        for (int i = 0; i < group->Classifications.GetCount(); ++i) {
+            if (group->Classifications.Get(i) == classification) {
+                return;
+            }
+        }
+        group->Classifications.Append(classification);
         AppendRenderingObjects(group, classification, group->Root);
     }
 
@@ -1162,6 +1200,12 @@ namespace wgp {
     }
 
     void RenderingTree::RemoveRenderingObjects(RenderingGroup* group, int classification) {
+        if (group->LeftChild) {
+            RemoveRenderingObjects(group->LeftChild, classification);
+        }
+        if (group->RightChild) {
+            RemoveRenderingObjects(group->RightChild, classification);
+        }
         bool b = true;
         for (int i = 0; i < group->Classifications.GetCount(); ++i) {
             if (group->Classifications.Get(i) == classification) {
@@ -1226,6 +1270,55 @@ namespace wgp {
                 feature_info->Fragments.PopLast();
             }
             ++ci;
+        }
+    }
+
+    void RenderingTree::Render(RenderingGroup* group, Renderer* renderer, int classification) {
+        if (group->LeftChild) {
+            Render(group->LeftChild, renderer, classification);
+        }
+        AppendRenderingObjects(group, classification);
+        if (group->Root) {
+            Render(group, group->Root, renderer, group->IsClassificationEnabled ? classification : 0);
+        }
+        if (group->RightChild) {
+            Render(group->RightChild, renderer, classification);
+        }
+    }
+
+    void RenderingTree::Render(RenderingGroup* group, RenderingNode* node, Renderer* renderer, int classification) {
+        if (node->IsDirty) {
+            return;
+        }
+        for (int i = 0; i < node->RenderingObjects.GetCount(); ++i) {
+            RenderingObject* rendering_object = node->RenderingObjects.Get(i);
+            if (rendering_object->GetClassification() == classification) {
+                RenderingMaterial* material = rendering_object->GetMaterial();
+                if (!material) {
+                    material = group->Material;
+                }
+                renderer->Draw(material, rendering_object);
+            }
+        }
+        if (node->Height > 0) {
+            for (int i = 0; i < 3; ++i) {
+                if (!node->Children[i]) {
+                    break;
+                }
+                Render(group, node, renderer, classification);
+            }
+        }
+    }
+
+    void RenderingTree::ClearState(FeatureInfo* feature_info, int clear_state) {
+        for (int i = 0; i < feature_info->Fragments.GetCount(); ++i) {
+            feature_info->Fragments.Get(i)->SetState(clear_state);
+        }
+        if (feature_info->LeftChild) {
+            ClearState(feature_info->LeftChild, clear_state);
+        }
+        if (feature_info->RightChild) {
+            ClearState(feature_info->RightChild, clear_state);
         }
     }
 

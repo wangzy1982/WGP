@@ -12,6 +12,7 @@ namespace wgp {
 
     class WGP_API RefObject {
     public:
+        RefObject();
         virtual ~RefObject() {}       
         void IncRef();
         void DecRef();
@@ -120,6 +121,10 @@ namespace wgp {
         T* m_ptr;
         std::atomic<int>* m_ref_count;
     };
+
+    inline RefObject::RefObject() :
+        m_ref_count(0) {
+    }
 
     inline void RefObject::IncRef() {
         m_ref_count.fetch_add(1);

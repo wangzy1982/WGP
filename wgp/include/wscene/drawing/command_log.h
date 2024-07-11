@@ -13,7 +13,7 @@ namespace wgp {
 
     class WGP_API AddModelCommandLog : public CommandLog {
     public:
-        TYPE_DEF_1(AddModelCommandLog)
+        TYPE_DEF_1(AddModelCommandLog);
     public:
         AddModelCommandLog(Model* model);
         virtual ~AddModelCommandLog();
@@ -28,7 +28,7 @@ namespace wgp {
 
     class WGP_API RemoveModelCommandLog : public CommandLog {
     public:
-        TYPE_DEF_1(RemoveModelCommandLog)
+        TYPE_DEF_1(RemoveModelCommandLog);
     public:
         RemoveModelCommandLog(Model* model);
         virtual ~RemoveModelCommandLog();
@@ -42,7 +42,7 @@ namespace wgp {
 
     class WGP_API AddFeatureCommandLog : public CommandLog {
     public:
-        TYPE_DEF_1(AddFeatureCommandLog)
+        TYPE_DEF_1(AddFeatureCommandLog);
     public:
         AddFeatureCommandLog(Model* model, Feature* feature);
         virtual ~AddFeatureCommandLog();
@@ -59,7 +59,7 @@ namespace wgp {
 
     class WGP_API RemoveFeatureCommandLog : public CommandLog {
     public:
-        TYPE_DEF_1(RemoveFeatureCommandLog)
+        TYPE_DEF_1(RemoveFeatureCommandLog);
     public:
         RemoveFeatureCommandLog(Model* model, Feature* feature);
         virtual ~RemoveFeatureCommandLog();
@@ -74,7 +74,7 @@ namespace wgp {
 
     class WGP_API SetFeatureInputCommandLog : public CommandLog {
     public:
-        TYPE_DEF_1(SetFeatureInputCommandLog)
+        TYPE_DEF_1(SetFeatureInputCommandLog);
     public:
         SetFeatureInputCommandLog(Feature* feature, int index, Feature* old_input, Feature* new_input);
         virtual ~SetFeatureInputCommandLog();
@@ -91,7 +91,7 @@ namespace wgp {
 
     class WGP_API SetFeatureOutputCommandLog : public CommandLog {
     public:
-        TYPE_DEF_1(SetFeatureOutputCommandLog)
+        TYPE_DEF_1(SetFeatureOutputCommandLog);
     public:
         SetFeatureOutputCommandLog(Feature* feature, Feature* old_output, Feature* new_output);
         virtual ~SetFeatureOutputCommandLog();
@@ -107,7 +107,7 @@ namespace wgp {
 
     class WGP_API SetAsVector2dCommandLog : public CommandLog {
     public:
-        TYPE_DEF_1(SetAsVector2dCommandLog)
+        TYPE_DEF_1(SetAsVector2dCommandLog);
     public:
         SetAsVector2dCommandLog(Feature* feature, Vector2dFeatureFieldSchema* field_schema,
             const Vector2d& old_value, const Vector2d& new_value);
@@ -125,7 +125,7 @@ namespace wgp {
 
     class WGP_API SetAsVector3dCommandLog : public CommandLog {
     public:
-        TYPE_DEF_1(SetAsVector3dCommandLog)
+        TYPE_DEF_1(SetAsVector3dCommandLog);
     public:
         SetAsVector3dCommandLog(Feature* feature, Vector3dFeatureFieldSchema* field_schema,
             const Vector3d& old_value, const Vector3d& new_value);
@@ -143,7 +143,7 @@ namespace wgp {
 
     class WGP_API SetAsQuaternionCommandLog : public CommandLog {
     public:
-        TYPE_DEF_1(SetAsQuaternionCommandLog)
+        TYPE_DEF_1(SetAsQuaternionCommandLog);
     public:
         SetAsQuaternionCommandLog(Feature* feature, QuaternionFeatureFieldSchema* field_schema,
             const Quaternion& old_value, const Quaternion& new_value);
@@ -161,7 +161,7 @@ namespace wgp {
 
     class WGP_API SetAsSketchGeometryCommandLog : public CommandLog {
     public:
-        TYPE_DEF_1(SetAsSketchGeometryCommandLog)
+        TYPE_DEF_1(SetAsSketchGeometryCommandLog);
     public:
         SetAsSketchGeometryCommandLog(Feature* feature, SketchGeometryFeatureFieldSchema* field_schema, 
             SketchGeometry* old_value, SketchGeometry* new_value);
@@ -179,7 +179,7 @@ namespace wgp {
 
     class WGP_API SetAsSketchConstraintCommandLog : public CommandLog {
     public:
-        TYPE_DEF_1(SetAsSketchConstraintCommandLog)
+        TYPE_DEF_1(SetAsSketchConstraintCommandLog);
     public:
         SetAsSketchConstraintCommandLog(Feature* feature, SketchConstraintFeatureFieldSchema* field_schema,
             SketchConstraint* old_value, SketchConstraint* new_value);
@@ -197,7 +197,7 @@ namespace wgp {
 
     class WGP_API SetAsSketchCommandLog : public CommandLog {
     public:
-        TYPE_DEF_1(SetAsSketchCommandLog)
+        TYPE_DEF_1(SetAsSketchCommandLog);
     public:
         SetAsSketchCommandLog(Feature* feature, SketchFeatureFieldSchema* field_schema,
             Sketch* old_value, Sketch* new_value);
@@ -215,7 +215,7 @@ namespace wgp {
 
     class WGP_API SetSketchGeometryVariableCommandLog : public CommandLog {
     public:
-        TYPE_DEF_1(SetSketchGeometryVariableCommandLog)
+        TYPE_DEF_1(SetSketchGeometryVariableCommandLog);
     public:
         SetSketchGeometryVariableCommandLog(Feature* feature, SketchGeometryFeatureFieldSchema* field_schema,
             int variable_index, double old_value, double new_value);

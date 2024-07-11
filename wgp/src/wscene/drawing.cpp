@@ -448,7 +448,7 @@ namespace wgp {
         return false;
     }
 
-    TYPE_IMP_0(FeatureFieldSchema)
+    TYPE_IMP_0(FeatureFieldSchema);
 
     FeatureFieldSchema::FeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const char* name) :
         m_feature_schema(feature_schema),
@@ -469,7 +469,7 @@ namespace wgp {
         return m_name;
     }
 
-    TYPE_IMP_0(FeatureSchema)
+    TYPE_IMP_0(FeatureSchema);
 
     FeatureSchema::FeatureSchema(Drawing* drawing, SceneId id, const char* name) :
         m_drawing(drawing),
@@ -601,7 +601,7 @@ namespace wgp {
         return true;
     }
 
-    TYPE_IMP_1(ReferenceFeatureSchema, FeatureSchema::GetTypeInstance())
+    TYPE_IMP_1(ReferenceFeatureSchema, FeatureSchema::GetTypeInstance());
 
     ReferenceFeatureSchema::ReferenceFeatureSchema(Drawing* drawing, SceneId id, const char* name,
         SceneId position_field_schema_id, SceneId rotation_field_schema_id) :
@@ -660,9 +660,9 @@ namespace wgp {
         return m_rotation;
     }
 
-    TYPE_IMP_0(CommandLog)
+    TYPE_IMP_0(CommandLog);
 
-    TYPE_IMP_1(GroupCommandLog, CommandLog::GetTypeInstance())
+    TYPE_IMP_1(GroupCommandLog, CommandLog::GetTypeInstance());
 
     GroupCommandLog::GroupCommandLog(int capacity) :
         m_logs(capacity),

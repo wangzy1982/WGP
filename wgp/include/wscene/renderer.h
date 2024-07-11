@@ -8,6 +8,9 @@
 #include "wbase.h"
 #include "drawing.h"
 #include "wstd/matrix.h"
+#include "wstd/type.h"
+#include "background.h"
+#include "camera.h"
 
 namespace wgp {
 
@@ -20,10 +23,10 @@ namespace wgp {
         RenderingMaterial* GetMaterial() const;
         int GetClassification() const;
         virtual ~RenderingObject();
+        virtual RenderingObject* NewRenderingObject(RenderingObjectFragment* fragment) const = 0;
         virtual RenderingObjectFragment* NewFragment() = 0;
-        virtual RenderingObjectFragment* Merge(RenderingObject* render_object) = 0;
+        virtual RenderingObjectFragment* Merge(RenderingObject* rendering_object) = 0;
         virtual RenderingObjectFragment* Merge(RenderingObjectFragment* fragment) = 0;
-        virtual void Erase(RenderingObjectFragment* fragment) = 0;
     protected:
         RenderingMaterial* m_material;
         int m_classification;
@@ -35,7 +38,7 @@ namespace wgp {
         virtual ~RenderingObjectFragment();
         RenderingObject* GetRenderingObject() const;
         virtual int GetClassification() const;
-        virtual RenderingObject* NewRenderingObject() const = 0;
+        virtual void SetState(int state) = 0;
     protected:
         RenderingObject* m_rendering_object;
     };
@@ -44,16 +47,17 @@ namespace wgp {
     public:
         NullRenderingObjectFragment(int classification);
         virtual int GetClassification() const;
-        virtual RenderingObject* NewRenderingObject() const;
+        virtual void SetState(int state);
     protected:
         int m_classification;
     };
 
     class WGP_API RenderingMaterial {
     public:
+        TYPE_DEF_0(RenderingMaterial)
+    public:
         virtual ~RenderingMaterial() {}
         virtual int Compare(RenderingMaterial* material) = 0;
-        virtual void Render(RenderingObject* rendering_object) = 0;
     };
 
     struct WGP_API RenderingNode {
@@ -88,13 +92,24 @@ namespace wgp {
         FeatureInfo* RightChild;
     };
 
+    class Renderer {
+    public:
+        virtual ~Renderer() {}
+        virtual void BeginDraw(Background* background, Camera* camera, double screen_width, double screen_height) = 0;
+        virtual void Draw(RenderingMaterial* material, RenderingObject* rendering_object) = 0;
+        virtual void EndDraw() = 0;
+    };
+
     class WGP_API RenderingTree : public DrawingObserver {
     public:
         RenderingTree(Model* model, bool is_order_affected_rendering, int complexity);
         virtual ~RenderingTree();
         virtual void Notify(const Array<CommandLog*>& logs);
-        void GetRenderingObjects(int classification, Array<RenderingObject*>& rendering_objects);
+        Model* GetModel() const;
         void RemoveRenderingObjects(int classification);
+        void Render(Renderer* renderer, int classification);
+        void SetState(Feature* feature, const Array<wgp::Feature*>& path, int state);
+        void ClearState(int clear_state);
     protected:
         virtual int GetDirtyLevel(CommandLog* log) = 0;
         virtual bool IsRenderingFeature(Feature* feature) = 0;
@@ -126,6 +141,9 @@ namespace wgp {
         void RemoveRenderingObjects(RenderingGroup* group, int classification);
         void RemoveRenderingObjects(RenderingGroup* group, int classification, RenderingNode* node);
         void RemoveRenderingObjects(int classification, FeatureInfo* feature_info);
+        void Render(RenderingGroup* group, Renderer* renderer, int classification);
+        void Render(RenderingGroup* group, RenderingNode* node, Renderer* renderer, int classification);
+        void ClearState(FeatureInfo* feature_info, int clear_state);
         int Compare(FeatureInfo* feature_info, Feature* feature, const Array<Feature*>& path);
         int Compare(RenderingGroup* rendering_group, RenderingMaterial* material, bool is_classification_enabled);
         void SetFeatureInfoDirty(Feature* feature);

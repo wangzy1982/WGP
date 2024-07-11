@@ -84,7 +84,7 @@ namespace wgp {
 
     class WGP_API Vector2dFeatureFieldSchema : public FeatureFieldSchema {
     public:
-        TYPE_DEF_1(Vector2dFeatureFieldSchema)
+        TYPE_DEF_1(Vector2dFeatureFieldSchema);
     public:
         Vector2dFeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const char* name,
             GetAsVector2dFunc get_func, DirectSetAsVector2dFunc direct_set_func);
@@ -101,7 +101,7 @@ namespace wgp {
 
     class WGP_API Vector3dFeatureFieldSchema : public FeatureFieldSchema {
     public:
-        TYPE_DEF_1(Vector3dFeatureFieldSchema)
+        TYPE_DEF_1(Vector3dFeatureFieldSchema);
     public:
         Vector3dFeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const char* name,
             GetAsVector3dFunc get_func, DirectSetAsVector3dFunc direct_set_func);
@@ -118,7 +118,7 @@ namespace wgp {
 
     class WGP_API QuaternionFeatureFieldSchema : public FeatureFieldSchema {
     public:
-        TYPE_DEF_1(QuaternionFeatureFieldSchema)
+        TYPE_DEF_1(QuaternionFeatureFieldSchema);
     public:
         QuaternionFeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const char* name,
             GetAsQuaternionFunc get_func, DirectSetAsQuaternionFunc direct_set_func);
@@ -135,7 +135,7 @@ namespace wgp {
 
     class WGP_API SketchGeometryFeatureFieldSchema : public FeatureFieldSchema {
     public:
-        TYPE_DEF_1(SketchGeometryFeatureFieldSchema)
+        TYPE_DEF_1(SketchGeometryFeatureFieldSchema);
     public:
         SketchGeometryFeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const char* name,
             GetAsSketchGeometryFunc get_func, DirectSetAsSketchGeometryFunc direct_set_func);
@@ -152,7 +152,7 @@ namespace wgp {
 
     class WGP_API SketchConstraintFeatureFieldSchema : public FeatureFieldSchema {
     public:
-        TYPE_DEF_1(SketchConstraintFeatureFieldSchema)
+        TYPE_DEF_1(SketchConstraintFeatureFieldSchema);
     public:
         SketchConstraintFeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const char* name,
             GetAsSketchConstraintFunc get_func, DirectSetAsSketchConstraintFunc direct_set_func);
@@ -169,7 +169,7 @@ namespace wgp {
 
     class WGP_API SketchFeatureFieldSchema : public FeatureFieldSchema {
     public:
-        TYPE_DEF_1(SketchFeatureFieldSchema)
+        TYPE_DEF_1(SketchFeatureFieldSchema);
     public:
         SketchFeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const char* name,
             GetAsSketchFunc get_func, DirectSetAsSketchFunc direct_set_func);

@@ -6,7 +6,7 @@
 
 namespace wgp {
 
-    TYPE_IMP_1(SketchPoint2dEqualConstraint, SketchConstraint::GetTypeInstance())
+    TYPE_IMP_1(SketchPoint2dEqualConstraint, SketchConstraint::GetTypeInstance());
 
     SketchPoint2dEqualConstraint::SketchPoint2dEqualConstraint(Sketch* owner, SketchGeometry* geometry0, int x_variable_index0, int y_variable_index0,
         SketchGeometry* geometry1, int x_variable_index1, int y_variable_index1, double epsilon) :
@@ -30,7 +30,7 @@ namespace wgp {
         return m_equations[index];
     }
 
-    TYPE_IMP_1(SketchFixPoint2dConstraint, SketchConstraint::GetTypeInstance())
+    TYPE_IMP_1(SketchFixPoint2dConstraint, SketchConstraint::GetTypeInstance());
 
     SketchFixPoint2dConstraint::SketchFixPoint2dConstraint(Sketch* owner, SketchGeometry* geometry, int x_variable_index, int y_variable_index, 
         const Vector2d& point, double epsilon) :
@@ -54,7 +54,7 @@ namespace wgp {
         return m_equations[index];
     }
 
-    TYPE_IMP_1(SketchFixPoint2dPoint2dDistanceConstraint, SketchConstraint::GetTypeInstance())
+    TYPE_IMP_1(SketchFixPoint2dPoint2dDistanceConstraint, SketchConstraint::GetTypeInstance());
 
     SketchFixPoint2dPoint2dDistanceConstraint::SketchFixPoint2dPoint2dDistanceConstraint(Sketch* owner,
         SketchVariableEntity* entity0, int x_variable_index0, int y_variable_index0,
@@ -78,7 +78,7 @@ namespace wgp {
         return m_equation;
     }
 
-    TYPE_IMP_1(SketchFixLine2dLine2dAngleConstraint, SketchConstraint::GetTypeInstance())
+    TYPE_IMP_1(SketchFixLine2dLine2dAngleConstraint, SketchConstraint::GetTypeInstance());
 
     SketchFixLine2dLine2dAngleConstraint::SketchFixLine2dLine2dAngleConstraint(Sketch* owner,
         SketchVariableEntity* entity0, int start_x_variable_index0, int start_y_variable_index0, int end_x_variable_index0, int end_y_variable_index0,

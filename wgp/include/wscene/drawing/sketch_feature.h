@@ -15,7 +15,7 @@ namespace wgp {
 
     class WGP_API SketchFeatureSchema : public FeatureSchema {
     public:
-        TYPE_DEF_1(SketchFeatureSchema)
+        TYPE_DEF_1(SketchFeatureSchema);
     public:
         SketchFeatureSchema(Drawing* drawing, SceneId id, const char* name, SceneId sketch_field_schema_id);
         SketchFeatureFieldSchema* GetSketchFieldSchema() const;
@@ -37,7 +37,7 @@ namespace wgp {
 
     class WGP_API SketchGeometryFeatureSchema : public FeatureSchema {
     public:
-        TYPE_DEF_1(SketchGeometryFeatureSchema)
+        TYPE_DEF_1(SketchGeometryFeatureSchema);
     public:
         SketchGeometryFeatureSchema(Drawing* drawing, SceneId id, const char* name, SceneId geometry_field_schema_id);
         SketchGeometryFeatureFieldSchema* GetGeometryFieldSchema() const;
@@ -59,7 +59,7 @@ namespace wgp {
 
     class WGP_API SketchConstraintFeatureSchema : public FeatureSchema {
     public:
-        TYPE_DEF_1(SketchConstraintFeatureSchema)
+        TYPE_DEF_1(SketchConstraintFeatureSchema);
     public:
         SketchConstraintFeatureSchema(Drawing* drawing, SceneId id, const char* name, SceneId constraint_field_schema_id);
         SketchConstraintFeatureFieldSchema* GetConstraintFieldSchema() const;
@@ -81,7 +81,7 @@ namespace wgp {
 
     class WGP_API SketchLine2dFeatureSchema : public SketchGeometryFeatureSchema {
     public:
-        TYPE_DEF_1(SketchLine2dFeatureSchema)
+        TYPE_DEF_1(SketchLine2dFeatureSchema);
     public:
         SketchLine2dFeatureSchema(Drawing* drawing, SceneId id, const char* name,
             SceneId geometry_field_schema_id, SceneId start_point_field_schema_id, SceneId end_point_field_schema_id);
@@ -105,7 +105,7 @@ namespace wgp {
 
     class WGP_API SketchPoint2dEqualConstraintFeatureSchema : public SketchConstraintFeatureSchema {
     public:
-        TYPE_DEF_1(SketchPoint2dEqualConstraintFeatureSchema)
+        TYPE_DEF_1(SketchPoint2dEqualConstraintFeatureSchema);
     public:
         SketchPoint2dEqualConstraintFeatureSchema(Drawing* drawing, SceneId id, const char* name, SceneId constraint_field_schema_id);
     protected:
@@ -122,7 +122,7 @@ namespace wgp {
 
     class WGP_API SketchFixPoint2dConstraintFeatureSchema : public SketchConstraintFeatureSchema {
     public:
-        TYPE_DEF_1(SketchFixPoint2dConstraintFeatureSchema)
+        TYPE_DEF_1(SketchFixPoint2dConstraintFeatureSchema);
     public:
         SketchFixPoint2dConstraintFeatureSchema(Drawing* drawing, SceneId id, const char* name, SceneId constraint_field_schema_id);
     protected:
@@ -139,7 +139,7 @@ namespace wgp {
 
     class WGP_API SketchFixPoint2dPoint2dDistanceConstraintFeatureSchema : public SketchConstraintFeatureSchema {
     public:
-        TYPE_DEF_1(SketchFixPoint2dPoint2dDistanceConstraintFeatureSchema)
+        TYPE_DEF_1(SketchFixPoint2dPoint2dDistanceConstraintFeatureSchema);
     public:
         SketchFixPoint2dPoint2dDistanceConstraintFeatureSchema(Drawing* drawing, SceneId id, const char* name, SceneId constraint_field_schema_id);
     protected:
@@ -157,7 +157,7 @@ namespace wgp {
 
     class WGP_API SketchFixLine2dLine2dAngleConstraintFeatureSchema : public SketchConstraintFeatureSchema {
     public:
-        TYPE_DEF_1(SketchFixLine2dLine2dAngleConstraintFeatureSchema)
+        TYPE_DEF_1(SketchFixLine2dLine2dAngleConstraintFeatureSchema);
     public:
         SketchFixLine2dLine2dAngleConstraintFeatureSchema(Drawing* drawing, SceneId id, const char* name, SceneId constraint_field_schema_id);
     protected:
