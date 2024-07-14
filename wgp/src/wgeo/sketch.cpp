@@ -392,7 +392,7 @@ namespace wgp {
         return m_geometries.Get(index);
     }
 
-    void Sketch::AddGeometry(SketchGeometry* geometry, bool solve) {
+    void Sketch::AddGeometry(SketchGeometry* geometry, bool solve, Array<SketchEntityVariable>& actived_variables) {
         geometry->IncRef();
         Array<SketchEquation*> equations;
         for (int i = 0; i < geometry->GetVariableCount(); ++i) {
@@ -406,7 +406,7 @@ namespace wgp {
         }
         if (solve) {
             SketchSolver solver(this);
-            solver.Solve(equations, nullptr);
+            solver.Solve(equations, nullptr, actived_variables);
         }
     }
 
@@ -435,6 +435,15 @@ namespace wgp {
         m_geometries.Remove(index);
     }
 
+    void Sketch::RemoveGeometry(SketchGeometry* geometry) {
+        for (int i = 0; i < m_geometries.GetCount(); ++i) {
+            if (m_geometries.Get(i) == geometry) {
+                RemoveGeometry(i);
+                break;
+            }
+        }
+    }
+
     int Sketch::GetConstraintCount() const {
         return m_constraints.GetCount();
     }
@@ -443,7 +452,7 @@ namespace wgp {
         return m_constraints.Get(index);
     }
 
-    bool Sketch::AddConstraint(SketchConstraint* constraint, bool solve, SketchAction* action) {
+    bool Sketch::AddConstraint(SketchConstraint* constraint, bool solve, SketchAction* action, Array<SketchEntityVariable>& actived_variables) {
         constraint->IncRef();
         Array<SketchEquation*> equations;
         m_constraints.Append(constraint);
@@ -454,7 +463,7 @@ namespace wgp {
         }
         if (solve) {
             SketchSolver solver(this);
-            if (!solver.Solve(equations, action)) {
+            if (!solver.Solve(equations, action, actived_variables)) {
                 RemoveConstraint(m_constraints.GetCount() - 1);
                 return false;
             }
@@ -470,6 +479,15 @@ namespace wgp {
         }
         constraint->DecRef();
         m_constraints.Remove(index);
+    }
+
+    void Sketch::RemoveConstraint(SketchConstraint* constraint) {
+        for (int i = 0; i < m_constraints.GetCount(); ++i) {
+            if (m_constraints.Get(i) == constraint) {
+                RemoveConstraint(i);
+                break;
+            }
+        }
     }
 
     void Sketch::AddEquationRelation(SketchEquation* equation) {
@@ -541,10 +559,10 @@ namespace wgp {
         }
     };
 
-    bool Sketch::Solve(SketchAction* action) {
+    bool Sketch::Solve(SketchAction* action, Array<SketchEntityVariable>& actived_variables) {
         Array<SketchEquation*> equations;
         SketchSolver solver(this);
-        return solver.Solve(equations, action);
+        return solver.Solve(equations, action, actived_variables);
     }
 
     SketchEquation1V::SketchEquation1V(SketchVariableEntity* entity, int variable_index, double epsilon) {
@@ -1174,7 +1192,7 @@ namespace wgp {
     SketchSolver::~SketchSolver() {
     }
 
-    bool SketchSolver::Solve(const Array<SketchEquation*>& equations, SketchAction* action) {
+    bool SketchSolver::Solve(const Array<SketchEquation*>& equations, SketchAction* action, Array<SketchEntityVariable>& actived_variables) {
         Array<SketchEquation*> action_equations;
         if (action) {
             for (int i = 0; i < action->GetStrategyCount(); ++i) {
@@ -1197,13 +1215,13 @@ namespace wgp {
         for (int i = 0; i < equations.GetCount(); ++i) {
             SketchEquation* equation = equations.Get(i);
             if (equation->m_current_equation_index == -1 && !equation->CheckCurrent()) {
-                DfsActived(equation);
+                DfsActived(equation, actived_variables);
             }
         }
         for (int i = 0; i < action_equations.GetCount(); ++i) {
             SketchEquation* equation = action_equations.Get(i);
             if (equation->m_current_equation_index == -1 && !equation->CheckCurrent()) {
-                DfsActived(equation);
+                DfsActived(equation, actived_variables);
             }
         }
         for (int i = 0; i < m_current_equations.GetCount(); ++i) {
@@ -1211,14 +1229,14 @@ namespace wgp {
         }
         m_current_equations.Clear();
         bool success = true;
-        if (m_actived_variables.GetCount() > 0) {
-            m_actived_variables.Sort(SketchEntityVariablePriorityLess());
-            for (int i = 0; i < m_actived_variables.GetCount(); ++i) {
-                SketchEntityVariable* entity_variable = m_actived_variables.GetPointer(i);
+        if (actived_variables.GetCount() > 0) {
+            actived_variables.Sort(SketchEntityVariablePriorityLess());
+            for (int i = 0; i < actived_variables.GetCount(); ++i) {
+                SketchEntityVariable* entity_variable = actived_variables.GetPointer(i);
                 entity_variable->Entity->SetCurrentVariableIndex(entity_variable->Index, -1);
             }
-            for (int k = 0; k < m_actived_variables.GetCount(); ++k) {
-                SketchEntityVariable* entity_variable = m_actived_variables.GetPointer(k);
+            for (int k = 0; k < actived_variables.GetCount(); ++k) {
+                SketchEntityVariable* entity_variable = actived_variables.GetPointer(k);
                 if (entity_variable->Entity->GetCurrentVariableIndex(entity_variable->Index) == -1) {
                     entity_variable->Entity->SetCurrentVariableIndex(entity_variable->Index, m_current_variables.GetCount());
                     m_current_variables.Append(*entity_variable);
@@ -1280,12 +1298,14 @@ namespace wgp {
                     }
                 }
             }
-            if (success) {
-                for (int i = 0; i < m_actived_variables.GetCount(); ++i) {
-                    SketchEntityVariable* entity_variable = m_actived_variables.GetPointer(i);
-                    entity_variable->Entity->SetCurrentVariableIndex(entity_variable->Index, -1);
-                }
+            for (int i = 0; i < actived_variables.GetCount(); ++i) {
+                SketchEntityVariable* entity_variable = actived_variables.GetPointer(i);
+                entity_variable->Entity->SetCurrentVariableIndex(entity_variable->Index, -1);
             }
+            if (!success) {
+                actived_variables.Clear();
+            }
+            /*
             else {
                 for (int i = 0; i < m_actived_variables.GetCount(); ++i) {
                     SketchEntityVariable* entity_variable = m_actived_variables.GetPointer(i);
@@ -1294,6 +1314,7 @@ namespace wgp {
                 }
             }
             m_actived_variables.Clear();
+            */
         }
         for (int i = 0; i < action_equations.GetCount(); ++i) {
             m_sketch->RemoveEquationRelation(action_equations.Get(i));
@@ -1431,23 +1452,23 @@ namespace wgp {
         return m_current_strategy_variable_count;
     }
 
-    void SketchSolver::DfsActived(SketchEquation* equation) {
+    void SketchSolver::DfsActived(SketchEquation* equation, Array<SketchEntityVariable>& actived_variables) {
         equation->m_current_equation_index = m_current_equations.GetCount();
         m_current_equations.Append(equation);
         for (int i = 0; i < equation->GetVariableCount(); ++i) {
             SketchVariableEntity* entity = equation->GetVariableEntity(i);
             int index = equation->GetEntityVariableIndex(i);
             if (entity->GetCurrentVariableIndex(index) == -1) {
-                entity->SetCurrentVariableIndex(index, m_actived_variables.GetCount());
+                entity->SetCurrentVariableIndex(index, actived_variables.GetCount());
                 SketchEntityVariable entity_variable;
                 entity_variable.Entity = entity;
                 entity_variable.Index = index;
                 entity_variable.CurrentValue = entity->GetCurrentVariable(index);
-                m_actived_variables.Append(entity_variable);
+                actived_variables.Append(entity_variable);
                 SketchEquation* equation2 = entity->GetFirstRelatedEquation(index);
                 while (equation2) {
                     if (equation2->m_current_equation_index == -1) {
-                        DfsActived(equation2);
+                        DfsActived(equation2, actived_variables);
                     }
                     equation2 = equation2->GetNextRelatedEquation(entity, index);
                 }

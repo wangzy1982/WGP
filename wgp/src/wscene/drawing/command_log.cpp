@@ -156,6 +156,14 @@ namespace wgp {
         m_model->DecRef();
     }
 
+    Model* RemoveFeatureCommandLog::GetModel() const {
+        return m_model;
+    }
+
+    Feature* RemoveFeatureCommandLog::GetFeature() const {
+        return m_feature;
+    }
+
     void RemoveFeatureCommandLog::AppendAffectedFeature(Array<Feature*>& features) {
     }
 
@@ -323,105 +331,148 @@ namespace wgp {
         }
     }
 
-    TYPE_IMP_1(SetAsVector2dCommandLog, CommandLog::GetTypeInstance());
+    TYPE_IMP_1(SetFieldCommandLog, CommandLog::GetTypeInstance());
 
-    SetAsVector2dCommandLog::SetAsVector2dCommandLog(Feature* feature, Vector2dFeatureFieldSchema* field_schema,
-            const Vector2d& old_value, const Vector2d& new_value) :
+    SetFieldCommandLog::SetFieldCommandLog(Feature* feature, FeatureFieldSchema* field_schema) :
         m_feature(feature),
-        m_field_schema(field_schema),
-        m_old_value(old_value),
-        m_new_value(new_value) {
+        m_field_schema(field_schema) {
         m_feature->IncRef();
     }
 
-    SetAsVector2dCommandLog::~SetAsVector2dCommandLog() {
+    SetFieldCommandLog::~SetFieldCommandLog() {
         m_feature->DecRef();
     }
 
-    void SetAsVector2dCommandLog::AppendAffectedFeature(Array<Feature*>& features) {
+    void SetFieldCommandLog::AppendAffectedFeature(Array<Feature*>& features) {
         features.Append(m_feature);
     }
 
-    void SetAsVector2dCommandLog::AppendRecheckRelationFeature(Array<Feature*>& features) {
+    void SetFieldCommandLog::AppendRecheckRelationFeature(Array<Feature*>& features) {
+    }
+
+    TYPE_IMP_1(SetAsIntCommandLog, SetFieldCommandLog::GetTypeInstance());
+
+    SetAsIntCommandLog::SetAsIntCommandLog(Feature* feature, IntFeatureFieldSchema* field_schema, int old_value, int new_value) :
+        SetFieldCommandLog(feature, field_schema),
+        m_old_value(old_value),
+        m_new_value(new_value) {
+    }
+
+    void SetAsIntCommandLog::Undo() {
+        ((IntFeatureFieldSchema*)m_field_schema)->m_direct_set_func(m_feature, m_field_schema, m_old_value);
+    }
+
+    void SetAsIntCommandLog::Redo() {
+        ((IntFeatureFieldSchema*)m_field_schema)->m_direct_set_func(m_feature, m_field_schema, m_new_value);
+    }
+
+    TYPE_IMP_1(SetAsDoubleCommandLog, SetFieldCommandLog::GetTypeInstance());
+
+    SetAsDoubleCommandLog::SetAsDoubleCommandLog(Feature* feature, DoubleFeatureFieldSchema* field_schema, double old_value, double new_value) :
+        SetFieldCommandLog(feature, field_schema),
+        m_old_value(old_value),
+        m_new_value(new_value) {
+    }
+
+    void SetAsDoubleCommandLog::Undo() {
+        ((DoubleFeatureFieldSchema*)m_field_schema)->m_direct_set_func(m_feature, m_field_schema, m_old_value);
+    }
+
+    void SetAsDoubleCommandLog::Redo() {
+        ((DoubleFeatureFieldSchema*)m_field_schema)->m_direct_set_func(m_feature, m_field_schema, m_new_value);
+    }
+
+    TYPE_IMP_1(SetAsBoolCommandLog, SetFieldCommandLog::GetTypeInstance());
+
+    SetAsBoolCommandLog::SetAsBoolCommandLog(Feature* feature, BoolFeatureFieldSchema* field_schema, bool old_value, bool new_value) :
+        SetFieldCommandLog(feature, field_schema),
+        m_old_value(old_value),
+        m_new_value(new_value) {
+    }
+
+    void SetAsBoolCommandLog::Undo() {
+        ((BoolFeatureFieldSchema*)m_field_schema)->m_direct_set_func(m_feature, m_field_schema, m_old_value);
+    }
+
+    void SetAsBoolCommandLog::Redo() {
+        ((BoolFeatureFieldSchema*)m_field_schema)->m_direct_set_func(m_feature, m_field_schema, m_new_value);
+    }
+
+    TYPE_IMP_1(SetAsStringCommandLog, SetFieldCommandLog::GetTypeInstance());
+
+    SetAsStringCommandLog::SetAsStringCommandLog(Feature* feature, StringFeatureFieldSchema* field_schema,
+        const String& old_value, const String& new_value) :
+        SetFieldCommandLog(feature, field_schema),
+        m_old_value(old_value),
+        m_new_value(new_value) {
+    }
+
+    void SetAsStringCommandLog::Undo() {
+        ((StringFeatureFieldSchema*)m_field_schema)->m_direct_set_func(m_feature, m_field_schema, m_old_value);
+    }
+
+    void SetAsStringCommandLog::Redo() {
+        ((StringFeatureFieldSchema*)m_field_schema)->m_direct_set_func(m_feature, m_field_schema, m_new_value);
+    }
+
+    TYPE_IMP_1(SetAsVector2dCommandLog, SetFieldCommandLog::GetTypeInstance());
+
+    SetAsVector2dCommandLog::SetAsVector2dCommandLog(Feature* feature, Vector2dFeatureFieldSchema* field_schema,
+        const Vector2d& old_value, const Vector2d& new_value) :
+        SetFieldCommandLog(feature, field_schema),
+        m_old_value(old_value),
+        m_new_value(new_value) {
     }
 
     void SetAsVector2dCommandLog::Undo() {
-        m_field_schema->m_direct_set_func(m_feature, m_field_schema, m_old_value);
+        ((Vector2dFeatureFieldSchema*)m_field_schema)->m_direct_set_func(m_feature, m_field_schema, m_old_value);
     }
 
     void SetAsVector2dCommandLog::Redo() {
-        m_field_schema->m_direct_set_func(m_feature, m_field_schema, m_new_value);
+        ((Vector2dFeatureFieldSchema*)m_field_schema)->m_direct_set_func(m_feature, m_field_schema, m_new_value);
     }
 
-    TYPE_IMP_1(SetAsVector3dCommandLog, CommandLog::GetTypeInstance());
+    TYPE_IMP_1(SetAsVector3dCommandLog, SetFieldCommandLog::GetTypeInstance());
 
     SetAsVector3dCommandLog::SetAsVector3dCommandLog(Feature* feature, Vector3dFeatureFieldSchema* field_schema,
-            const Vector3d& old_value, const Vector3d& new_value) :
-        m_feature(feature),
-        m_field_schema(field_schema),
+        const Vector3d& old_value, const Vector3d& new_value) :
+        SetFieldCommandLog(feature, field_schema),
         m_old_value(old_value),
         m_new_value(new_value) {
-        m_feature->IncRef();
-    }
-
-    SetAsVector3dCommandLog::~SetAsVector3dCommandLog() {
-        m_feature->DecRef();
-    }
-
-    void SetAsVector3dCommandLog::AppendAffectedFeature(Array<Feature*>& features) {
-        features.Append(m_feature);
-    }
-
-    void SetAsVector3dCommandLog::AppendRecheckRelationFeature(Array<Feature*>& features) {
     }
 
     void SetAsVector3dCommandLog::Undo() {
-        m_field_schema->m_direct_set_func(m_feature, m_field_schema, m_old_value);
+        ((Vector3dFeatureFieldSchema*)m_field_schema)->m_direct_set_func(m_feature, m_field_schema, m_old_value);
     }
 
     void SetAsVector3dCommandLog::Redo() {
-        m_field_schema->m_direct_set_func(m_feature, m_field_schema, m_new_value);
+        ((Vector3dFeatureFieldSchema*)m_field_schema)->m_direct_set_func(m_feature, m_field_schema, m_new_value);
     }
 
-    TYPE_IMP_1(SetAsQuaternionCommandLog, CommandLog::GetTypeInstance());
+    TYPE_IMP_1(SetAsQuaternionCommandLog, SetFieldCommandLog::GetTypeInstance());
 
     SetAsQuaternionCommandLog::SetAsQuaternionCommandLog(Feature* feature, QuaternionFeatureFieldSchema* field_schema,
         const Quaternion& old_value, const Quaternion& new_value) :
-        m_feature(feature),
-        m_field_schema(field_schema),
+        SetFieldCommandLog(feature, field_schema),
         m_old_value(old_value),
         m_new_value(new_value) {
-        m_feature->IncRef();
-    }
-
-    SetAsQuaternionCommandLog::~SetAsQuaternionCommandLog() {
-        m_feature->DecRef();
-    }
-
-    void SetAsQuaternionCommandLog::AppendAffectedFeature(Array<Feature*>& features) {
-        features.Append(m_feature);
-    }
-
-    void SetAsQuaternionCommandLog::AppendRecheckRelationFeature(Array<Feature*>& features) {
     }
 
     void SetAsQuaternionCommandLog::Undo() {
-        m_field_schema->m_direct_set_func(m_feature, m_field_schema, m_old_value);
+        ((QuaternionFeatureFieldSchema*)m_field_schema)->m_direct_set_func(m_feature, m_field_schema, m_old_value);
     }
 
     void SetAsQuaternionCommandLog::Redo() {
-        m_field_schema->m_direct_set_func(m_feature, m_field_schema, m_new_value);
+        ((QuaternionFeatureFieldSchema*)m_field_schema)->m_direct_set_func(m_feature, m_field_schema, m_new_value);
     }
 
-    TYPE_IMP_1(SetAsSketchGeometryCommandLog, CommandLog::GetTypeInstance());
+    TYPE_IMP_1(SetAsSketchGeometryCommandLog, SetFieldCommandLog::GetTypeInstance());
 
     SetAsSketchGeometryCommandLog::SetAsSketchGeometryCommandLog(Feature* feature, SketchGeometryFeatureFieldSchema* field_schema,
         SketchGeometry* old_value, SketchGeometry* new_value) :
-        m_feature(feature),
-        m_field_schema(field_schema),
+        SetFieldCommandLog(feature, field_schema),
         m_old_value(old_value),
         m_new_value(new_value) {
-        m_feature->IncRef();
         if (m_old_value) {
             m_old_value->IncRef();
         }
@@ -437,14 +488,6 @@ namespace wgp {
         if (m_new_value) {
             m_new_value->DecRef();
         }
-        m_feature->DecRef();
-    }
-
-    void SetAsSketchGeometryCommandLog::AppendAffectedFeature(Array<Feature*>& features) {
-        features.Append(m_feature);
-    }
-
-    void SetAsSketchGeometryCommandLog::AppendRecheckRelationFeature(Array<Feature*>& features) {
     }
 
     void SetAsSketchGeometryCommandLog::Undo() {
@@ -454,7 +497,7 @@ namespace wgp {
         if (m_old_value) {
             m_old_value->IncRef();
         }
-        m_field_schema->m_direct_set_func(m_feature, m_field_schema, m_old_value);
+        ((SketchGeometryFeatureFieldSchema*)m_field_schema)->m_direct_set_func(m_feature, m_field_schema, m_old_value);
     }
 
     void SetAsSketchGeometryCommandLog::Redo() {
@@ -464,18 +507,16 @@ namespace wgp {
         if (m_new_value) {
             m_new_value->IncRef();
         }
-        m_field_schema->m_direct_set_func(m_feature, m_field_schema, m_new_value);
+        ((SketchGeometryFeatureFieldSchema*)m_field_schema)->m_direct_set_func(m_feature, m_field_schema, m_new_value);
     }
 
-    TYPE_IMP_1(SetAsSketchConstraintCommandLog, CommandLog::GetTypeInstance());
+    TYPE_IMP_1(SetAsSketchConstraintCommandLog, SetFieldCommandLog::GetTypeInstance());
 
     SetAsSketchConstraintCommandLog::SetAsSketchConstraintCommandLog(Feature* feature, SketchConstraintFeatureFieldSchema* field_schema,
             SketchConstraint* old_value, SketchConstraint* new_value) :
-        m_feature(feature),
-        m_field_schema(field_schema),
+        SetFieldCommandLog(feature, field_schema),
         m_old_value(old_value),
         m_new_value(new_value) {
-        m_feature->IncRef();
         if (m_old_value) {
             m_old_value->IncRef();
         }
@@ -491,14 +532,6 @@ namespace wgp {
         if (m_new_value) {
             m_new_value->DecRef();
         }
-        m_feature->DecRef();
-    }
-
-    void SetAsSketchConstraintCommandLog::AppendAffectedFeature(Array<Feature*>& features) {
-        features.Append(m_feature);
-    }
-
-    void SetAsSketchConstraintCommandLog::AppendRecheckRelationFeature(Array<Feature*>& features) {
     }
 
     void SetAsSketchConstraintCommandLog::Undo() {
@@ -508,7 +541,7 @@ namespace wgp {
         if (m_old_value) {
             m_old_value->IncRef();
         }
-        m_field_schema->m_direct_set_func(m_feature, m_field_schema, m_old_value);
+        ((SketchConstraintFeatureFieldSchema*)m_field_schema)->m_direct_set_func(m_feature, m_field_schema, m_old_value);
     }
 
     void SetAsSketchConstraintCommandLog::Redo() {
@@ -518,18 +551,16 @@ namespace wgp {
         if (m_new_value) {
             m_new_value->IncRef();
         }
-        m_field_schema->m_direct_set_func(m_feature, m_field_schema, m_new_value);
+        ((SketchConstraintFeatureFieldSchema*)m_field_schema)->m_direct_set_func(m_feature, m_field_schema, m_new_value);
     }
 
-    TYPE_IMP_1(SetAsSketchCommandLog, CommandLog::GetTypeInstance());
+    TYPE_IMP_1(SetAsSketchCommandLog, SetFieldCommandLog::GetTypeInstance());
 
     SetAsSketchCommandLog::SetAsSketchCommandLog(Feature* feature, SketchFeatureFieldSchema* field_schema,
-            Sketch* old_value, Sketch* new_value) :
-        m_feature(feature),
-        m_field_schema(field_schema),
+        Sketch* old_value, Sketch* new_value) :
+        SetFieldCommandLog(feature, field_schema),
         m_old_value(old_value),
         m_new_value(new_value) {
-        m_feature->IncRef();
         if (m_old_value) {
             m_old_value->IncRef();
         }
@@ -545,14 +576,6 @@ namespace wgp {
         if (m_new_value) {
             m_new_value->DecRef();
         }
-        m_feature->DecRef();
-    }
-
-    void SetAsSketchCommandLog::AppendAffectedFeature(Array<Feature*>& features) {
-        features.Append(m_feature);
-    }
-
-    void SetAsSketchCommandLog::AppendRecheckRelationFeature(Array<Feature*>& features) {
     }
 
     void SetAsSketchCommandLog::Undo() {
@@ -562,7 +585,7 @@ namespace wgp {
         if (m_old_value) {
             m_old_value->IncRef();
         }
-        m_field_schema->m_direct_set_func(m_feature, m_field_schema, m_old_value);
+        ((SketchFeatureFieldSchema*)m_field_schema)->m_direct_set_func(m_feature, m_field_schema, m_old_value);
     }
 
     void SetAsSketchCommandLog::Redo() {
@@ -572,38 +595,69 @@ namespace wgp {
         if (m_new_value) {
             m_new_value->IncRef();
         }
-        m_field_schema->m_direct_set_func(m_feature, m_field_schema, m_new_value);
+        ((SketchFeatureFieldSchema*)m_field_schema)->m_direct_set_func(m_feature, m_field_schema, m_new_value);
     }
 
-    TYPE_IMP_1(SetSketchGeometryVariableCommandLog, CommandLog::GetTypeInstance());
+    TYPE_IMP_1(SetAsLineStippleCommandLog, SetFieldCommandLog::GetTypeInstance());
+
+    SetAsLineStippleCommandLog::SetAsLineStippleCommandLog(Feature* feature, LineStippleFeatureFieldSchema* field_schema,
+        LineStipple* old_value, LineStipple* new_value) :
+        SetFieldCommandLog(feature, field_schema),
+        m_old_value(old_value),
+        m_new_value(new_value) {
+        if (m_old_value) {
+            m_old_value->IncRef();
+        }
+        if (m_new_value) {
+            m_new_value->IncRef();
+        }
+    }
+
+    SetAsLineStippleCommandLog::~SetAsLineStippleCommandLog() {
+        if (m_old_value) {
+            m_old_value->DecRef();
+        }
+        if (m_new_value) {
+            m_new_value->DecRef();
+        }
+    }
+
+    void SetAsLineStippleCommandLog::Undo() {
+        if (m_new_value) {
+            m_new_value->DecRef();
+        }
+        if (m_old_value) {
+            m_old_value->IncRef();
+        }
+        ((LineStippleFeatureFieldSchema*)m_field_schema)->m_direct_set_func(m_feature, m_field_schema, m_old_value);
+    }
+
+    void SetAsLineStippleCommandLog::Redo() {
+        if (m_old_value) {
+            m_old_value->DecRef();
+        }
+        if (m_new_value) {
+            m_new_value->IncRef();
+        }
+        ((LineStippleFeatureFieldSchema*)m_field_schema)->m_direct_set_func(m_feature, m_field_schema, m_new_value);
+    }
+
+    TYPE_IMP_1(SetSketchGeometryVariableCommandLog, SetFieldCommandLog::GetTypeInstance());
         
     SetSketchGeometryVariableCommandLog::SetSketchGeometryVariableCommandLog(Feature* feature, SketchGeometryFeatureFieldSchema* field_schema,
         int variable_index, double old_value, double new_value) :
-        m_feature(feature),
-        m_field_schema(field_schema),
+        SetFieldCommandLog(feature, field_schema),
         m_variable_index(variable_index),
         m_old_value(old_value),
         m_new_value(new_value) {
-        m_feature->IncRef();
-    }
-
-    SetSketchGeometryVariableCommandLog::~SetSketchGeometryVariableCommandLog() {
-        m_feature->DecRef();
-    }
-
-    void SetSketchGeometryVariableCommandLog::AppendAffectedFeature(Array<Feature*>& features) {
-        features.Append(m_feature);
-    }
-
-    void SetSketchGeometryVariableCommandLog::AppendRecheckRelationFeature(Array<Feature*>& features) {
     }
 
     void SetSketchGeometryVariableCommandLog::Undo() {
-        m_field_schema->GetAsSketchGeometry(m_feature)->SetCurrentVariable(m_variable_index, m_old_value);
+        ((SketchGeometryFeatureFieldSchema*)m_field_schema)->GetAsSketchGeometry(m_feature)->SetCurrentVariable(m_variable_index, m_old_value);
     }
 
     void SetSketchGeometryVariableCommandLog::Redo() {
-        m_field_schema->GetAsSketchGeometry(m_feature)->SetCurrentVariable(m_variable_index, m_new_value);
+        ((SketchGeometryFeatureFieldSchema*)m_field_schema)->GetAsSketchGeometry(m_feature)->SetCurrentVariable(m_variable_index, m_new_value);
     }
 
 }

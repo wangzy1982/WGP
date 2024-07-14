@@ -12,6 +12,7 @@
 #include "wstd/utils.h"
 #include "wstd/vector3d.h"
 #include "wstd/quaternion.h"
+#include "wstd/string.h"
 #include "feature_visitor.h"
 #include "wstd/type.h"
 
@@ -58,7 +59,7 @@ namespace wgp {
         SketchFixLine2dLine2dAngleConstraintFeatureSchema* GetSketchFixLine2dLine2dAngleConstraintFeatureSchema();
     private:
         bool TopoSortAffectedFeatures(Feature* feature, Array<Feature*>& sorted_features);
-    private:
+    protected:
         friend class AddModelCommandLog;
         friend class RemoveModelCommandLog;
         Array<Model*> m_models;
@@ -104,11 +105,10 @@ namespace wgp {
 
     class WGP_API Model : public RefObject {
     public:
-        Model(Drawing* drawing, SceneId id, const char* name, ModelExecutor* executor);
+        Model(Drawing* drawing, SceneId id, ModelExecutor* executor);
         virtual ~Model();
         Drawing* GetDrawing() const;
         SceneId GetId() const;
-        const char* GetName() const;
         bool AddFeature(Feature* feature, Array<CommandLog*>& logs);
         bool RemoveFeature(Feature* feature, Array<CommandLog*>& logs);
         int GetFeatureCount() const;
@@ -126,7 +126,6 @@ namespace wgp {
         friend class RemoveFeatureCommandLog;
         Drawing* m_drawing;
         SceneId m_id;
-        char* m_name;
         bool m_is_alone;
         ModelExecutor* m_executor;
         Array<Feature*> m_features;
@@ -137,32 +136,32 @@ namespace wgp {
     public:
         TYPE_DEF_0(FeatureFieldSchema);
     public:
-        FeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const char* name);
+        FeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const String& name);
         virtual ~FeatureFieldSchema();
         SceneId GetId() const;
-        const char* GetName() const;
+        String GetName() const;
     protected:
         FeatureSchema* m_feature_schema;
         SceneId m_id;
-        char* m_name;
+        String m_name;
     };
 
     class WGP_API FeatureSchema {
     public:
         TYPE_DEF_0(FeatureSchema);
     public:
-        FeatureSchema(Drawing* drawing, SceneId id, const char* name);
+        FeatureSchema(Drawing* drawing, SceneId id, const String& name);
         virtual ~FeatureSchema();
         Drawing* GetDrawing() const;
         SceneId GetId() const;
-        const char* GetName() const;
+        String GetName() const;
         void AddFieldSchema(FeatureFieldSchema* field_schema);
         int GetFieldSchemaCount() const;
         FeatureFieldSchema* GetFieldSchema(int index) const;
     protected:
         Drawing* m_drawing;
         SceneId m_id;
-        char* m_name;
+        String m_name;
         Array<FeatureFieldSchema*> m_field_schemas;
     };
 
@@ -219,23 +218,13 @@ namespace wgp {
         int m_runtime_state;
     };
 
-    class Vector3dFeatureFieldSchema;
-    class QuaternionFeatureFieldSchema;
-
     class WGP_API ReferenceFeatureSchema : public FeatureSchema {
     public:
         TYPE_DEF_1(ReferenceFeatureSchema);
     public:
-        ReferenceFeatureSchema(Drawing* drawing, SceneId id, const char* name, 
-            SceneId position_field_schema_id, SceneId rotation_field_schema_id);
-        Vector3dFeatureFieldSchema* GetPositionFieldSchema() const;
-        QuaternionFeatureFieldSchema* GetRotationFieldSchema() const;
+        ReferenceFeatureSchema(Drawing* drawing, SceneId id, const String& name);
     protected:
-        static int GetFieldCount() { return 2; }
-        static Vector3d GetPosition(Feature* feature, FeatureFieldSchema* field_schema);
-        static void DirectSetPosition(Feature* feature, FeatureFieldSchema* field_schema, const Vector3d& value);
-        static Quaternion GetRotation(Feature* feature, FeatureFieldSchema* field_schema);
-        static void DirectSetRotation(Feature* feature, FeatureFieldSchema* field_schema, const Quaternion& value);
+        static int GetFieldCount() { return 0; }
     };
 
     class WGP_API ReferenceFeature : public Feature {
@@ -243,15 +232,11 @@ namespace wgp {
         ReferenceFeature(Model* model, SceneId id, FeatureExecutor* executor, Model* reference_model);
         virtual ~ReferenceFeature();
         Model* GetReferenceModel() const;
-        Vector3d GetPosition() const;
-        Quaternion GetRotation() const;
     protected:
         friend class ReferenceFeatureSchema;
         Model* m_reference_model;
-        Vector3d m_position;
-        Quaternion m_rotation;
     };
-
+    
     class WGP_API CommandLog {
     public:
         TYPE_DEF_0(CommandLog);
@@ -268,8 +253,8 @@ namespace wgp {
     public:
         virtual void AppendAffectedFeature(Array<Feature*>& features) = 0;
         virtual void AppendRecheckRelationFeature(Array<Feature*>& features) = 0;
-        virtual void AfterUndo() = 0;
-        virtual void AfterRedo() = 0;
+        virtual void AfterUndo(const Array<CommandLog*>& logs) = 0;
+        virtual void AfterRedo(const Array<CommandLog*>& logs) = 0;
     };
 
     class WGP_API GroupCommandLog : public CommandLog {

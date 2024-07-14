@@ -219,14 +219,16 @@ namespace wgp {
         void Clear();
         int GetGeometryCount() const;
         SketchGeometry* GetGeometry(int index) const;
-        void AddGeometry(SketchGeometry* geometry, bool solve);
+        void AddGeometry(SketchGeometry* geometry, bool solve, Array<SketchEntityVariable>& actived_variables);
         void RemoveGeometry(int index);
+        void RemoveGeometry(SketchGeometry* geometry);
         int GetConstraintCount() const;
         SketchConstraint* GetConstraint(int index) const;
-        bool AddConstraint(SketchConstraint* constraint, bool solve, SketchAction* action);
+        bool AddConstraint(SketchConstraint* constraint, bool solve, SketchAction* action, Array<SketchEntityVariable>& actived_variables);
         void RemoveConstraint(int index);
+        void RemoveConstraint(SketchConstraint* constraint);
     public:
-        bool Solve(SketchAction* action);
+        bool Solve(SketchAction* action, Array<SketchEntityVariable>& actived_variables);
     private:
         void AddEquationRelation(SketchEquation* equation);
         void RemoveEquationRelation(SketchEquation* equation);
@@ -424,7 +426,7 @@ namespace wgp {
     public:
         SketchSolver(Sketch* sketch);
         virtual ~SketchSolver();
-        bool Solve(const Array<SketchEquation*>& equations, SketchAction* action);
+        bool Solve(const Array<SketchEquation*>& equations, SketchAction* action, Array<SketchEntityVariable>& actived_variables);
     public:
         int GetEquationCount();
         int GetVariableCount();
@@ -440,11 +442,10 @@ namespace wgp {
         Array<SketchEntityVariable>* GetCurrentVariables();
         int GetCurrentAdditiveVariableCount();
     private:
-        void DfsActived(SketchEquation* equation);
+        void DfsActived(SketchEquation* equation, Array<SketchEntityVariable>& actived_variables);
         void DfsCurrent(SketchEquation* equation);
     private:
         Sketch* m_sketch;
-        Array<SketchEntityVariable> m_actived_variables;
         Array<SketchEntityVariable> m_current_variables;
         Array<SketchEquation*> m_current_equations;
         int m_current_strategy_variable_count;

@@ -28,35 +28,33 @@ namespace wgp {
 
 #define TYPE_DEF_0(class_name) \
     public: \
-        virtual Type* GetType() const; \
-        class class_name##Type : public Type { \
+        virtual wgp::Type* GetType() const; \
+        class class_name##Type : public wgp::Type { \
         public: \
-            class_name##Type() : Type() {} \
+            class_name##Type() : wgp::Type() {} \
         }; \
         static class_name##Type* GetTypeInstance(); \
-    private: \
-        static class_name##Type m_TypeInstance;
-
+    private:
+    
 #define TYPE_IMP_0(class_name) \
-    Type* class_name::GetType() const { return &m_TypeInstance; } \
-    class_name::class_name##Type* class_name::GetTypeInstance() { return &m_TypeInstance; } \
-    class_name::class_name##Type class_name::m_TypeInstance;
+    static class_name::class_name##Type g##class_name##_type_instance; \
+    wgp::Type* class_name::GetType() const { return &g##class_name##_type_instance; } \
+    class_name::class_name##Type* class_name::GetTypeInstance() { return &g##class_name##_type_instance; } \
 
 #define TYPE_DEF_1(class_name) \
     public: \
-        virtual Type* GetType() const; \
-        class class_name##Type : public Type { \
+        virtual wgp::Type* GetType() const; \
+        class class_name##Type : public wgp::Type { \
         public: \
-            class_name##Type(Type* base_type_0) : Type(base_type_0) {} \
+            class_name##Type(wgp::Type* base_type_0) : wgp::Type(base_type_0) {} \
         }; \
         static class_name##Type* GetTypeInstance(); \
-    private: \
-        static class_name##Type m_TypeInstance;
+    private:
 
 #define TYPE_IMP_1(class_name, base_type_0) \
-    Type* class_name::GetType() const { return &m_TypeInstance; } \
-    class_name::class_name##Type* class_name::GetTypeInstance() { return &m_TypeInstance; } \
-    class_name::class_name##Type class_name::m_TypeInstance(base_type_0);
+    static class_name::class_name##Type g##class_name##_type_instance(base_type_0); \
+    wgp::Type* class_name::GetType() const { return &g##class_name##_type_instance; } \
+    class_name::class_name##Type* class_name::GetTypeInstance() { return &g##class_name##_type_instance; } \
     
 
     inline Type::Type() {

@@ -83,9 +83,77 @@ namespace wgp {
     }
     */
 
+    TYPE_IMP_1(IntFeatureFieldSchema, FeatureFieldSchema::GetTypeInstance());
+
+    IntFeatureFieldSchema::IntFeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const String& name,
+        GetAsIntFunc get_func, DirectSetAsIntFunc direct_set_func) :
+        FeatureFieldSchema(m_feature_schema, id, name),
+        m_get_func(get_func),
+        m_direct_set_func(direct_set_func) {
+    }
+
+    int IntFeatureFieldSchema::GetAsInt(Feature* feature) {
+        return m_get_func(feature, this);
+    }
+
+    SetAsIntCommandLog* IntFeatureFieldSchema::NewSetCommandLog(Feature* feature, int value) {
+        return new SetAsIntCommandLog(feature, this, m_get_func(feature, this), value);
+    }
+
+    TYPE_IMP_1(DoubleFeatureFieldSchema, FeatureFieldSchema::GetTypeInstance());
+
+    DoubleFeatureFieldSchema::DoubleFeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const String& name,
+        GetAsDoubleFunc get_func, DirectSetAsDoubleFunc direct_set_func) :
+        FeatureFieldSchema(m_feature_schema, id, name),
+        m_get_func(get_func),
+        m_direct_set_func(direct_set_func) {
+    }
+
+    double DoubleFeatureFieldSchema::GetAsDouble(Feature* feature) {
+        return m_get_func(feature, this);
+    }
+
+    SetAsDoubleCommandLog* DoubleFeatureFieldSchema::NewSetCommandLog(Feature* feature, double value) {
+        return new SetAsDoubleCommandLog(feature, this, m_get_func(feature, this), value);
+    }
+
+    TYPE_IMP_1(BoolFeatureFieldSchema, FeatureFieldSchema::GetTypeInstance());
+
+    BoolFeatureFieldSchema::BoolFeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const String& name,
+        GetAsBoolFunc get_func, DirectSetAsBoolFunc direct_set_func) :
+        FeatureFieldSchema(m_feature_schema, id, name),
+        m_get_func(get_func),
+        m_direct_set_func(direct_set_func) {
+    }
+
+    bool BoolFeatureFieldSchema::GetAsBool(Feature* feature) {
+        return m_get_func(feature, this);
+    }
+
+    SetAsBoolCommandLog* BoolFeatureFieldSchema::NewSetCommandLog(Feature* feature, bool value) {
+        return new SetAsBoolCommandLog(feature, this, m_get_func(feature, this), value);
+    }
+
+    TYPE_IMP_1(StringFeatureFieldSchema, FeatureFieldSchema::GetTypeInstance());
+
+    StringFeatureFieldSchema::StringFeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const String& name,
+        GetAsStringFunc get_func, DirectSetAsStringFunc direct_set_func) :
+        FeatureFieldSchema(m_feature_schema, id, name),
+        m_get_func(get_func),
+        m_direct_set_func(direct_set_func) {
+    }
+
+    String StringFeatureFieldSchema::GetAsString(Feature* feature) {
+        return m_get_func(feature, this);
+    }
+
+    SetAsStringCommandLog* StringFeatureFieldSchema::NewSetCommandLog(Feature* feature, const String& value) {
+        return new SetAsStringCommandLog(feature, this, m_get_func(feature, this), value);
+    }
+
     TYPE_IMP_1(Vector2dFeatureFieldSchema, FeatureFieldSchema::GetTypeInstance());
 
-    Vector2dFeatureFieldSchema::Vector2dFeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const char* name,
+    Vector2dFeatureFieldSchema::Vector2dFeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const String& name,
             GetAsVector2dFunc get_func, DirectSetAsVector2dFunc direct_set_func) :
         FeatureFieldSchema(m_feature_schema, id, name),
         m_get_func(get_func),
@@ -102,7 +170,7 @@ namespace wgp {
 
     TYPE_IMP_1(Vector3dFeatureFieldSchema, FeatureFieldSchema::GetTypeInstance());
 
-    Vector3dFeatureFieldSchema::Vector3dFeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const char* name,
+    Vector3dFeatureFieldSchema::Vector3dFeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const String& name,
             GetAsVector3dFunc get_func, DirectSetAsVector3dFunc direct_set_func) :
         FeatureFieldSchema(m_feature_schema, id, name),
         m_get_func(get_func),
@@ -119,7 +187,7 @@ namespace wgp {
 
     TYPE_IMP_1(QuaternionFeatureFieldSchema, FeatureFieldSchema::GetTypeInstance());
 
-    QuaternionFeatureFieldSchema::QuaternionFeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const char* name,
+    QuaternionFeatureFieldSchema::QuaternionFeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const String& name,
             GetAsQuaternionFunc get_func, DirectSetAsQuaternionFunc direct_set_func) :
         FeatureFieldSchema(m_feature_schema, id, name),
         m_get_func(get_func),
@@ -136,7 +204,7 @@ namespace wgp {
 
     TYPE_IMP_1(SketchGeometryFeatureFieldSchema, FeatureFieldSchema::GetTypeInstance());
 
-    SketchGeometryFeatureFieldSchema::SketchGeometryFeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const char* name,
+    SketchGeometryFeatureFieldSchema::SketchGeometryFeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const String& name,
         GetAsSketchGeometryFunc get_func, DirectSetAsSketchGeometryFunc direct_set_func) :
         FeatureFieldSchema(m_feature_schema, id, name),
         m_get_func(get_func),
@@ -153,7 +221,7 @@ namespace wgp {
 
     TYPE_IMP_1(SketchConstraintFeatureFieldSchema, FeatureFieldSchema::GetTypeInstance());
 
-    SketchConstraintFeatureFieldSchema::SketchConstraintFeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const char* name,
+    SketchConstraintFeatureFieldSchema::SketchConstraintFeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const String& name,
             GetAsSketchConstraintFunc get_func, DirectSetAsSketchConstraintFunc direct_set_func) :
         FeatureFieldSchema(m_feature_schema, id, name),
         m_get_func(get_func),
@@ -170,7 +238,7 @@ namespace wgp {
 
     TYPE_IMP_1(SketchFeatureFieldSchema, FeatureFieldSchema::GetTypeInstance());
 
-    SketchFeatureFieldSchema::SketchFeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const char* name,
+    SketchFeatureFieldSchema::SketchFeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const String& name,
             GetAsSketchFunc get_func, DirectSetAsSketchFunc direct_set_func) :
         FeatureFieldSchema(m_feature_schema, id, name),
         m_get_func(get_func),
@@ -183,5 +251,22 @@ namespace wgp {
 
     SetAsSketchCommandLog* SketchFeatureFieldSchema::NewSetCommandLog(Feature* feature, Sketch* value) {
         return new SetAsSketchCommandLog(feature, this, m_get_func(feature, this), value);
+    }
+
+    TYPE_IMP_1(LineStippleFeatureFieldSchema, FeatureFieldSchema::GetTypeInstance());
+
+    LineStippleFeatureFieldSchema::LineStippleFeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const String& name,
+        GetAsLineStippleFunc get_func, DirectSetAsLineStippleFunc direct_set_func) :
+        FeatureFieldSchema(m_feature_schema, id, name),
+        m_get_func(get_func),
+        m_direct_set_func(direct_set_func) {
+    }
+
+    LineStipple* LineStippleFeatureFieldSchema::GetAsLineStipple(Feature* feature) {
+        return m_get_func(feature, this);
+    }
+
+    SetAsLineStippleCommandLog* LineStippleFeatureFieldSchema::NewSetCommandLog(Feature* feature, LineStipple* value) {
+        return new SetAsLineStippleCommandLog(feature, this, m_get_func(feature, this), value);
     }
 }

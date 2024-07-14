@@ -63,6 +63,8 @@ namespace wgp {
     public:
         RemoveFeatureCommandLog(Model* model, Feature* feature);
         virtual ~RemoveFeatureCommandLog();
+        Model* GetModel() const;
+        Feature* GetFeature() const;
         virtual void AppendAffectedFeature(Array<Feature*>& features);
         virtual void AppendRecheckRelationFeature(Array<Feature*>& features);
         virtual void Undo();
@@ -105,128 +107,172 @@ namespace wgp {
         Feature* m_new_output;
     };
 
-    class WGP_API SetAsVector2dCommandLog : public CommandLog {
+    class WGP_API SetFieldCommandLog : public CommandLog {
+    public:
+        TYPE_DEF_1(SetFieldCommandLog);
+    public:
+        SetFieldCommandLog(Feature* feature, FeatureFieldSchema* field_schema);
+        virtual ~SetFieldCommandLog();
+        virtual void AppendAffectedFeature(Array<Feature*>& features);
+        virtual void AppendRecheckRelationFeature(Array<Feature*>& features);
+    protected:
+        Feature* m_feature;
+        FeatureFieldSchema* m_field_schema;
+    };
+
+    class WGP_API SetAsIntCommandLog : public SetFieldCommandLog {
+    public:
+        TYPE_DEF_1(SetAsIntCommandLog);
+    public:
+        SetAsIntCommandLog(Feature* feature, IntFeatureFieldSchema* field_schema, int old_value, int new_value);
+        virtual void Undo();
+        virtual void Redo();
+    protected:
+        int m_old_value;
+        int m_new_value;
+    };
+
+    class WGP_API SetAsDoubleCommandLog : public SetFieldCommandLog {
+    public:
+        TYPE_DEF_1(SetAsDoubleCommandLog);
+    public:
+        SetAsDoubleCommandLog(Feature* feature, DoubleFeatureFieldSchema* field_schema, double old_value, double new_value);
+        virtual void Undo();
+        virtual void Redo();
+    protected:
+        double m_old_value;
+        double m_new_value;
+    };
+
+    class WGP_API SetAsBoolCommandLog : public SetFieldCommandLog {
+    public:
+        TYPE_DEF_1(SetAsBoolCommandLog);
+    public:
+        SetAsBoolCommandLog(Feature* feature, BoolFeatureFieldSchema* field_schema, bool old_value, bool new_value);
+        virtual void Undo();
+        virtual void Redo();
+    protected:
+        bool m_old_value;
+        bool m_new_value;
+    };
+
+    class WGP_API SetAsStringCommandLog : public SetFieldCommandLog {
+    public:
+        TYPE_DEF_1(SetAsStringCommandLog);
+    public:
+        SetAsStringCommandLog(Feature* feature, StringFeatureFieldSchema* field_schema,
+            const String& old_value, const String& new_value);
+        virtual void Undo();
+        virtual void Redo();
+    protected:
+        String m_old_value;
+        String m_new_value;
+    };
+
+    class WGP_API SetAsVector2dCommandLog : public SetFieldCommandLog {
     public:
         TYPE_DEF_1(SetAsVector2dCommandLog);
     public:
         SetAsVector2dCommandLog(Feature* feature, Vector2dFeatureFieldSchema* field_schema,
             const Vector2d& old_value, const Vector2d& new_value);
-        virtual ~SetAsVector2dCommandLog();
-        virtual void AppendAffectedFeature(Array<Feature*>& features);
-        virtual void AppendRecheckRelationFeature(Array<Feature*>& features);
         virtual void Undo();
         virtual void Redo();
     protected:
-        Feature* m_feature;
-        Vector2dFeatureFieldSchema* m_field_schema;
         Vector2d m_old_value;
         Vector2d m_new_value;
     };
 
-    class WGP_API SetAsVector3dCommandLog : public CommandLog {
+    class WGP_API SetAsVector3dCommandLog : public SetFieldCommandLog {
     public:
         TYPE_DEF_1(SetAsVector3dCommandLog);
     public:
         SetAsVector3dCommandLog(Feature* feature, Vector3dFeatureFieldSchema* field_schema,
             const Vector3d& old_value, const Vector3d& new_value);
-        virtual ~SetAsVector3dCommandLog();
-        virtual void AppendAffectedFeature(Array<Feature*>& features);
-        virtual void AppendRecheckRelationFeature(Array<Feature*>& features);
         virtual void Undo();
         virtual void Redo();
     protected:
-        Feature* m_feature;
-        Vector3dFeatureFieldSchema* m_field_schema;
         Vector3d m_old_value;
         Vector3d m_new_value;
     };
 
-    class WGP_API SetAsQuaternionCommandLog : public CommandLog {
+    class WGP_API SetAsQuaternionCommandLog : public SetFieldCommandLog {
     public:
         TYPE_DEF_1(SetAsQuaternionCommandLog);
     public:
         SetAsQuaternionCommandLog(Feature* feature, QuaternionFeatureFieldSchema* field_schema,
             const Quaternion& old_value, const Quaternion& new_value);
-        virtual ~SetAsQuaternionCommandLog();
-        virtual void AppendAffectedFeature(Array<Feature*>& features);
-        virtual void AppendRecheckRelationFeature(Array<Feature*>& features);
         virtual void Undo();
         virtual void Redo();
     protected:
-        Feature* m_feature;
-        QuaternionFeatureFieldSchema* m_field_schema;
         Quaternion m_old_value;
         Quaternion m_new_value;
     };
 
-    class WGP_API SetAsSketchGeometryCommandLog : public CommandLog {
+    class WGP_API SetAsSketchGeometryCommandLog : public SetFieldCommandLog {
     public:
         TYPE_DEF_1(SetAsSketchGeometryCommandLog);
     public:
         SetAsSketchGeometryCommandLog(Feature* feature, SketchGeometryFeatureFieldSchema* field_schema, 
             SketchGeometry* old_value, SketchGeometry* new_value);
         virtual ~SetAsSketchGeometryCommandLog();
-        virtual void AppendAffectedFeature(Array<Feature*>& features);
-        virtual void AppendRecheckRelationFeature(Array<Feature*>& features);
         virtual void Undo();
         virtual void Redo();
     protected:
-        Feature* m_feature;
-        SketchGeometryFeatureFieldSchema* m_field_schema;
         SketchGeometry* m_old_value;
         SketchGeometry* m_new_value;
     };
 
-    class WGP_API SetAsSketchConstraintCommandLog : public CommandLog {
+    class WGP_API SetAsSketchConstraintCommandLog : public SetFieldCommandLog {
     public:
         TYPE_DEF_1(SetAsSketchConstraintCommandLog);
     public:
         SetAsSketchConstraintCommandLog(Feature* feature, SketchConstraintFeatureFieldSchema* field_schema,
             SketchConstraint* old_value, SketchConstraint* new_value);
         virtual ~SetAsSketchConstraintCommandLog();
-        virtual void AppendAffectedFeature(Array<Feature*>& features);
-        virtual void AppendRecheckRelationFeature(Array<Feature*>& features);
         virtual void Undo();
         virtual void Redo();
     protected:
-        Feature* m_feature;
-        SketchConstraintFeatureFieldSchema* m_field_schema;
         SketchConstraint* m_old_value;
         SketchConstraint* m_new_value;
     };
 
-    class WGP_API SetAsSketchCommandLog : public CommandLog {
+    class WGP_API SetAsSketchCommandLog : public SetFieldCommandLog {
     public:
         TYPE_DEF_1(SetAsSketchCommandLog);
     public:
         SetAsSketchCommandLog(Feature* feature, SketchFeatureFieldSchema* field_schema,
             Sketch* old_value, Sketch* new_value);
         virtual ~SetAsSketchCommandLog();
-        virtual void AppendAffectedFeature(Array<Feature*>& features);
-        virtual void AppendRecheckRelationFeature(Array<Feature*>& features);
         virtual void Undo();
         virtual void Redo();
     protected:
-        Feature* m_feature;
-        SketchFeatureFieldSchema* m_field_schema;
         Sketch* m_old_value;
         Sketch* m_new_value;
     };
 
-    class WGP_API SetSketchGeometryVariableCommandLog : public CommandLog {
+    class WGP_API SetAsLineStippleCommandLog : public SetFieldCommandLog {
+    public:
+        TYPE_DEF_1(SetAsLineStippleCommandLog);
+    public:
+        SetAsLineStippleCommandLog(Feature* feature, LineStippleFeatureFieldSchema* field_schema,
+            LineStipple* old_value, LineStipple* new_value);
+        virtual ~SetAsLineStippleCommandLog();
+        virtual void Undo();
+        virtual void Redo();
+    protected:
+        LineStipple* m_old_value;
+        LineStipple* m_new_value;
+    };
+
+    class WGP_API SetSketchGeometryVariableCommandLog : public SetFieldCommandLog {
     public:
         TYPE_DEF_1(SetSketchGeometryVariableCommandLog);
     public:
         SetSketchGeometryVariableCommandLog(Feature* feature, SketchGeometryFeatureFieldSchema* field_schema,
             int variable_index, double old_value, double new_value);
-        virtual ~SetSketchGeometryVariableCommandLog();
-        virtual void AppendAffectedFeature(Array<Feature*>& features);
-        virtual void AppendRecheckRelationFeature(Array<Feature*>& features);
         virtual void Undo();
         virtual void Redo();
     protected:
-        Feature* m_feature;
-        SketchGeometryFeatureFieldSchema* m_field_schema;
         int m_variable_index;
         double m_old_value;
         double m_new_value;

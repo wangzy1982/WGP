@@ -166,7 +166,7 @@ namespace wgp {
 
     ReferenceFeatureSchema* Drawing::GetReferenceFeatureSchema() {
         if (!m_reference_feature_schema) {
-            m_reference_feature_schema = new ReferenceFeatureSchema(this, AllocId(), "Reference", AllocId(), AllocId());
+            m_reference_feature_schema = new ReferenceFeatureSchema(this, AllocId(), "Reference");
             m_feature_schemas.Append(m_reference_feature_schema);
         }
         return m_reference_feature_schema;
@@ -259,10 +259,9 @@ namespace wgp {
         return m_log;
     }
 
-    Model::Model(Drawing* drawing, SceneId id, const char* name, ModelExecutor* executor) :
+    Model::Model(Drawing* drawing, SceneId id, ModelExecutor* executor) :
         m_drawing(drawing),
         m_id(id),
-        m_name(clone_string(name)),
         m_is_alone(true),
         m_executor(executor) {
     }
@@ -272,7 +271,6 @@ namespace wgp {
             delete m_features.Get(i);
         }
         delete m_executor;
-        delete[] m_name;
     }
 
     Drawing* Model::GetDrawing() const {
@@ -281,10 +279,6 @@ namespace wgp {
 
     SceneId Model::GetId() const {
         return m_id;
-    }
-
-    const char* Model::GetName() const {
-        return m_name;
     }
 
     bool Model::AddFeature(Feature* feature, Array<CommandLog*>& logs) {
@@ -450,38 +444,36 @@ namespace wgp {
 
     TYPE_IMP_0(FeatureFieldSchema);
 
-    FeatureFieldSchema::FeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const char* name) :
+    FeatureFieldSchema::FeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const String& name) :
         m_feature_schema(feature_schema),
         m_id(id),
-        m_name(clone_string(name)) {
+        m_name(name) {
 
     }
 
     FeatureFieldSchema::~FeatureFieldSchema() {
-        delete[] m_name;
     }
 
     SceneId FeatureFieldSchema::GetId() const {
         return m_id;
     }
 
-    const char* FeatureFieldSchema::GetName() const {
+    String FeatureFieldSchema::GetName() const {
         return m_name;
     }
 
     TYPE_IMP_0(FeatureSchema);
 
-    FeatureSchema::FeatureSchema(Drawing* drawing, SceneId id, const char* name) :
+    FeatureSchema::FeatureSchema(Drawing* drawing, SceneId id, const String& name) :
         m_drawing(drawing),
         m_id(id),
-        m_name(clone_string(name)) {
+        m_name(name) {
     }
 
     FeatureSchema::~FeatureSchema() {
         for (int i = 0; i < m_field_schemas.GetCount(); ++i) {
             delete m_field_schemas.Get(i);
         }
-        delete[] m_name;
     }
 
     Drawing* FeatureSchema::GetDrawing() const {
@@ -492,7 +484,7 @@ namespace wgp {
         return m_id;
     }
 
-    const char* FeatureSchema::GetName() const {
+    String FeatureSchema::GetName() const {
         return m_name;
     }
 
@@ -603,41 +595,10 @@ namespace wgp {
 
     TYPE_IMP_1(ReferenceFeatureSchema, FeatureSchema::GetTypeInstance());
 
-    ReferenceFeatureSchema::ReferenceFeatureSchema(Drawing* drawing, SceneId id, const char* name,
-        SceneId position_field_schema_id, SceneId rotation_field_schema_id) :
+    ReferenceFeatureSchema::ReferenceFeatureSchema(Drawing* drawing, SceneId id, const String& name) :
         FeatureSchema(drawing, id, name) {
-        Vector3dFeatureFieldSchema* position_field_schema = new Vector3dFeatureFieldSchema(
-            this, position_field_schema_id, "Position", GetPosition, DirectSetPosition);
-        AddFieldSchema(position_field_schema);
-        QuaternionFeatureFieldSchema* rotation_field_schema = new QuaternionFeatureFieldSchema(
-            this, rotation_field_schema_id, "Rotation", GetRotation, DirectSetRotation);
-        AddFieldSchema(rotation_field_schema);
     }
 
-    Vector3dFeatureFieldSchema* ReferenceFeatureSchema::GetPositionFieldSchema() const {
-        return (Vector3dFeatureFieldSchema*)GetFieldSchema(0);
-    }
-
-    QuaternionFeatureFieldSchema* ReferenceFeatureSchema::GetRotationFieldSchema() const {
-        return (QuaternionFeatureFieldSchema*)GetFieldSchema(1);
-    }
-
-    Vector3d ReferenceFeatureSchema::GetPosition(Feature* feature, FeatureFieldSchema* field_schema) {
-        return ((ReferenceFeature*)feature)->m_position;
-    }
-
-    void ReferenceFeatureSchema::DirectSetPosition(Feature* feature, FeatureFieldSchema* field_schema, const Vector3d& value) {
-        ((ReferenceFeature*)feature)->m_position = value;
-    }
-
-    Quaternion ReferenceFeatureSchema::GetRotation(Feature* feature, FeatureFieldSchema* field_schema) {
-        return ((ReferenceFeature*)feature)->m_rotation;
-    }
-
-    void ReferenceFeatureSchema::DirectSetRotation(Feature* feature, FeatureFieldSchema* field_schema, const Quaternion& value) {
-        ((ReferenceFeature*)feature)->m_rotation = value;
-    }
-    
     ReferenceFeature::ReferenceFeature(Model* model, SceneId id, FeatureExecutor* executor, Model* reference_model) :
         Feature(model, id, model->GetDrawing()->GetReferenceFeatureSchema(), executor),
         m_reference_model(reference_model) {
@@ -650,14 +611,6 @@ namespace wgp {
 
     Model* ReferenceFeature::GetReferenceModel() const {
         return m_reference_model;
-    }
-
-    Vector3d ReferenceFeature::GetPosition() const {
-        return m_position;
-    }
-
-    Quaternion ReferenceFeature::GetRotation() const {
-        return m_rotation;
     }
 
     TYPE_IMP_0(CommandLog);
@@ -703,7 +656,7 @@ namespace wgp {
             m_logs.Get(i)->Undo();
         }
         if (m_refresher) {
-            m_refresher->AfterUndo();
+            m_refresher->AfterUndo(m_logs);
         }
     }
 
@@ -712,7 +665,7 @@ namespace wgp {
             m_logs.Get(i)->Redo();
         }
         if (m_refresher) {
-            m_refresher->AfterRedo();
+            m_refresher->AfterRedo(m_logs);
         }
     }
 
