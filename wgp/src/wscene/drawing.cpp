@@ -45,20 +45,103 @@ namespace wgp {
         }
     }
 
-    void Drawing::AddModel(Model* model, Array<CommandLog*>& logs) {
-        AddModelCommandLog* log = new AddModelCommandLog(model);
-        log->Redo();
-        logs.Append(log);
+    void Drawing::StartEdit() {
+        if (m_log_stack.GetCount() == 0) {
+            m_current_undo_prompt = StringResource("");
+            m_current_redo_prompt = StringResource("");
+        }
+        m_log_stack.Append(LogStackItem());
     }
 
-    bool Drawing::RemoveModel(Model* model, Array<CommandLog*>& logs) {
+    bool Drawing::IsEditing() {
+        return m_log_stack.GetCount() > 0;
+    }
+
+    void Drawing::AppendLog(CommandLog* log) {
+        int i = m_log_stack.GetCount() - 1;
+        assert(i >= 0);
+        LogStackItem* stack_item = m_log_stack.GetPointer(i);
+        stack_item->Logs.Append(log);
+        log->AppendAffectedFeature(stack_item->AffectedFeatures);
+        log->AppendRecheckRelationFeature(stack_item->RecheckRelationFeatures);
+    }
+
+    void Drawing::AppendAffectedFeature(Feature* feature) {
+        int i = m_log_stack.GetCount() - 1;
+        assert(i >= 0);
+        LogStackItem* stack_item = m_log_stack.GetPointer(i);
+        stack_item->AffectedFeatures.Append(feature);
+    }
+
+    void Drawing::AppendRecheckRelationFeature(Feature* feature) {
+        int i = m_log_stack.GetCount() - 1;
+        assert(i >= 0);
+        LogStackItem* stack_item = m_log_stack.GetPointer(i);
+        stack_item->RecheckRelationFeatures.Append(feature);
+    }
+
+    void Drawing::SetLogPrompt(const String& undo_prompt, const String& redo_prompt) {
+        if (m_log_stack.GetCount() == 1) {
+            m_current_undo_prompt = undo_prompt;
+            m_current_redo_prompt = redo_prompt;
+        }
+    }
+
+    void Drawing::AbortEdit() {
+        int i = m_log_stack.GetCount() - 1;
+        if (i >= 0) {
+            LogStackItem stack_item = std::move(*m_log_stack.GetPointer(i));
+            m_log_stack.PopLast();
+            for (int j = stack_item.Logs.GetCount() - 1; j >= 0; --j) {
+                stack_item.Logs.Get(j)->Undo();
+            }
+        }
+    }
+
+    bool Drawing::FinishEdit() {
+        int i = m_log_stack.GetCount() - 1;
+        if (i < 0) {
+            return false;
+        }
+        LogStackItem stack_item = std::move(*m_log_stack.GetPointer(i));
+        m_log_stack.PopLast();
+        if (stack_item.RecheckRelationFeatures.GetCount() == 0 || CheckRelations(stack_item.RecheckRelationFeatures)) {
+            if (i == 0) {
+                if (stack_item.AffectedFeatures.GetCount() == 0 || Sync(stack_item.AffectedFeatures, stack_item.Logs)) {
+                    Log(std::move(stack_item.Logs));
+                    return true;
+                }
+            }
+            else {
+                LogStackItem* stack_item2 = m_log_stack.GetPointer(i - 1);
+                stack_item2->AffectedFeatures.Append(stack_item.AffectedFeatures);
+                stack_item2->Logs.Append(stack_item.Logs);
+                return true;
+            }
+        }
+        for (int j = stack_item.Logs.GetCount() - 1; j >= 0; --j) {
+            stack_item.Logs.Get(j)->Undo();
+        }
+        return false;
+    }
+
+    bool Drawing::AddModel(Model* model) {
+        StartEdit();
+        AddModelCommandLog* log = new AddModelCommandLog(model);
+        log->Redo();
+        AppendLog(log);
+        return FinishEdit();
+    }
+
+    bool Drawing::RemoveModel(Model* model) {
         if (model->m_reference_features.GetCount() > 0) {
             return false;
         }
+        StartEdit();
         RemoveModelCommandLog* log = new RemoveModelCommandLog(model);
         log->Redo();
-        logs.Append(log);
-        return true;
+        AppendLog(log);
+        return FinishEdit();
     }
 
     int Drawing::GetModelCount() const {
@@ -91,12 +174,19 @@ namespace wgp {
                 }
             }
             if (success) {
+                StartEdit();
                 for (int i = sorted_features.GetCount() - 1; i >= 0; --i) {
                     Feature* feature = sorted_features.Get(i);
                     if (!feature->Calculate(logs)) {
                         success = false;
                         break;
                     }
+                }
+                if (success) {
+                    success = FinishEdit();
+                }
+                else {
+                    AbortEdit();
                 }
             }
         }
@@ -162,6 +252,21 @@ namespace wgp {
         sorted_features.Append(feature);
         feature->m_runtime_state = 1;
         return true;
+    }
+
+    bool Drawing::CheckRelations(const Array<Feature*>& features) {
+        bool success = true;
+        Array<Feature*> sorted_features(features.GetCount());
+        for (int i = 0; i < features.GetCount(); ++i) {
+            if (!TopoSortAffectedFeatures(features.Get(i), sorted_features)) {
+                success = false;
+                break;
+            }
+        }
+        for (int i = 0; i < sorted_features.GetCount(); ++i) {
+            sorted_features.Get(i)->m_runtime_state = 0;
+        }
+        return success;
     }
 
     ReferenceFeatureSchema* Drawing::GetReferenceFeatureSchema() {
@@ -259,6 +364,8 @@ namespace wgp {
         return m_log;
     }
 
+    TYPE_IMP_0(Model);
+
     Model::Model(Drawing* drawing, SceneId id, ModelExecutor* executor) :
         m_drawing(drawing),
         m_id(id),
@@ -281,27 +388,29 @@ namespace wgp {
         return m_id;
     }
 
-    bool Model::AddFeature(Feature* feature, Array<CommandLog*>& logs) {
+    bool Model::AddFeature(Feature* feature) {
         if (m_is_alone) {
             return false;
         }
+        m_drawing->StartEdit();
         AddFeatureCommandLog* log = new AddFeatureCommandLog(this, feature);
         log->Redo();
-        logs.Append(log);
-        return true;
+        m_drawing->AppendLog(log);
+        return m_drawing->FinishEdit();
     }
 
-    bool Model::RemoveFeature(Feature* feature, Array<CommandLog*>& logs) {
+    bool Model::RemoveFeature(Feature* feature) {
         if (m_is_alone) {
             return false;
         }
         if (feature->m_affected_features.GetCount() > 0) {
             return false;
         }
+        m_drawing->StartEdit();
         RemoveFeatureCommandLog* log = new RemoveFeatureCommandLog(this, feature);
         log->Redo();
-        logs.Append(log);
-        return true;
+        m_drawing->AppendLog(log);
+        return m_drawing->FinishEdit();
     }
 
     int Model::GetFeatureCount() const {
@@ -312,24 +421,19 @@ namespace wgp {
         return m_features.Get(index);
     }
 
-    bool Model::Execute(ModelEditCommand* command, Array<Feature*>& affected_features, Array<CommandLog*>& logs) {
+    bool Model::Execute(ModelEditCommand* command) {
         if (m_is_alone) {
             return false;
         }
-        Array<Feature*> recheck_relation_features;
+        m_drawing->StartEdit();
         if (m_executor) {
-            int log_start = logs.GetCount();
             Array<ModelEditCommand*> inner_commands;
-            if (!m_executor->Execute(this, command, inner_commands, logs)) {
+            if (!m_executor->Execute(this, command, inner_commands)) {
                 for (int i = 0; i < inner_commands.GetCount(); ++i) {
                     delete inner_commands.Get(i);
                 }
+                m_drawing->AbortEdit();
                 return false;
-            }
-            for (int i = log_start; i < logs.GetCount(); ++i) {
-                CommandLog* log = logs.Get(i);
-                log->AppendAffectedFeature(affected_features);
-                log->AppendRecheckRelationFeature(recheck_relation_features);
             }
             bool success = true;
             for (int i = 0; i < inner_commands.GetCount(); ++i) {
@@ -338,9 +442,9 @@ namespace wgp {
                     if (inner_command->GetPath()->GetCount() > 0) {
                         ReferenceFeature* inner_feature = inner_command->GetPath()->Get(0);
                         inner_command->PopPathFirst();
-                        affected_features.Append(inner_feature);
+                        m_drawing->AppendAffectedFeature(inner_feature);
                         assert(inner_feature->GetFeatureSchema() == m_drawing->GetReferenceFeatureSchema());
-                        if (!inner_feature->GetModel()->Execute(inner_command, affected_features, logs)) {
+                        if (!inner_feature->GetModel()->Execute(inner_command)) {
                             success = false;
                         }
                     }
@@ -348,14 +452,13 @@ namespace wgp {
                         CommandLog* log = command->GetLog();
                         command->PopLog();
                         log->Redo();
-                        logs.Append(log);
-                        log->AppendAffectedFeature(affected_features);
-                        log->AppendRecheckRelationFeature(recheck_relation_features);
+                        m_drawing->AppendLog(log);
                     }
                 }
                 delete inner_command;
             }
             if (!success) {
+                m_drawing->AbortEdit();
                 return false;
             }
         }
@@ -363,9 +466,10 @@ namespace wgp {
             if (command->GetPath()->GetCount() > 0) {
                 ReferenceFeature* inner_feature = command->GetPath()->Get(0);
                 command->PopPathFirst();
-                affected_features.Append(inner_feature);
+                m_drawing->AppendAffectedFeature(inner_feature);
                 assert(inner_feature->GetFeatureSchema() == m_drawing->GetReferenceFeatureSchema());
-                if (!inner_feature->GetModel()->Execute(command, affected_features, logs)) {
+                if (!inner_feature->GetModel()->Execute(command)) {
+                    m_drawing->AbortEdit();
                     return false;
                 }
             }
@@ -373,73 +477,10 @@ namespace wgp {
                 CommandLog* log = command->GetLog();
                 command->PopLog();
                 log->Redo();
-                logs.Append(log);
-                log->AppendAffectedFeature(affected_features);
-                log->AppendRecheckRelationFeature(recheck_relation_features);
+                m_drawing->AppendLog(log);
             }
         }
-        if (!CheckRelations(recheck_relation_features)) {
-            return false;
-        }
-        return true;
-    }
-
-    bool Model::CheckRelations(const Array<Feature*>& features) {
-        bool success = true;
-        Array<Feature*> sorted_features(features.GetCount());
-        for (int i = 0; i < features.GetCount(); ++i) {
-            if (!TopoSortAffectedFeatures(features.Get(i), sorted_features)) {
-                success = false;
-                break;
-            }
-        }
-        for (int i = 0; i < sorted_features.GetCount(); ++i) {
-            sorted_features.Get(i)->m_runtime_state = 0;
-        }
-        return success;
-    }
-
-    bool Model::TopoSortAffectedFeatures(Feature* feature, Array<Feature*>& sorted_features) {
-        if (feature->m_is_alone) {
-            return true;
-        }
-        if (feature->m_runtime_state == 2) {
-            return false;
-        }
-        if (feature->m_runtime_state == 1) {
-            return true;
-        }
-        assert(feature->m_runtime_state == 0);
-        feature->m_runtime_state = 2;
-        for (int i = 0; i < feature->m_affected_features.GetCount(); ++i) {
-            if (!TopoSortAffectedFeatures(feature->m_affected_features.Get(i), sorted_features)) {
-                feature->m_runtime_state = 0;
-                return false;
-            }
-        }
-        Feature* output_feature = feature->GetOutput();
-        if (output_feature) {
-            if (!TopoSortAffectedFeatures(output_feature, sorted_features)) {
-                feature->m_runtime_state = 0;
-                return false;
-            }
-        }
-        sorted_features.Append(feature);
-        feature->m_runtime_state = 1;
-        return true;
-    }
-
-    bool Model::IsAffectedBy(Feature* feature1, Feature* feature2) {
-        for (int i = 0; i < feature1->GetInputCount(); ++i) {
-            Feature* feature = feature1->GetInput(i);
-            if (feature2 == feature) {
-                return true;
-            }
-            if (IsAffectedBy(feature, feature2)) {
-                return true;
-            }
-        }
-        return false;
+        return m_drawing->FinishEdit();
     }
 
     TYPE_IMP_0(FeatureFieldSchema);
@@ -539,30 +580,34 @@ namespace wgp {
         return m_is_alone;
     }
 
-    bool Feature::SetInput(int index, Feature* feature, Array<CommandLog*>& logs) {
+    bool Feature::SetInput(int index, Feature* feature) {
         if (m_is_alone) {
             return false;
         }
         if (!m_executor || !m_executor->SetInputEnable(index, feature)) {
             return false;
         }
+        Drawing* drawing = m_model->GetDrawing();
+        drawing->StartEdit();
         SetFeatureInputCommandLog* log = new SetFeatureInputCommandLog(this, index, m_executor->GetInput(index), feature);
         log->Redo();
-        logs.Append(log);
-        return true;
+        drawing->AppendLog(log);
+        return drawing->FinishEdit();
     }
 
-    bool Feature::SetOutput(Feature* feature, Array<CommandLog*>& logs) {
+    bool Feature::SetOutput(Feature* feature) {
         if (m_is_alone) {
             return false;
         }
         if (!m_executor || !m_executor->SetOutputEnable(feature)) {
             return false;
         }
+        Drawing* drawing = m_model->GetDrawing();
+        drawing->StartEdit();
         SetFeatureOutputCommandLog* log = new SetFeatureOutputCommandLog(this, m_executor->GetOutput(), feature);
         log->Redo();
-        logs.Append(log);
-        return true;
+        drawing->AppendLog(log);
+        return drawing->FinishEdit();
     }
 
     int Feature::GetInputCount() const {
@@ -684,5 +729,20 @@ namespace wgp {
     void GroupCommandLog::SetRefersher(GroupCommandLogRefresher* refresher) {
         delete m_refresher;
         m_refresher = refresher;
+    }
+
+    LogStackItem::LogStackItem() {
+    }
+
+    LogStackItem::LogStackItem(const LogStackItem& item) {
+        Logs = item.Logs;
+        AffectedFeatures = item.AffectedFeatures;
+        RecheckRelationFeatures = item.RecheckRelationFeatures;
+    }
+
+    LogStackItem::LogStackItem(LogStackItem&& item) noexcept {
+        Logs = std::move(item.Logs);
+        AffectedFeatures = std::move(item.AffectedFeatures);
+        RecheckRelationFeatures = std::move(item.RecheckRelationFeatures);
     }
 }

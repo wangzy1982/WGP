@@ -189,11 +189,10 @@ namespace wgp {
 
     class WGP_API SketchModelExecutor : public ModelExecutor {
     public:
-        virtual bool Execute(Model* model, ModelEditCommand* command, Array<ModelEditCommand*>& inner_commands, Array<CommandLog*>& logs);
+        virtual bool Execute(Model* model, ModelEditCommand* command, Array<ModelEditCommand*>& inner_commands);
     private:
         SketchGeometryFeature* FindGeometryFeature(Model* model, SketchVariableEntity* entity);
-        void AfterSolve(Sketch* sketch, Model* model, CommandLog* log, 
-            const Array<SketchEntityVariable>& actived_variables, Array<CommandLog*>& logs);
+        void AfterSolve(Sketch* sketch, Model* model, CommandLog* log, const Array<SketchEntityVariable>& actived_variables);
     };
 
     class WGP_API SketchModelHelper {
@@ -203,19 +202,18 @@ namespace wgp {
             Array<Feature*>& affected_features, Array<CommandLog*>& logs);
         static bool AddSketchPoint2dEqualConstraint(Model* model, SceneId constraint_id,
             SketchGeometryFeature* geometry0, int x_variable_index0, int y_variable_index0,
-            SketchGeometryFeature* geometry1, int x_variable_index1, int y_variable_index1, double epsilon,
-            Array<Feature*>& affected_features, Array<CommandLog*>& logs);
+            SketchGeometryFeature* geometry1, int x_variable_index1, int y_variable_index1, double epsilon);
         static bool AddSketchFixPoint2dConstraint(Model* model, SceneId constraint_id,
             SketchGeometryFeature* geometry, int x_variable_index, int y_variable_index, 
-            const Vector2d& point, double epsilon, Array<Feature*>& affected_features, Array<CommandLog*>& logs);
+            const Vector2d& point, double epsilon);
         static bool AddSketchFixPoint2dPoint2dDistanceConstraint(Model* model, SceneId constraint_id,
             SketchGeometryFeature* entity0, int x_variable_index0, int y_variable_index0,
             SketchGeometryFeature* entity1, int x_variable_index1, int y_variable_index1,
-            double distance, double epsilon, Array<Feature*>& affected_features, Array<CommandLog*>& logs);
+            double distance, double epsilon);
         static bool AddSketchFixLine2dLine2dAngleConstraint(Model* model, SceneId constraint_id,
             SketchGeometryFeature* entity0, int start_x_variable_index0, int start_y_variable_index0, int end_x_variable_index0, int end_y_variable_index0,
             SketchGeometryFeature* entity1, int start_x_variable_index1, int start_y_variable_index1, int end_x_variable_index1, int end_y_variable_index1,
-            double angle, double epsilon, Array<Feature*>& affected_features, Array<CommandLog*>& logs);
+            double angle, double epsilon);
     };
 
 }

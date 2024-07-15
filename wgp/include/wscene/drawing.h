@@ -26,6 +26,8 @@ namespace wgp {
     class ReferenceFeature;
     class CommandLog;
     class DrawingObserver;
+    class LogStackItem;
+    class CommandLogGroup;
 
     class ReferenceFeatureSchema;
     class SketchFeatureSchema;
@@ -41,12 +43,18 @@ namespace wgp {
         virtual ~Drawing();
         SceneId AllocId();
         void UpdateNextId(SceneId id);
-        void AddModel(Model* model, Array<CommandLog*>& logs);
-        bool RemoveModel(Model* model, Array<CommandLog*>& logs);
+        void StartEdit();
+        bool IsEditing();
+        void AppendLog(CommandLog* log);
+        void AppendAffectedFeature(Feature* feature);
+        void AppendRecheckRelationFeature(Feature* feature);
+        void SetLogPrompt(const String& undo_prompt, const String& redo_prompt);
+        void AbortEdit();
+        bool FinishEdit();
+        bool AddModel(Model* model);
+        bool RemoveModel(Model* model);
         int GetModelCount() const;
         Model* GetModel(int index) const;
-        bool Sync(const Array<Feature*>& affected_features, Array<CommandLog*>& logs);
-        void Log(Array<CommandLog*>&& logs);
         void RegisterObserver(DrawingObserver* observer);
         void UnregisterObserver(DrawingObserver* observer);
     public:
@@ -58,7 +66,10 @@ namespace wgp {
         SketchFixPoint2dPoint2dDistanceConstraintFeatureSchema* GetSketchFixPoint2dPoint2dDistanceConstraintFeatureSchema();
         SketchFixLine2dLine2dAngleConstraintFeatureSchema* GetSketchFixLine2dLine2dAngleConstraintFeatureSchema();
     private:
+        bool Sync(const Array<Feature*>& affected_features, Array<CommandLog*>& logs);
+        void Log(Array<CommandLog*>&& logs);
         bool TopoSortAffectedFeatures(Feature* feature, Array<Feature*>& sorted_features);
+        bool CheckRelations(const Array<Feature*>& features);
     protected:
         friend class AddModelCommandLog;
         friend class RemoveModelCommandLog;
@@ -66,6 +77,11 @@ namespace wgp {
         SceneId m_next_id;
         Array<FeatureSchema*> m_feature_schemas;
         Array<DrawingObserver*> m_observers;
+    private:
+        String m_current_undo_prompt;
+        String m_current_redo_prompt;
+        Array<LogStackItem> m_log_stack;
+        Array<CommandLogGroup*> m_log_groups;
     private:
         ReferenceFeatureSchema* m_reference_feature_schema;
         SketchFeatureSchema* m_sketch_feature_schema;
@@ -100,25 +116,23 @@ namespace wgp {
     class WGP_API ModelExecutor {
     public:
         virtual ~ModelExecutor() {}
-        virtual bool Execute(Model* model, ModelEditCommand* command, Array<ModelEditCommand*>& inner_commands, Array<CommandLog*>& logs) = 0;
+        virtual bool Execute(Model* model, ModelEditCommand* command, Array<ModelEditCommand*>& inner_commands) = 0;
     };
 
     class WGP_API Model : public RefObject {
+    public:
+        TYPE_DEF_0(Model);
     public:
         Model(Drawing* drawing, SceneId id, ModelExecutor* executor);
         virtual ~Model();
         Drawing* GetDrawing() const;
         SceneId GetId() const;
-        bool AddFeature(Feature* feature, Array<CommandLog*>& logs);
-        bool RemoveFeature(Feature* feature, Array<CommandLog*>& logs);
+        bool AddFeature(Feature* feature);
+        bool RemoveFeature(Feature* feature);
         int GetFeatureCount() const;
         Feature* GetFeature(int index) const;
-        bool Execute(ModelEditCommand* command, Array<Feature*>& affected_features, Array<CommandLog*>& logs);
-    private:
-        bool TopoSortAffectedFeatures(Feature* feature, Array<Feature*>& sorted_features);
-        bool IsAffectedBy(Feature* feature1, Feature* feature2);
-        bool CheckRelations(const Array<Feature*>& features);
-    private:
+        bool Execute(ModelEditCommand* command);
+    protected:
         friend class Drawing;
         friend class AddModelCommandLog;
         friend class RemoveModelCommandLog;
@@ -194,8 +208,8 @@ namespace wgp {
         FeatureSchema* GetFeatureSchema() const;
         SceneId GetId() const;
         bool IsAlone() const;
-        bool SetInput(int index, Feature* feature, Array<CommandLog*>& logs);
-        bool SetOutput(Feature* feature, Array<CommandLog*>& logs);
+        bool SetInput(int index, Feature* feature);
+        bool SetOutput(Feature* feature);
         int GetInputCount() const;
         Feature* GetInput(int index) const;
         Feature* GetOutput() const;
@@ -275,6 +289,21 @@ namespace wgp {
     protected:
         Array<CommandLog*> m_logs;
         GroupCommandLogRefresher* m_refresher;
+    };
+
+    class WGP_API LogStackItem {
+    public:
+        LogStackItem();
+        LogStackItem(const LogStackItem& item);
+        LogStackItem(LogStackItem&& item) noexcept;
+    public:
+        Array<CommandLog*> Logs;
+        Array<Feature*> AffectedFeatures;
+        Array<Feature*> RecheckRelationFeatures;
+    };
+
+    class WGP_API CommandLogGroup {
+
     };
 
 }

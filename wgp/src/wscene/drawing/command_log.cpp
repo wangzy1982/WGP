@@ -17,6 +17,10 @@ namespace wgp {
         m_model->DecRef();
     }
 
+    Model* AddModelCommandLog::GetModel() const {
+        return m_model;
+    }
+
     void AddModelCommandLog::AppendAffectedFeature(Array<Feature*>& features) {
     }
 
@@ -51,6 +55,10 @@ namespace wgp {
 
     RemoveModelCommandLog::~RemoveModelCommandLog() {
         m_model->DecRef();
+    }
+
+    Model* RemoveModelCommandLog::GetModel() const {
+        return m_model;
     }
 
     void RemoveModelCommandLog::AppendAffectedFeature(Array<Feature*>& features) {

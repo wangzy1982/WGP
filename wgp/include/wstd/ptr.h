@@ -72,12 +72,12 @@ namespace wgp {
             return *this;
         }
 
-        T& operator->() {
-            return *m_ptr;
+        T* operator->() {
+            return m_ptr;
         }
 
-        const T& operator->() const {
-            return *m_ptr;
+        const T* operator->() const {
+            return m_ptr;
         }
 
         T* Get() {
@@ -89,7 +89,7 @@ namespace wgp {
         }
     private:
         void IncRef() {
-            Inc(m_ptr);
+            IncRef(m_ptr);
         }
 
         void DecRef() {

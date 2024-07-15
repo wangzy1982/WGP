@@ -32,6 +32,7 @@ namespace wgp {
     public:
         RemoveModelCommandLog(Model* model);
         virtual ~RemoveModelCommandLog();
+        Model* GetModel() const;
         virtual void AppendAffectedFeature(Array<Feature*>& features);
         virtual void AppendRecheckRelationFeature(Array<Feature*>& features);
         virtual void Undo();

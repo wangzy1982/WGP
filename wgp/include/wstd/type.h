@@ -24,38 +24,7 @@ namespace wgp {
     private:
         int m_base_type_count;
         Type** m_base_types;
-    };
-
-#define TYPE_DEF_0(class_name) \
-    public: \
-        virtual wgp::Type* GetType() const; \
-        class class_name##Type : public wgp::Type { \
-        public: \
-            class_name##Type() : wgp::Type() {} \
-        }; \
-        static class_name##Type* GetTypeInstance(); \
-    private:
-    
-#define TYPE_IMP_0(class_name) \
-    static class_name::class_name##Type g##class_name##_type_instance; \
-    wgp::Type* class_name::GetType() const { return &g##class_name##_type_instance; } \
-    class_name::class_name##Type* class_name::GetTypeInstance() { return &g##class_name##_type_instance; } \
-
-#define TYPE_DEF_1(class_name) \
-    public: \
-        virtual wgp::Type* GetType() const; \
-        class class_name##Type : public wgp::Type { \
-        public: \
-            class_name##Type(wgp::Type* base_type_0) : wgp::Type(base_type_0) {} \
-        }; \
-        static class_name##Type* GetTypeInstance(); \
-    private:
-
-#define TYPE_IMP_1(class_name, base_type_0) \
-    static class_name::class_name##Type g##class_name##_type_instance(base_type_0); \
-    wgp::Type* class_name::GetType() const { return &g##class_name##_type_instance; } \
-    class_name::class_name##Type* class_name::GetTypeInstance() { return &g##class_name##_type_instance; } \
-    
+    };    
 
     inline Type::Type() {
         m_base_type_count = 0;
@@ -129,5 +98,35 @@ namespace wgp {
         return false;
     }
 }
+
+#define TYPE_DEF_0(class_name) \
+    public: \
+        virtual wgp::Type* GetType() const; \
+        class class_name##Type : public wgp::Type { \
+        public: \
+            class_name##Type() : wgp::Type() {} \
+        }; \
+        static class_name##Type* GetTypeInstance(); \
+    private:
+
+#define TYPE_IMP_0(class_name) \
+    static class_name::class_name##Type g##class_name##_type_instance; \
+    wgp::Type* class_name::GetType() const { return &g##class_name##_type_instance; } \
+    class_name::class_name##Type* class_name::GetTypeInstance() { return &g##class_name##_type_instance; } \
+
+#define TYPE_DEF_1(class_name) \
+    public: \
+        virtual wgp::Type* GetType() const; \
+        class class_name##Type : public wgp::Type { \
+        public: \
+            class_name##Type(wgp::Type* base_type_0) : wgp::Type(base_type_0) {} \
+        }; \
+        static class_name##Type* GetTypeInstance(); \
+    private:
+
+#define TYPE_IMP_1(class_name, base_type_0) \
+    static class_name::class_name##Type g##class_name##_type_instance(base_type_0); \
+    wgp::Type* class_name::GetType() const { return &g##class_name##_type_instance; } \
+    class_name::class_name##Type* class_name::GetTypeInstance() { return &g##class_name##_type_instance; }
 
 #endif
