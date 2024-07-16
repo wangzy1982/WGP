@@ -75,12 +75,12 @@ namespace wgp {
         Feature* m_feature;
     };
 
-    class WGP_API SetFeatureInputCommandLog : public CommandLog {
+    class WGP_API SetFeatureStaticInputCommandLog : public CommandLog {
     public:
-        TYPE_DEF_1(SetFeatureInputCommandLog);
+        TYPE_DEF_1(SetFeatureStaticInputCommandLog);
     public:
-        SetFeatureInputCommandLog(Feature* feature, int index, Feature* old_input, Feature* new_input);
-        virtual ~SetFeatureInputCommandLog();
+        SetFeatureStaticInputCommandLog(Feature* feature, int index, Feature* old_input, Feature* new_input);
+        virtual ~SetFeatureStaticInputCommandLog();
         virtual void AppendAffectedFeature(Array<Feature*>& features);
         virtual void AppendRecheckRelationFeature(Array<Feature*>& features);
         virtual void Undo();
@@ -92,20 +92,81 @@ namespace wgp {
         Feature* m_new_input;
     };
 
-    class WGP_API SetFeatureOutputCommandLog : public CommandLog {
+    class WGP_API SetFeatureStaticOutputCommandLog : public CommandLog {
     public:
-        TYPE_DEF_1(SetFeatureOutputCommandLog);
+        TYPE_DEF_1(SetFeatureStaticOutputCommandLog);
     public:
-        SetFeatureOutputCommandLog(Feature* feature, Feature* old_output, Feature* new_output);
-        virtual ~SetFeatureOutputCommandLog();
+        SetFeatureStaticOutputCommandLog(Feature* feature, int index, Feature* old_output, Feature* new_output);
+        virtual ~SetFeatureStaticOutputCommandLog();
         virtual void AppendAffectedFeature(Array<Feature*>& features);
         virtual void AppendRecheckRelationFeature(Array<Feature*>& features);
         virtual void Undo();
         virtual void Redo();
     protected:
         Feature* m_feature;
+        int m_index;
         Feature* m_old_output;
         Feature* m_new_output;
+    };
+
+    class WGP_API AddFeatureDynamicInputCommandLog : public CommandLog {
+    public:
+        TYPE_DEF_1(AddFeatureDynamicInputCommandLog);
+    public:
+        AddFeatureDynamicInputCommandLog(Feature* feature, Feature* input_feature);
+        virtual ~AddFeatureDynamicInputCommandLog();
+        virtual void AppendAffectedFeature(Array<Feature*>& features);
+        virtual void AppendRecheckRelationFeature(Array<Feature*>& features);
+        virtual void Undo();
+        virtual void Redo();
+    protected:
+        Feature* m_feature;
+        Feature* m_input_feature;
+    };
+
+    class WGP_API RemoveFeatureDynamicInputCommandLog : public CommandLog {
+    public:
+        TYPE_DEF_1(RemoveFeatureDynamicInputCommandLog);
+    public:
+        RemoveFeatureDynamicInputCommandLog(Feature* feature, Feature* input_feature);
+        virtual ~RemoveFeatureDynamicInputCommandLog();
+        virtual void AppendAffectedFeature(Array<Feature*>& features);
+        virtual void AppendRecheckRelationFeature(Array<Feature*>& features);
+        virtual void Undo();
+        virtual void Redo();
+    protected:
+        Feature* m_feature;
+        Feature* m_input_feature;
+    };
+
+    class WGP_API AddFeatureDynamicOutputCommandLog : public CommandLog {
+    public:
+        TYPE_DEF_1(AddFeatureDynamicOutputCommandLog);
+    public:
+        AddFeatureDynamicOutputCommandLog(Feature* feature, Feature* output_feature);
+        virtual ~AddFeatureDynamicOutputCommandLog();
+        virtual void AppendAffectedFeature(Array<Feature*>& features);
+        virtual void AppendRecheckRelationFeature(Array<Feature*>& features);
+        virtual void Undo();
+        virtual void Redo();
+    protected:
+        Feature* m_feature;
+        Feature* m_output_feature;
+    };
+
+    class WGP_API RemoveFeatureDynamicOutputCommandLog : public CommandLog {
+    public:
+        TYPE_DEF_1(RemoveFeatureDynamicOutputCommandLog);
+    public:
+        RemoveFeatureDynamicOutputCommandLog(Feature* feature, Feature* output_feature);
+        virtual ~RemoveFeatureDynamicOutputCommandLog();
+        virtual void AppendAffectedFeature(Array<Feature*>& features);
+        virtual void AppendRecheckRelationFeature(Array<Feature*>& features);
+        virtual void Undo();
+        virtual void Redo();
+    protected:
+        Feature* m_feature;
+        Feature* m_output_feature;
     };
 
     class WGP_API SetFieldCommandLog : public CommandLog {

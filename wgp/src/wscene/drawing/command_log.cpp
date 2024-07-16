@@ -212,9 +212,9 @@ namespace wgp {
         }
     }
 
-    TYPE_IMP_1(SetFeatureInputCommandLog, CommandLog::GetTypeInstance());
+    TYPE_IMP_1(SetFeatureStaticInputCommandLog, CommandLog::GetTypeInstance());
 
-    SetFeatureInputCommandLog::SetFeatureInputCommandLog(Feature* feature, int index, Feature* old_input, Feature* new_input) :
+    SetFeatureStaticInputCommandLog::SetFeatureStaticInputCommandLog(Feature* feature, int index, Feature* old_input, Feature* new_input) :
         m_feature(feature),
         m_index(index),
         m_old_input(old_input),
@@ -228,7 +228,7 @@ namespace wgp {
         }
     }
 
-    SetFeatureInputCommandLog::~SetFeatureInputCommandLog() {
+    SetFeatureStaticInputCommandLog::~SetFeatureStaticInputCommandLog() {
         if (m_old_input) {
             m_old_input->DecRef();
         }
@@ -238,15 +238,17 @@ namespace wgp {
         m_feature->DecRef();
     }
 
-    void SetFeatureInputCommandLog::AppendAffectedFeature(Array<Feature*>& features) {
+    void SetFeatureStaticInputCommandLog::AppendAffectedFeature(Array<Feature*>& features) {
         features.Append(m_feature);
     }
 
-    void SetFeatureInputCommandLog::AppendRecheckRelationFeature(Array<Feature*>& features) {
-        features.Append(m_feature);
+    void SetFeatureStaticInputCommandLog::AppendRecheckRelationFeature(Array<Feature*>& features) {
+        if (m_new_input) {
+            features.Append(m_feature);
+        }
     }
 
-    void SetFeatureInputCommandLog::Undo() {
+    void SetFeatureStaticInputCommandLog::Undo() {
         if (m_new_input) {
             for (int k = 0; k < m_new_input->m_affected_features.GetCount(); ++k) {
                 if (m_new_input->m_affected_features.Get(k) == m_feature) {
@@ -255,13 +257,13 @@ namespace wgp {
                 }
             }
         }
-        m_feature->m_executor->DirectSetInput(m_index, m_old_input);
+        m_feature->m_executor->DirectSetStaticInput(m_index, m_old_input);
         if (m_old_input) {
             m_old_input->m_affected_features.Append(m_feature);
         }
     }
 
-    void SetFeatureInputCommandLog::Redo() {
+    void SetFeatureStaticInputCommandLog::Redo() {
         if (m_old_input) {
             for (int k = 0; k < m_old_input->m_affected_features.GetCount(); ++k) {
                 if (m_old_input->m_affected_features.Get(k) == m_feature) {
@@ -270,16 +272,17 @@ namespace wgp {
                 }
             }
         }
-        m_feature->m_executor->DirectSetInput(m_index, m_new_input);
+        m_feature->m_executor->DirectSetStaticInput(m_index, m_new_input);
         if (m_new_input) {
             m_new_input->m_affected_features.Append(m_feature);
         }
     }
 
-    TYPE_IMP_1(SetFeatureOutputCommandLog, CommandLog::GetTypeInstance());
+    TYPE_IMP_1(SetFeatureStaticOutputCommandLog, CommandLog::GetTypeInstance());
 
-    SetFeatureOutputCommandLog::SetFeatureOutputCommandLog(Feature* feature, Feature* old_output, Feature* new_output) :
+    SetFeatureStaticOutputCommandLog::SetFeatureStaticOutputCommandLog(Feature* feature, int index, Feature* old_output, Feature* new_output) :
         m_feature(feature),
+        m_index(index),
         m_old_output(old_output),
         m_new_output(new_output) {
         m_feature->IncRef();
@@ -291,7 +294,7 @@ namespace wgp {
         }
     }
 
-    SetFeatureOutputCommandLog::~SetFeatureOutputCommandLog() {
+    SetFeatureStaticOutputCommandLog::~SetFeatureStaticOutputCommandLog() {
         if (m_old_output) {
             m_old_output->DecRef();
         }
@@ -301,15 +304,17 @@ namespace wgp {
         m_feature->DecRef();
     }
 
-    void SetFeatureOutputCommandLog::AppendAffectedFeature(Array<Feature*>& features) {
+    void SetFeatureStaticOutputCommandLog::AppendAffectedFeature(Array<Feature*>& features) {
         features.Append(m_feature);
     }
 
-    void SetFeatureOutputCommandLog::AppendRecheckRelationFeature(Array<Feature*>& features) {
-        features.Append(m_feature);
+    void SetFeatureStaticOutputCommandLog::AppendRecheckRelationFeature(Array<Feature*>& features) {
+        if (m_new_output) {
+            features.Append(m_feature);
+        }
     }
 
-    void SetFeatureOutputCommandLog::Undo() {
+    void SetFeatureStaticOutputCommandLog::Undo() {
         if (m_new_output) {
             for (int k = 0; k < m_new_output->m_executor_features.GetCount(); ++k) {
                 if (m_new_output->m_executor_features.Get(k) == m_feature) {
@@ -318,13 +323,13 @@ namespace wgp {
                 }
             }
         }
-        m_feature->m_executor->DirectSetOutput(m_old_output);
+        m_feature->m_executor->DirectSetStaticOutput(m_index, m_old_output);
         if (m_old_output) {
             m_old_output->m_executor_features.Append(m_feature);
         }
     }
 
-    void SetFeatureOutputCommandLog::Redo() {
+    void SetFeatureStaticOutputCommandLog::Redo() {
         if (m_old_output) {
             for (int k = 0; k < m_old_output->m_executor_features.GetCount(); ++k) {
                 if (m_old_output->m_executor_features.Get(k) == m_feature) {
@@ -333,10 +338,156 @@ namespace wgp {
                 }
             }
         }
-        m_feature->m_executor->DirectSetOutput(m_new_output);
+        m_feature->m_executor->DirectSetStaticOutput(m_index, m_new_output);
         if (m_new_output) {
             m_new_output->m_executor_features.Append(m_feature);
         }
+    }
+
+    TYPE_IMP_1(AddFeatureDynamicInputCommandLog, CommandLog::GetTypeInstance());
+
+    AddFeatureDynamicInputCommandLog::AddFeatureDynamicInputCommandLog(Feature* feature, Feature* input_feature) :
+        m_feature(feature),
+        m_input_feature(input_feature) {
+        m_feature->IncRef();
+        input_feature->IncRef();
+    }
+
+    AddFeatureDynamicInputCommandLog::~AddFeatureDynamicInputCommandLog() {
+        m_input_feature->DecRef();
+        m_feature->DecRef();
+    }
+
+    void AddFeatureDynamicInputCommandLog::AppendAffectedFeature(Array<Feature*>& features) {
+        features.Append(m_feature);
+    }
+
+    void AddFeatureDynamicInputCommandLog::AppendRecheckRelationFeature(Array<Feature*>& features) {
+        features.Append(m_feature);
+    }
+
+    void AddFeatureDynamicInputCommandLog::Undo() {
+        for (int k = 0; k < m_input_feature->m_affected_features.GetCount(); ++k) {
+            if (m_input_feature->m_affected_features.Get(k) == m_feature) {
+                m_input_feature->m_affected_features.Remove(k);
+                break;
+            }
+        }
+        m_feature->m_executor->DirectRemoveDynamicInput(m_input_feature);
+    }
+
+    void AddFeatureDynamicInputCommandLog::Redo() {
+        m_feature->m_executor->DirectAddDynamicInput(m_input_feature);
+        m_input_feature->m_affected_features.Append(m_feature);
+    }
+
+    TYPE_IMP_1(RemoveFeatureDynamicInputCommandLog, CommandLog::GetTypeInstance());
+
+    RemoveFeatureDynamicInputCommandLog::RemoveFeatureDynamicInputCommandLog(Feature* feature, Feature* input_feature) :
+        m_feature(feature),
+        m_input_feature(input_feature) {
+        m_feature->IncRef();
+        input_feature->IncRef();
+    }
+
+    RemoveFeatureDynamicInputCommandLog::~RemoveFeatureDynamicInputCommandLog() {
+        m_input_feature->DecRef();
+        m_feature->DecRef();
+    }
+
+    void RemoveFeatureDynamicInputCommandLog::AppendAffectedFeature(Array<Feature*>& features) {
+        features.Append(m_feature);
+    }
+
+    void RemoveFeatureDynamicInputCommandLog::AppendRecheckRelationFeature(Array<Feature*>& features) {
+    }
+
+    void RemoveFeatureDynamicInputCommandLog::Undo() {
+        m_feature->m_executor->DirectAddDynamicInput(m_input_feature);
+        m_input_feature->m_affected_features.Append(m_feature);
+    }
+
+    void RemoveFeatureDynamicInputCommandLog::Redo() {
+        for (int k = 0; k < m_input_feature->m_affected_features.GetCount(); ++k) {
+            if (m_input_feature->m_affected_features.Get(k) == m_feature) {
+                m_input_feature->m_affected_features.Remove(k);
+                break;
+            }
+        }
+        m_feature->m_executor->DirectRemoveDynamicInput(m_input_feature);
+    }
+
+    TYPE_IMP_1(AddFeatureDynamicOutputCommandLog, CommandLog::GetTypeInstance());
+
+    AddFeatureDynamicOutputCommandLog::AddFeatureDynamicOutputCommandLog(Feature* feature, Feature* output_feature) :
+        m_feature(feature),
+        m_output_feature(output_feature) {
+        m_feature->IncRef();
+        m_output_feature->IncRef();
+    }
+
+    AddFeatureDynamicOutputCommandLog::~AddFeatureDynamicOutputCommandLog() {
+        m_output_feature->DecRef();
+        m_feature->DecRef();
+    }
+
+    void AddFeatureDynamicOutputCommandLog::AppendAffectedFeature(Array<Feature*>& features) {
+        features.Append(m_feature);
+    }
+
+    void AddFeatureDynamicOutputCommandLog::AppendRecheckRelationFeature(Array<Feature*>& features) {
+        features.Append(m_feature);
+    }
+
+    void AddFeatureDynamicOutputCommandLog::Undo() {
+        for (int k = 0; k < m_output_feature->m_executor_features.GetCount(); ++k) {
+            if (m_output_feature->m_executor_features.Get(k) == m_feature) {
+                m_output_feature->m_executor_features.Remove(k);
+                break;
+            }
+        }
+        m_feature->m_executor->DirectRemoveDynamicOutput(m_output_feature);
+    }
+
+    void AddFeatureDynamicOutputCommandLog::Redo() {
+        m_feature->m_executor->DirectAddDynamicOutput(m_output_feature);
+        m_output_feature->m_executor_features.Append(m_feature);
+    }
+
+    TYPE_IMP_1(RemoveFeatureDynamicOutputCommandLog, CommandLog::GetTypeInstance());
+
+    RemoveFeatureDynamicOutputCommandLog::RemoveFeatureDynamicOutputCommandLog(Feature* feature, Feature* output_feature) :
+        m_feature(feature),
+        m_output_feature(output_feature) {
+        m_feature->IncRef();
+        m_output_feature->IncRef();
+    }
+
+    RemoveFeatureDynamicOutputCommandLog::~RemoveFeatureDynamicOutputCommandLog() {
+        m_output_feature->DecRef();
+        m_feature->DecRef();
+    }
+
+    void RemoveFeatureDynamicOutputCommandLog::AppendAffectedFeature(Array<Feature*>& features) {
+        features.Append(m_feature);
+    }
+
+    void RemoveFeatureDynamicOutputCommandLog::AppendRecheckRelationFeature(Array<Feature*>& features) {
+    }
+
+    void RemoveFeatureDynamicOutputCommandLog::Undo() {
+        m_feature->m_executor->DirectAddDynamicOutput(m_output_feature);
+        m_output_feature->m_executor_features.Append(m_feature);
+    }
+
+    void RemoveFeatureDynamicOutputCommandLog::Redo() {
+        for (int k = 0; k < m_output_feature->m_executor_features.GetCount(); ++k) {
+            if (m_output_feature->m_executor_features.Get(k) == m_feature) {
+                m_output_feature->m_executor_features.Remove(k);
+                break;
+            }
+        }
+        m_feature->m_executor->DirectRemoveDynamicOutput(m_output_feature);
     }
 
     TYPE_IMP_1(SetFieldCommandLog, CommandLog::GetTypeInstance());

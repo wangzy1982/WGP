@@ -163,12 +163,25 @@ namespace wgp {
         }
         if (success) {
             for (int i = sorted_features.GetCount() - 1; i >= 0; --i) {
-                Feature* output_feature = sorted_features.Get(i)->GetOutput();
-                if (output_feature) {
-                    for (int j = 0; j < output_feature->m_executor_features.GetCount(); ++j) {
-                        if (!TopoSortAffectedFeatures(output_feature->m_executor_features.Get(j), sorted_features)) {
-                            success = false;
-                            break;
+                for (int k = 0; k < sorted_features.Get(i)->GetStaticOutputCount(); ++k) {
+                    Feature* output_feature = sorted_features.Get(i)->GetStaticOutput(k);
+                    if (output_feature) {
+                        for (int j = 0; j < output_feature->m_executor_features.GetCount(); ++j) {
+                            if (!TopoSortAffectedFeatures(output_feature->m_executor_features.Get(j), sorted_features)) {
+                                success = false;
+                                break;
+                            }
+                        }
+                    }
+                }
+                for (int k = 0; k < sorted_features.Get(i)->GetDynamicOutputCount(); ++k) {
+                    Feature* output_feature = sorted_features.Get(i)->GetDynamicOutput(k);
+                    if (output_feature) {
+                        for (int j = 0; j < output_feature->m_executor_features.GetCount(); ++j) {
+                            if (!TopoSortAffectedFeatures(output_feature->m_executor_features.Get(j), sorted_features)) {
+                                success = false;
+                                break;
+                            }
                         }
                     }
                 }
@@ -236,11 +249,22 @@ namespace wgp {
                 return false;
             }
         }
-        Feature* output_feature = feature->GetOutput();
-        if (output_feature) {
-            if (!TopoSortAffectedFeatures(output_feature, sorted_features)) {
-                feature->m_runtime_state = 0;
-                return false;
+        for (int k = 0; k < feature->GetStaticOutputCount(); ++k) {
+            Feature* output_feature = feature->GetStaticOutput(k);
+            if (output_feature) {
+                if (!TopoSortAffectedFeatures(output_feature, sorted_features)) {
+                    feature->m_runtime_state = 0;
+                    return false;
+                }
+            }
+        }
+        for (int k = 0; k < feature->GetDynamicOutputCount(); ++k) {
+            Feature* output_feature = feature->GetDynamicOutput(k);
+            if (output_feature) {
+                if (!TopoSortAffectedFeatures(output_feature, sorted_features)) {
+                    feature->m_runtime_state = 0;
+                    return false;
+                }
             }
         }
         for (int i = 0; i < feature->m_model->m_reference_features.GetCount(); ++i) {
@@ -407,6 +431,18 @@ namespace wgp {
             return false;
         }
         m_drawing->StartEdit();
+        for (int i = 0; i < feature->GetStaticInputCount(); ++i) {
+            feature->SetStaticInput(i, nullptr);
+        }
+        for (int i = 0; i < feature->GetStaticOutputCount(); ++i) {
+            feature->SetStaticOutput(i, nullptr);
+        }
+        for (int i = feature->GetDynamicInputCount() - 1; i >= 0; --i) {
+            feature->RemoveDynamicInput(feature->GetDynamicInput(i));
+        }
+        for (int i = feature->GetDynamicOutputCount() - 1; i >= 0; --i) {
+            feature->RemoveDynamicOutput(feature->GetDynamicOutput(i));
+        }
         RemoveFeatureCommandLog* log = new RemoveFeatureCommandLog(this, feature);
         log->Redo();
         m_drawing->AppendLog(log);
@@ -580,53 +616,156 @@ namespace wgp {
         return m_is_alone;
     }
 
-    bool Feature::SetInput(int index, Feature* feature) {
+    bool Feature::SetStaticInput(int index, Feature* feature) {
         if (m_is_alone) {
             return false;
         }
-        if (!m_executor || !m_executor->SetInputEnable(index, feature)) {
+        if (!m_executor || !m_executor->SetStaticInputEnable(index, feature)) {
             return false;
+        }
+        Feature* old_input = m_executor->GetStaticInput(index);
+        if (old_input == feature) {
+            return true;
         }
         Drawing* drawing = m_model->GetDrawing();
         drawing->StartEdit();
-        SetFeatureInputCommandLog* log = new SetFeatureInputCommandLog(this, index, m_executor->GetInput(index), feature);
+        SetFeatureStaticInputCommandLog* log = new SetFeatureStaticInputCommandLog(this, index, old_input, feature);
         log->Redo();
         drawing->AppendLog(log);
         return drawing->FinishEdit();
     }
 
-    bool Feature::SetOutput(Feature* feature) {
+    bool Feature::SetStaticOutput(int index, Feature* feature) {
         if (m_is_alone) {
             return false;
         }
-        if (!m_executor || !m_executor->SetOutputEnable(feature)) {
+        if (!m_executor || !m_executor->SetStaticOutputEnable(index, feature)) {
             return false;
+        }
+        Feature* old_output = m_executor->GetStaticOutput(index);
+        if (old_output == feature) {
+            return true;
         }
         Drawing* drawing = m_model->GetDrawing();
         drawing->StartEdit();
-        SetFeatureOutputCommandLog* log = new SetFeatureOutputCommandLog(this, m_executor->GetOutput(), feature);
+        SetFeatureStaticOutputCommandLog* log = new SetFeatureStaticOutputCommandLog(this, index, old_output, feature);
         log->Redo();
         drawing->AppendLog(log);
         return drawing->FinishEdit();
     }
 
-    int Feature::GetInputCount() const {
+    int Feature::GetStaticInputCount() const {
         if (!m_executor) {
             return 0;
         }
-        return m_executor->GetInputCount();
+        return m_executor->GetStaticInputCount();
     }
 
-    Feature* Feature::GetInput(int index) const {
+    Feature* Feature::GetStaticInput(int index) const {
         if (m_executor) {
-            return m_executor->GetInput(index);
+            return m_executor->GetStaticInput(index);
         }
         return nullptr;
     }
 
-    Feature* Feature::GetOutput() const {
+    int Feature::GetStaticOutputCount() const {
+        if (!m_executor) {
+            return 0;
+        }
+        return m_executor->GetStaticOutputCount();
+    }
+
+    Feature* Feature::GetStaticOutput(int index) const {
         if (m_executor) {
-            return m_executor->GetOutput();
+            return m_executor->GetStaticOutput(index);
+        }
+        return nullptr;
+    }
+
+    bool Feature::AddDynamicInput(Feature* feature) {
+        if (m_is_alone) {
+            return false;
+        }
+        if (!m_executor || !m_executor->AddDynamicInputEnable(feature)) {
+            return false;
+        }
+        Drawing* drawing = m_model->GetDrawing();
+        drawing->StartEdit();
+        AddFeatureDynamicInputCommandLog* log = new AddFeatureDynamicInputCommandLog(this, feature);
+        log->Redo();
+        drawing->AppendLog(log);
+        return drawing->FinishEdit();
+    }
+
+    bool Feature::RemoveDynamicInput(Feature* feature) {
+        if (m_is_alone) {
+            return false;
+        }
+        if (!m_executor) {
+            return false;
+        }
+        Drawing* drawing = m_model->GetDrawing();
+        drawing->StartEdit();
+        RemoveFeatureDynamicInputCommandLog* log = new RemoveFeatureDynamicInputCommandLog(this, feature);
+        log->Redo();
+        drawing->AppendLog(log);
+        return drawing->FinishEdit();
+    }
+
+    bool Feature::AddDynamicOutput(Feature* feature) {
+        if (m_is_alone) {
+            return false;
+        }
+        if (!m_executor || !m_executor->AddDynamicOutputEnable(feature)) {
+            return false;
+        }
+        Drawing* drawing = m_model->GetDrawing();
+        drawing->StartEdit();
+        AddFeatureDynamicOutputCommandLog* log = new AddFeatureDynamicOutputCommandLog(this, feature);
+        log->Redo();
+        drawing->AppendLog(log);
+        return drawing->FinishEdit();
+    }
+
+    bool Feature::RemoveDynamicOutput(Feature* feature) {
+        if (m_is_alone) {
+            return false;
+        }
+        if (!m_executor) {
+            return false;
+        }
+        Drawing* drawing = m_model->GetDrawing();
+        drawing->StartEdit();
+        RemoveFeatureDynamicOutputCommandLog* log = new RemoveFeatureDynamicOutputCommandLog(this, feature);
+        log->Redo();
+        drawing->AppendLog(log);
+        return drawing->FinishEdit();
+    }
+
+    int Feature::GetDynamicInputCount() const {
+        if (!m_executor) {
+            return 0;
+        }
+        return m_executor->GetDynamicInputCount();
+    }
+
+    Feature* Feature::GetDynamicInput(int index) const {
+        if (m_executor) {
+            return m_executor->GetDynamicInput(index);
+        }
+        return nullptr;
+    }
+
+    int Feature::GetDynamicOutputCount() const {
+        if (!m_executor) {
+            return 0;
+        }
+        return m_executor->GetDynamicOutputCount();
+    }
+
+    Feature* Feature::GetDynamicOutput(int index) const {
+        if (m_executor) {
+            return m_executor->GetDynamicOutput(index);
         }
         return nullptr;
     }
