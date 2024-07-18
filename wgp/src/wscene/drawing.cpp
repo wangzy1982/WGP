@@ -10,6 +10,11 @@
 
 namespace wgp {
 
+    const int g_feature_runtime_state_affected = 1;
+    const int g_feature_runtime_state_dfs = 2;
+    const int g_feature_runtime_state_changed = 4;
+    const int g_feature_runtime_state_check_relation = 8;
+
     Drawing::Drawing() : 
         m_next_id(1),
         m_reference_feature_schema(nullptr),
@@ -19,9 +24,12 @@ namespace wgp {
         m_sketch_fix_point2d_constraint_feature_schema(nullptr),
         m_sketch_fix_point2d_point2d_distance_constraint_feature_schema(nullptr),
         m_sketch_fix_line2d_line2d_angle_constraint_feature_schema(nullptr) {
+        m_current_group = new CommandLogGroup();
+        m_calculating_count = 0;
     }
 
     Drawing::~Drawing() {
+        delete m_current_group;
         for (int i = 0; i < m_observers.GetCount(); ++i) {
             DrawingObserver* observer = m_observers.Get(i);
             observer->DecRef();
@@ -46,10 +54,6 @@ namespace wgp {
     }
 
     void Drawing::StartEdit() {
-        if (m_log_stack.GetCount() == 0) {
-            m_current_undo_prompt = StringResource("");
-            m_current_redo_prompt = StringResource("");
-        }
         m_log_stack.Append(LogStackItem());
     }
 
@@ -57,20 +61,43 @@ namespace wgp {
         return m_log_stack.GetCount() > 0;
     }
 
+    bool Drawing::IsCurrentScopeEdited() {
+        return m_log_stack.GetCount() > 0 && m_log_stack.GetPointer(m_log_stack.GetCount() - 1)->Logs.GetCount() > 0;
+    }
+
     void Drawing::AppendLog(CommandLog* log) {
         int i = m_log_stack.GetCount() - 1;
         assert(i >= 0);
         LogStackItem* stack_item = m_log_stack.GetPointer(i);
         stack_item->Logs.Append(log);
-        log->AppendAffectedFeature(stack_item->AffectedFeatures);
-        log->AppendRecheckRelationFeature(stack_item->RecheckRelationFeatures);
+        log->AppendAffectedFeature(this);
+        log->AppendRecheckRelationFeature(this);
     }
 
     void Drawing::AppendAffectedFeature(Feature* feature) {
+        if (feature->m_runtime_state & g_feature_runtime_state_changed) {
+            return;
+        }
         int i = m_log_stack.GetCount() - 1;
         assert(i >= 0);
         LogStackItem* stack_item = m_log_stack.GetPointer(i);
         stack_item->AffectedFeatures.Append(feature);
+        feature->m_runtime_state |= g_feature_runtime_state_changed;
+    }
+
+    void Drawing::AppendAffectedReference(Model* model) {
+        int i = m_log_stack.GetCount() - 1;
+        assert(i >= 0);
+        LogStackItem* stack_item = m_log_stack.GetPointer(i);
+        for (int i = 0; i < model->m_reference_features.GetCount(); ++i) {
+            Feature* feature = model->m_reference_features.Get(i);
+            if (feature->m_runtime_state & g_feature_runtime_state_changed) {
+                continue;
+            }
+            stack_item->AffectedFeatures.Append(feature);
+            feature->m_runtime_state |= g_feature_runtime_state_changed;
+            AppendAffectedReference(model);
+        }
     }
 
     void Drawing::AppendRecheckRelationFeature(Feature* feature) {
@@ -80,10 +107,9 @@ namespace wgp {
         stack_item->RecheckRelationFeatures.Append(feature);
     }
 
-    void Drawing::SetLogPrompt(const String& undo_prompt, const String& redo_prompt) {
+    void Drawing::SetLogPrompt(const String& prompt) {
         if (m_log_stack.GetCount() == 1) {
-            m_current_undo_prompt = undo_prompt;
-            m_current_redo_prompt = redo_prompt;
+            m_current_group->m_prompt = prompt;
         }
     }
 
@@ -107,9 +133,26 @@ namespace wgp {
         m_log_stack.PopLast();
         if (stack_item.RecheckRelationFeatures.GetCount() == 0 || CheckRelations(stack_item.RecheckRelationFeatures)) {
             if (i == 0) {
-                if (stack_item.AffectedFeatures.GetCount() == 0 || Sync(stack_item.AffectedFeatures, stack_item.Logs)) {
-                    Log(std::move(stack_item.Logs));
+                m_current_group->m_logs.Append(stack_item.Logs);
+                if (stack_item.AffectedFeatures.GetCount() == 0 || Calculate(stack_item.AffectedFeatures)) {
+                    if (m_calculating_count == 0) {
+                        for (int i = 0; i < m_observers.GetCount(); ++i) {
+                            m_observers.Get(i)->Notify(m_current_group->m_logs);
+                        }
+                        m_log_groups.Append(m_current_group);
+                        m_current_group = new CommandLogGroup();
+                        for (int j = 0; j < m_calculated_features.GetCount(); ++j) {
+                            m_calculated_features.Get(j)->m_runtime_state = 0;
+                        }
+                    }
                     return true;
+                }
+                if (m_calculating_count == 0) {
+                    m_current_group->Undo();
+                    m_current_group->Clear();
+                    for (int j = 0; j < m_calculated_features.GetCount(); ++j) {
+                        m_calculated_features.Get(j)->m_runtime_state = 0;
+                    }
                 }
             }
             else {
@@ -119,8 +162,13 @@ namespace wgp {
                 return true;
             }
         }
-        for (int j = stack_item.Logs.GetCount() - 1; j >= 0; --j) {
-            stack_item.Logs.Get(j)->Undo();
+        else {
+            for (int j = stack_item.AffectedFeatures.GetCount() - 1; j >= 0; --j) {
+                stack_item.AffectedFeatures.Get(j)->m_runtime_state &= ~g_feature_runtime_state_changed;
+            }
+            for (int j = stack_item.Logs.GetCount() - 1; j >= 0; --j) {
+                stack_item.Logs.Get(j)->Undo();
+            }
         }
         return false;
     }
@@ -152,11 +200,12 @@ namespace wgp {
         return m_models.Get(index);
     }
 
-    bool Drawing::Sync(const Array<Feature*>& affected_features, Array<CommandLog*>& logs) {
+    bool Drawing::Calculate(const Array<Feature*>& affected_features) {
         bool success = true;
         Array<Feature*> sorted_features(affected_features.GetCount() * 10);
         for (int i = 0; i < affected_features.GetCount(); ++i) {
-            if (!TopoSortAffectedFeatures(affected_features.Get(i), sorted_features)) {
+            if (!TopoSortAffectedFeatures(affected_features.Get(i), g_feature_runtime_state_affected, sorted_features)) {
+                m_calculated_features.Append(affected_features, i, affected_features.GetCount() - i);
                 success = false;
                 break;
             }
@@ -167,7 +216,7 @@ namespace wgp {
                     Feature* output_feature = sorted_features.Get(i)->GetStaticOutput(k);
                     if (output_feature) {
                         for (int j = 0; j < output_feature->m_executor_features.GetCount(); ++j) {
-                            if (!TopoSortAffectedFeatures(output_feature->m_executor_features.Get(j), sorted_features)) {
+                            if (!TopoSortAffectedFeatures(output_feature->m_executor_features.Get(j), g_feature_runtime_state_affected, sorted_features)) {
                                 success = false;
                                 break;
                             }
@@ -178,7 +227,7 @@ namespace wgp {
                     Feature* output_feature = sorted_features.Get(i)->GetDynamicOutput(k);
                     if (output_feature) {
                         for (int j = 0; j < output_feature->m_executor_features.GetCount(); ++j) {
-                            if (!TopoSortAffectedFeatures(output_feature->m_executor_features.Get(j), sorted_features)) {
+                            if (!TopoSortAffectedFeatures(output_feature->m_executor_features.Get(j), g_feature_runtime_state_affected, sorted_features)) {
                                 success = false;
                                 break;
                             }
@@ -187,34 +236,23 @@ namespace wgp {
                 }
             }
             if (success) {
-                StartEdit();
+                ++m_calculating_count;
                 for (int i = sorted_features.GetCount() - 1; i >= 0; --i) {
                     Feature* feature = sorted_features.Get(i);
-                    if (!feature->Calculate(logs)) {
+                    if (!feature->Calculate()) {
+                        m_calculated_features.Append(sorted_features, 0, i + 1);
                         success = false;
                         break;
                     }
+                    m_calculated_features.Append(feature);
                 }
-                if (success) {
-                    success = FinishEdit();
-                }
-                else {
-                    AbortEdit();
-                }
+                --m_calculating_count;
+            }
+            else {
+                m_calculated_features.Append(sorted_features);
             }
         }
-        for (int i = 0; i < sorted_features.GetCount(); ++i) {
-            sorted_features.Get(i)->m_runtime_state = 0;
-        }
         return success;
-    }
-
-    void Drawing::Log(Array<CommandLog*>&& logs) {
-        Array<CommandLog*> current_logs = logs;
-        //todo
-        for (int i = 0; i < m_observers.GetCount(); ++i) {
-            m_observers.Get(i)->Notify(current_logs); 
-        }
     }
 
     void Drawing::RegisterObserver(DrawingObserver* observer) {
@@ -231,29 +269,28 @@ namespace wgp {
         }
     }
 
-    bool Drawing::TopoSortAffectedFeatures(Feature* feature, Array<Feature*>& sorted_features) {
+    bool Drawing::TopoSortAffectedFeatures(Feature* feature, int state, Array<Feature*>& sorted_features) {
         if (feature->m_is_alone) {
             return true;
         }
-        if (feature->m_runtime_state == 2) {
+        if (feature->m_runtime_state & g_feature_runtime_state_dfs) {
             return false;
         }
-        if (feature->m_runtime_state == 1) {
+        if (feature->m_runtime_state & state) {
             return true;
         }
-        assert(feature->m_runtime_state == 0);
-        feature->m_runtime_state = 2;
+        feature->m_runtime_state |= g_feature_runtime_state_dfs;
         for (int i = 0; i < feature->m_affected_features.GetCount(); ++i) {
-            if (!TopoSortAffectedFeatures(feature->m_affected_features.Get(i), sorted_features)) {
-                feature->m_runtime_state = 0;
+            if (!TopoSortAffectedFeatures(feature->m_affected_features.Get(i), state, sorted_features)) {
+                feature->m_runtime_state &= ~g_feature_runtime_state_dfs;
                 return false;
             }
         }
         for (int k = 0; k < feature->GetStaticOutputCount(); ++k) {
             Feature* output_feature = feature->GetStaticOutput(k);
             if (output_feature) {
-                if (!TopoSortAffectedFeatures(output_feature, sorted_features)) {
-                    feature->m_runtime_state = 0;
+                if (!TopoSortAffectedFeatures(output_feature, state, sorted_features)) {
+                    feature->m_runtime_state &= ~g_feature_runtime_state_dfs;
                     return false;
                 }
             }
@@ -261,20 +298,21 @@ namespace wgp {
         for (int k = 0; k < feature->GetDynamicOutputCount(); ++k) {
             Feature* output_feature = feature->GetDynamicOutput(k);
             if (output_feature) {
-                if (!TopoSortAffectedFeatures(output_feature, sorted_features)) {
-                    feature->m_runtime_state = 0;
+                if (!TopoSortAffectedFeatures(output_feature, state, sorted_features)) {
+                    feature->m_runtime_state &= ~g_feature_runtime_state_dfs;
                     return false;
                 }
             }
         }
         for (int i = 0; i < feature->m_model->m_reference_features.GetCount(); ++i) {
-            if (!TopoSortAffectedFeatures(feature->m_model->m_reference_features.Get(i), sorted_features)) {
-                feature->m_runtime_state = 0;
+            if (!TopoSortAffectedFeatures(feature->m_model->m_reference_features.Get(i), state, sorted_features)) {
+                feature->m_runtime_state &= ~g_feature_runtime_state_dfs;
                 return false;
             }
         }
         sorted_features.Append(feature);
-        feature->m_runtime_state = 1;
+        feature->m_runtime_state &= ~g_feature_runtime_state_dfs;
+        feature->m_runtime_state |= state;
         return true;
     }
 
@@ -282,13 +320,14 @@ namespace wgp {
         bool success = true;
         Array<Feature*> sorted_features(features.GetCount());
         for (int i = 0; i < features.GetCount(); ++i) {
-            if (!TopoSortAffectedFeatures(features.Get(i), sorted_features)) {
+            if (!TopoSortAffectedFeatures(features.Get(i), g_feature_runtime_state_check_relation, sorted_features)) {
                 success = false;
                 break;
             }
         }
         for (int i = 0; i < sorted_features.GetCount(); ++i) {
-            sorted_features.Get(i)->m_runtime_state = 0;
+            Feature* feature = sorted_features.Get(i);
+            feature->m_runtime_state &= ~g_feature_runtime_state_check_relation;
         }
         return success;
     }
@@ -416,11 +455,9 @@ namespace wgp {
         if (m_is_alone) {
             return false;
         }
-        m_drawing->StartEdit();
-        AddFeatureCommandLog* log = new AddFeatureCommandLog(this, feature);
-        log->Redo();
-        m_drawing->AppendLog(log);
-        return m_drawing->FinishEdit();
+        ModelEditCommand command;
+        command.SetLog(new AddFeatureCommandLog(this, feature));
+        return Execute(&command);
     }
 
     bool Model::RemoveFeature(Feature* feature) {
@@ -430,23 +467,9 @@ namespace wgp {
         if (feature->m_affected_features.GetCount() > 0) {
             return false;
         }
-        m_drawing->StartEdit();
-        for (int i = 0; i < feature->GetStaticInputCount(); ++i) {
-            feature->SetStaticInput(i, nullptr);
-        }
-        for (int i = 0; i < feature->GetStaticOutputCount(); ++i) {
-            feature->SetStaticOutput(i, nullptr);
-        }
-        for (int i = feature->GetDynamicInputCount() - 1; i >= 0; --i) {
-            feature->RemoveDynamicInput(feature->GetDynamicInput(i));
-        }
-        for (int i = feature->GetDynamicOutputCount() - 1; i >= 0; --i) {
-            feature->RemoveDynamicOutput(feature->GetDynamicOutput(i));
-        }
-        RemoveFeatureCommandLog* log = new RemoveFeatureCommandLog(this, feature);
-        log->Redo();
-        m_drawing->AppendLog(log);
-        return m_drawing->FinishEdit();
+        ModelEditCommand command;
+        command.SetLog(new RemoveFeatureCommandLog(this, feature));
+        return Execute(&command);
     }
 
     int Model::GetFeatureCount() const {
@@ -462,61 +485,114 @@ namespace wgp {
             return false;
         }
         m_drawing->StartEdit();
+        Array<ModelEditCommand*> inner_commands;
+        bool success = true;
         if (m_executor) {
-            Array<ModelEditCommand*> inner_commands;
-            if (!m_executor->Execute(this, command, inner_commands)) {
-                for (int i = 0; i < inner_commands.GetCount(); ++i) {
-                    delete inner_commands.Get(i);
-                }
-                m_drawing->AbortEdit();
-                return false;
-            }
-            bool success = true;
-            for (int i = 0; i < inner_commands.GetCount(); ++i) {
-                ModelEditCommand* inner_command = inner_commands.Get(i);
-                if (success) {
-                    if (inner_command->GetPath()->GetCount() > 0) {
-                        ReferenceFeature* inner_feature = inner_command->GetPath()->Get(0);
-                        inner_command->PopPathFirst();
-                        m_drawing->AppendAffectedFeature(inner_feature);
-                        assert(inner_feature->GetFeatureSchema() == m_drawing->GetReferenceFeatureSchema());
-                        if (!inner_feature->GetModel()->Execute(inner_command)) {
-                            success = false;
-                        }
-                    }
-                    else {
-                        CommandLog* log = command->GetLog();
-                        command->PopLog();
-                        log->Redo();
-                        m_drawing->AppendLog(log);
-                    }
-                }
-                delete inner_command;
-            }
-            if (!success) {
-                m_drawing->AbortEdit();
-                return false;
-            }
+            success = m_executor->Execute(this, command, inner_commands);            
         }
         else {
-            if (command->GetPath()->GetCount() > 0) {
-                ReferenceFeature* inner_feature = command->GetPath()->Get(0);
-                command->PopPathFirst();
-                m_drawing->AppendAffectedFeature(inner_feature);
-                assert(inner_feature->GetFeatureSchema() == m_drawing->GetReferenceFeatureSchema());
-                if (!inner_feature->GetModel()->Execute(command)) {
-                    m_drawing->AbortEdit();
-                    return false;
+            success = DefaultExecute(command, inner_commands);
+        }
+        if (!success) {
+            for (int i = 0; i < inner_commands.GetCount(); ++i) {
+                ModelEditCommand* inner_command = inner_commands.Get(i);
+                if (inner_command != command) {
+                    delete inner_command;
                 }
             }
-            else {
-                CommandLog* log = command->GetLog();
-                command->PopLog();
-                log->Redo();
-                m_drawing->AppendLog(log);
+            m_drawing->AbortEdit();
+            return false;
+        }
+        for (int i = 0; i < inner_commands.GetCount(); ++i) {
+            ModelEditCommand* inner_command = inner_commands.Get(i);
+            if (success) {
+                if (inner_command->GetPath()->GetCount() > 0) {
+                    ReferenceFeature* inner_feature = inner_command->GetPath()->Get(0);
+                    inner_command->PopPathFirst();
+                    m_drawing->AppendAffectedFeature(inner_feature);
+                    assert(inner_feature->GetFeatureSchema() == m_drawing->GetReferenceFeatureSchema());
+                    if (!inner_feature->GetModel()->Execute(inner_command)) {
+                        success = false;
+                    }
+                }
+                else {
+                    CommandLog* log = command->GetLog();
+                    command->PopLog();
+                    log->Redo();
+                    m_drawing->AppendLog(log);
+                }
+            }
+            if (inner_command != command) {
+                delete inner_command;
             }
         }
+        if (!success) {
+            m_drawing->AbortEdit();
+            return false;
+        }
+        if (m_drawing->IsCurrentScopeEdited()) {
+            m_drawing->AppendAffectedReference(this);
+        }
         return m_drawing->FinishEdit();
+    }
+
+    bool Model::Execute(ModelEditCommand* command, const String& prompt) {
+        m_drawing->StartEdit();
+        if (Execute(command)) {
+            m_drawing->SetLogPrompt(prompt);
+            return m_drawing->FinishEdit();
+        }
+        m_drawing->AbortEdit();
+        return false;
+    }
+
+    bool Model::DefaultExecute(ModelEditCommand* command, Array<ModelEditCommand*>& inner_commands) {
+        if (command->GetPath()->GetCount() > 0) {
+            command->PopPathFirst();
+            inner_commands.Append(command);
+        }
+        else {
+            CommandLog* log = command->GetLog();
+            command->PopLog();
+            if (log->GetType() == RemoveFeatureCommandLog::GetTypeInstance()) {
+                Feature* feature = ((RemoveFeatureCommandLog*)log)->GetFeature();
+                for (int i = 0; i < feature->GetStaticInputCount(); ++i) {
+                    if (!feature->m_executor->SetStaticInputEnable(i, nullptr)) {
+                        return false;
+                    }
+                    Feature* old_input = feature->m_executor->GetStaticInput(i);
+                    if (old_input) {
+                        SetFeatureStaticInputCommandLog* log1 = new SetFeatureStaticInputCommandLog(feature, i, old_input, nullptr);
+                        log1->Redo();
+                        m_drawing->AppendLog(log1);
+                    }
+                }
+                for (int i = 0; i < feature->GetStaticOutputCount(); ++i) {
+                    if (!feature->m_executor->SetStaticOutputEnable(i, nullptr)) {
+                        return false;
+                    }
+                    Feature* old_output = feature->m_executor->GetStaticOutput(i);
+                    if (old_output) {
+                        SetFeatureStaticOutputCommandLog* log1 = new SetFeatureStaticOutputCommandLog(feature, i, old_output, nullptr);
+                        log1->Redo();
+                        m_drawing->AppendLog(log1);
+                    }
+                }
+                for (int i = feature->GetDynamicInputCount() - 1; i >= 0; --i) {
+                    RemoveFeatureDynamicInputCommandLog* log1 = new RemoveFeatureDynamicInputCommandLog(feature, feature->GetDynamicInput(i));
+                    log1->Redo();
+                    m_drawing->AppendLog(log1);
+                }
+                for (int i = feature->GetDynamicOutputCount() - 1; i >= 0; --i) {
+                    RemoveFeatureDynamicOutputCommandLog* log1 = new RemoveFeatureDynamicOutputCommandLog(feature, feature->GetDynamicOutput(i));
+                    log1->Redo();
+                    m_drawing->AppendLog(log1);
+                }
+            }
+            log->Redo();
+            m_drawing->AppendLog(log);
+        }
+        return true;
     }
 
     TYPE_IMP_0(FeatureFieldSchema);
@@ -627,12 +703,9 @@ namespace wgp {
         if (old_input == feature) {
             return true;
         }
-        Drawing* drawing = m_model->GetDrawing();
-        drawing->StartEdit();
-        SetFeatureStaticInputCommandLog* log = new SetFeatureStaticInputCommandLog(this, index, old_input, feature);
-        log->Redo();
-        drawing->AppendLog(log);
-        return drawing->FinishEdit();
+        ModelEditCommand command;
+        command.SetLog(new SetFeatureStaticInputCommandLog(this, index, old_input, feature));
+        return m_model->Execute(&command);
     }
 
     bool Feature::SetStaticOutput(int index, Feature* feature) {
@@ -646,12 +719,9 @@ namespace wgp {
         if (old_output == feature) {
             return true;
         }
-        Drawing* drawing = m_model->GetDrawing();
-        drawing->StartEdit();
-        SetFeatureStaticOutputCommandLog* log = new SetFeatureStaticOutputCommandLog(this, index, old_output, feature);
-        log->Redo();
-        drawing->AppendLog(log);
-        return drawing->FinishEdit();
+        ModelEditCommand command;
+        command.SetLog(new SetFeatureStaticOutputCommandLog(this, index, old_output, feature));
+        return m_model->Execute(&command);
     }
 
     int Feature::GetStaticInputCount() const {
@@ -689,12 +759,9 @@ namespace wgp {
         if (!m_executor || !m_executor->AddDynamicInputEnable(feature)) {
             return false;
         }
-        Drawing* drawing = m_model->GetDrawing();
-        drawing->StartEdit();
-        AddFeatureDynamicInputCommandLog* log = new AddFeatureDynamicInputCommandLog(this, feature);
-        log->Redo();
-        drawing->AppendLog(log);
-        return drawing->FinishEdit();
+        ModelEditCommand command;
+        command.SetLog(new AddFeatureDynamicInputCommandLog(this, feature));
+        return m_model->Execute(&command);
     }
 
     bool Feature::RemoveDynamicInput(Feature* feature) {
@@ -704,12 +771,9 @@ namespace wgp {
         if (!m_executor) {
             return false;
         }
-        Drawing* drawing = m_model->GetDrawing();
-        drawing->StartEdit();
-        RemoveFeatureDynamicInputCommandLog* log = new RemoveFeatureDynamicInputCommandLog(this, feature);
-        log->Redo();
-        drawing->AppendLog(log);
-        return drawing->FinishEdit();
+        ModelEditCommand command;
+        command.SetLog(new RemoveFeatureDynamicInputCommandLog(this, feature));
+        return m_model->Execute(&command);
     }
 
     bool Feature::AddDynamicOutput(Feature* feature) {
@@ -719,12 +783,9 @@ namespace wgp {
         if (!m_executor || !m_executor->AddDynamicOutputEnable(feature)) {
             return false;
         }
-        Drawing* drawing = m_model->GetDrawing();
-        drawing->StartEdit();
-        AddFeatureDynamicOutputCommandLog* log = new AddFeatureDynamicOutputCommandLog(this, feature);
-        log->Redo();
-        drawing->AppendLog(log);
-        return drawing->FinishEdit();
+        ModelEditCommand command;
+        command.SetLog(new AddFeatureDynamicOutputCommandLog(this, feature));
+        return m_model->Execute(&command);
     }
 
     bool Feature::RemoveDynamicOutput(Feature* feature) {
@@ -734,12 +795,9 @@ namespace wgp {
         if (!m_executor) {
             return false;
         }
-        Drawing* drawing = m_model->GetDrawing();
-        drawing->StartEdit();
-        RemoveFeatureDynamicOutputCommandLog* log = new RemoveFeatureDynamicOutputCommandLog(this, feature);
-        log->Redo();
-        drawing->AppendLog(log);
-        return drawing->FinishEdit();
+        ModelEditCommand command;
+        command.SetLog(new RemoveFeatureDynamicOutputCommandLog(this, feature));
+        return m_model->Execute(&command);
     }
 
     int Feature::GetDynamicInputCount() const {
@@ -770,11 +828,21 @@ namespace wgp {
         return nullptr;
     }
 
-    bool Feature::Calculate(Array<CommandLog*>& logs) {
+    bool Feature::Calculate() {
+        Drawing* drawing = m_model->GetDrawing();
+        drawing->StartEdit();
+        bool success = true;
         if (m_executor) {
-            return m_executor->Calculate(logs);
+            success = m_executor->Calculate();
         }
-        return true;
+        if (success) {
+            if (drawing->IsCurrentScopeEdited()) {
+                drawing->AppendAffectedReference(m_model);
+            }
+            return drawing->FinishEdit();
+        }
+        drawing->AbortEdit();
+        return false;
     }
 
     TYPE_IMP_1(ReferenceFeatureSchema, FeatureSchema::GetTypeInstance());
@@ -817,21 +885,21 @@ namespace wgp {
         }
     }
 
-    void GroupCommandLog::AppendAffectedFeature(Array<Feature*>& features) {
+    void GroupCommandLog::AppendAffectedFeature(Drawing* drawing) {
         for (int i = 0; i < m_logs.GetCount(); ++i) {
-            m_logs.Get(i)->AppendAffectedFeature(features);
+            m_logs.Get(i)->AppendAffectedFeature(drawing);
         }
         if (m_refresher) {
-            m_refresher->AppendAffectedFeature(features);
+            m_refresher->AppendAffectedFeature(drawing);
         }
     }
 
-    void GroupCommandLog::AppendRecheckRelationFeature(Array<Feature*>& features) {
+    void GroupCommandLog::AppendRecheckRelationFeature(Drawing* drawing) {
         for (int i = 0; i < m_logs.GetCount(); ++i) {
-            m_logs.Get(i)->AppendRecheckRelationFeature(features);
+            m_logs.Get(i)->AppendRecheckRelationFeature(drawing);
         }
         if (m_refresher) {
-            m_refresher->AppendRecheckRelationFeature(features);
+            m_refresher->AppendRecheckRelationFeature(drawing);
         }
     }
 
@@ -884,4 +952,34 @@ namespace wgp {
         AffectedFeatures = std::move(item.AffectedFeatures);
         RecheckRelationFeatures = std::move(item.RecheckRelationFeatures);
     }
+
+    CommandLogGroup::CommandLogGroup() {
+    }
+
+    CommandLogGroup::~CommandLogGroup() {
+        for (int i = 0; i < m_logs.GetCount(); ++i) {
+            delete m_logs.Get(i);
+        }
+    }
+
+    void CommandLogGroup::Undo() {
+        for (int i = m_logs.GetCount() - 1; i >= 0; --i) {
+            m_logs.Get(i)->Undo();
+        }
+    }
+
+    void CommandLogGroup::Redo() {
+        for (int i = 0; i < m_logs.GetCount(); ++i) {
+            m_logs.Get(i)->Redo();
+        }
+    }
+
+    void CommandLogGroup::Clear() {
+        for (int i = 0; i < m_logs.GetCount(); ++i) {
+            delete m_logs.Get(i);
+        }
+        m_logs.Clear();
+        m_prompt = String();
+    }
+
 }

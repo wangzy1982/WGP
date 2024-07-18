@@ -81,6 +81,7 @@ namespace wgp {
     }
 
     void RenderingTree::Notify(const Array<CommandLog*>& logs) {
+        /*
         Array<Feature*> affected_features;
         for (int i = 0; i < logs.GetCount(); ++i) {
             CommandLog* log = logs.Get(i);
@@ -96,6 +97,8 @@ namespace wgp {
                 }
             }
         }
+        */
+        //todo
     }
 
     Model* RenderingTree::GetModel() const {

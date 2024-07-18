@@ -21,10 +21,10 @@ namespace wgp {
         return m_model;
     }
 
-    void AddModelCommandLog::AppendAffectedFeature(Array<Feature*>& features) {
+    void AddModelCommandLog::AppendAffectedFeature(Drawing* drawing) {
     }
 
-    void AddModelCommandLog::AppendRecheckRelationFeature(Array<Feature*>& features) {
+    void AddModelCommandLog::AppendRecheckRelationFeature(Drawing* drawing) {
     }
 
     void AddModelCommandLog::Undo() {
@@ -61,10 +61,10 @@ namespace wgp {
         return m_model;
     }
 
-    void RemoveModelCommandLog::AppendAffectedFeature(Array<Feature*>& features) {
+    void RemoveModelCommandLog::AppendAffectedFeature(Drawing* drawing) {
     }
 
-    void RemoveModelCommandLog::AppendRecheckRelationFeature(Array<Feature*>& features) {
+    void RemoveModelCommandLog::AppendRecheckRelationFeature(Drawing* drawing) {
     }
 
     void RemoveModelCommandLog::Undo() {
@@ -108,12 +108,12 @@ namespace wgp {
         return m_feature;
     }
 
-    void AddFeatureCommandLog::AppendAffectedFeature(Array<Feature*>& features) {
-        features.Append(m_feature);
+    void AddFeatureCommandLog::AppendAffectedFeature(Drawing* drawing) {
+        drawing->AppendAffectedFeature(m_feature);
     }
 
-    void AddFeatureCommandLog::AppendRecheckRelationFeature(Array<Feature*>& features) {
-        features.Append(m_feature);
+    void AddFeatureCommandLog::AppendRecheckRelationFeature(Drawing* drawing) {
+        drawing->AppendRecheckRelationFeature(m_feature);
     }
 
     void AddFeatureCommandLog::Undo() {
@@ -172,10 +172,10 @@ namespace wgp {
         return m_feature;
     }
 
-    void RemoveFeatureCommandLog::AppendAffectedFeature(Array<Feature*>& features) {
+    void RemoveFeatureCommandLog::AppendAffectedFeature(Drawing* drawing) {
     }
 
-    void RemoveFeatureCommandLog::AppendRecheckRelationFeature(Array<Feature*>& features) {
+    void RemoveFeatureCommandLog::AppendRecheckRelationFeature(Drawing* drawing) {
     }
 
     void RemoveFeatureCommandLog::Undo() {
@@ -238,13 +238,13 @@ namespace wgp {
         m_feature->DecRef();
     }
 
-    void SetFeatureStaticInputCommandLog::AppendAffectedFeature(Array<Feature*>& features) {
-        features.Append(m_feature);
+    void SetFeatureStaticInputCommandLog::AppendAffectedFeature(Drawing* drawing) {
+        drawing->AppendAffectedFeature(m_feature);
     }
 
-    void SetFeatureStaticInputCommandLog::AppendRecheckRelationFeature(Array<Feature*>& features) {
+    void SetFeatureStaticInputCommandLog::AppendRecheckRelationFeature(Drawing* drawing) {
         if (m_new_input) {
-            features.Append(m_feature);
+            drawing->AppendRecheckRelationFeature(m_feature);
         }
     }
 
@@ -304,13 +304,13 @@ namespace wgp {
         m_feature->DecRef();
     }
 
-    void SetFeatureStaticOutputCommandLog::AppendAffectedFeature(Array<Feature*>& features) {
-        features.Append(m_feature);
+    void SetFeatureStaticOutputCommandLog::AppendAffectedFeature(Drawing* drawing) {
+        drawing->AppendAffectedFeature(m_feature);
     }
 
-    void SetFeatureStaticOutputCommandLog::AppendRecheckRelationFeature(Array<Feature*>& features) {
+    void SetFeatureStaticOutputCommandLog::AppendRecheckRelationFeature(Drawing* drawing) {
         if (m_new_output) {
-            features.Append(m_feature);
+            drawing->AppendRecheckRelationFeature(m_feature);
         }
     }
 
@@ -358,12 +358,12 @@ namespace wgp {
         m_feature->DecRef();
     }
 
-    void AddFeatureDynamicInputCommandLog::AppendAffectedFeature(Array<Feature*>& features) {
-        features.Append(m_feature);
+    void AddFeatureDynamicInputCommandLog::AppendAffectedFeature(Drawing* drawing) {
+        drawing->AppendAffectedFeature(m_feature);
     }
 
-    void AddFeatureDynamicInputCommandLog::AppendRecheckRelationFeature(Array<Feature*>& features) {
-        features.Append(m_feature);
+    void AddFeatureDynamicInputCommandLog::AppendRecheckRelationFeature(Drawing* drawing) {
+        drawing->AppendRecheckRelationFeature(m_feature);
     }
 
     void AddFeatureDynamicInputCommandLog::Undo() {
@@ -395,11 +395,11 @@ namespace wgp {
         m_feature->DecRef();
     }
 
-    void RemoveFeatureDynamicInputCommandLog::AppendAffectedFeature(Array<Feature*>& features) {
-        features.Append(m_feature);
+    void RemoveFeatureDynamicInputCommandLog::AppendAffectedFeature(Drawing* drawing) {
+        drawing->AppendAffectedFeature(m_feature);
     }
 
-    void RemoveFeatureDynamicInputCommandLog::AppendRecheckRelationFeature(Array<Feature*>& features) {
+    void RemoveFeatureDynamicInputCommandLog::AppendRecheckRelationFeature(Drawing* drawing) {
     }
 
     void RemoveFeatureDynamicInputCommandLog::Undo() {
@@ -431,12 +431,12 @@ namespace wgp {
         m_feature->DecRef();
     }
 
-    void AddFeatureDynamicOutputCommandLog::AppendAffectedFeature(Array<Feature*>& features) {
-        features.Append(m_feature);
+    void AddFeatureDynamicOutputCommandLog::AppendAffectedFeature(Drawing* drawing) {
+        drawing->AppendAffectedFeature(m_feature);
     }
 
-    void AddFeatureDynamicOutputCommandLog::AppendRecheckRelationFeature(Array<Feature*>& features) {
-        features.Append(m_feature);
+    void AddFeatureDynamicOutputCommandLog::AppendRecheckRelationFeature(Drawing* drawing) {
+        drawing->AppendRecheckRelationFeature(m_feature);
     }
 
     void AddFeatureDynamicOutputCommandLog::Undo() {
@@ -468,11 +468,11 @@ namespace wgp {
         m_feature->DecRef();
     }
 
-    void RemoveFeatureDynamicOutputCommandLog::AppendAffectedFeature(Array<Feature*>& features) {
-        features.Append(m_feature);
+    void RemoveFeatureDynamicOutputCommandLog::AppendAffectedFeature(Drawing* drawing) {
+        drawing->AppendAffectedFeature(m_feature);
     }
 
-    void RemoveFeatureDynamicOutputCommandLog::AppendRecheckRelationFeature(Array<Feature*>& features) {
+    void RemoveFeatureDynamicOutputCommandLog::AppendRecheckRelationFeature(Drawing* drawing) {
     }
 
     void RemoveFeatureDynamicOutputCommandLog::Undo() {
@@ -502,11 +502,11 @@ namespace wgp {
         m_feature->DecRef();
     }
 
-    void SetFieldCommandLog::AppendAffectedFeature(Array<Feature*>& features) {
-        features.Append(m_feature);
+    void SetFieldCommandLog::AppendAffectedFeature(Drawing* drawing) {
+        drawing->AppendAffectedFeature(m_feature);
     }
 
-    void SetFieldCommandLog::AppendRecheckRelationFeature(Array<Feature*>& features) {
+    void SetFieldCommandLog::AppendRecheckRelationFeature(Drawing* drawing) {
     }
 
     TYPE_IMP_1(SetAsIntCommandLog, SetFieldCommandLog::GetTypeInstance());

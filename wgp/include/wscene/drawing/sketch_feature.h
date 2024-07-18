@@ -177,8 +177,8 @@ namespace wgp {
     public:
         SketchFeatureRefresher(SketchFeature* feature);
         virtual ~SketchFeatureRefresher();
-        virtual void AppendAffectedFeature(Array<Feature*>& features);
-        virtual void AppendRecheckRelationFeature(Array<Feature*>& features);
+        virtual void AppendAffectedFeature(Drawing* drawing);
+        virtual void AppendRecheckRelationFeature(Drawing* drawing);
         virtual void AfterUndo(const Array<CommandLog*>& logs);
         virtual void AfterRedo(const Array<CommandLog*>& logs);
     private:

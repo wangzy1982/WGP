@@ -45,10 +45,12 @@ namespace wgp {
         void UpdateNextId(SceneId id);
         void StartEdit();
         bool IsEditing();
+        bool IsCurrentScopeEdited();
         void AppendLog(CommandLog* log);
         void AppendAffectedFeature(Feature* feature);
+        void AppendAffectedReference(Model* model);
         void AppendRecheckRelationFeature(Feature* feature);
-        void SetLogPrompt(const String& undo_prompt, const String& redo_prompt);
+        void SetLogPrompt(const String& prompt);
         void AbortEdit();
         bool FinishEdit();
         bool AddModel(Model* model);
@@ -66,9 +68,8 @@ namespace wgp {
         SketchFixPoint2dPoint2dDistanceConstraintFeatureSchema* GetSketchFixPoint2dPoint2dDistanceConstraintFeatureSchema();
         SketchFixLine2dLine2dAngleConstraintFeatureSchema* GetSketchFixLine2dLine2dAngleConstraintFeatureSchema();
     private:
-        bool Sync(const Array<Feature*>& affected_features, Array<CommandLog*>& logs);
-        void Log(Array<CommandLog*>&& logs);
-        bool TopoSortAffectedFeatures(Feature* feature, Array<Feature*>& sorted_features);
+        bool Calculate(const Array<Feature*>& affected_features);
+        bool TopoSortAffectedFeatures(Feature* feature, int state, Array<Feature*>& sorted_features);
         bool CheckRelations(const Array<Feature*>& features);
     protected:
         friend class AddModelCommandLog;
@@ -78,9 +79,10 @@ namespace wgp {
         Array<FeatureSchema*> m_feature_schemas;
         Array<DrawingObserver*> m_observers;
     private:
-        String m_current_undo_prompt;
-        String m_current_redo_prompt;
         Array<LogStackItem> m_log_stack;
+        int m_calculating_count;
+        Array<Feature*> m_calculated_features;
+        CommandLogGroup* m_current_group;
         Array<CommandLogGroup*> m_log_groups;
     private:
         ReferenceFeatureSchema* m_reference_feature_schema;
@@ -132,6 +134,9 @@ namespace wgp {
         int GetFeatureCount() const;
         Feature* GetFeature(int index) const;
         bool Execute(ModelEditCommand* command);
+        bool Execute(ModelEditCommand* command, const String& prompt);
+    protected:
+        bool DefaultExecute(ModelEditCommand* command, Array<ModelEditCommand*>& inner_commands);
     protected:
         friend class Drawing;
         friend class AddModelCommandLog;
@@ -184,7 +189,7 @@ namespace wgp {
         FeatureExecutor(Feature* owner);
         virtual ~FeatureExecutor();
         Feature* GetOwner() const;
-    protected:
+    public:
         virtual int GetStaticInputCount() const = 0;
         virtual Feature* GetStaticInput(int index) const = 0;
         virtual int GetStaticOutputCount() const = 0;
@@ -203,7 +208,7 @@ namespace wgp {
         virtual bool AddDynamicOutputEnable(Feature* feature) = 0;
         virtual void DirectAddDynamicOutput(Feature* feature) = 0;
         virtual void DirectRemoveDynamicOutput(Feature* feature) = 0;
-        virtual bool Calculate(Array<CommandLog*>& logs) = 0;
+        virtual bool Calculate() = 0;
     protected:
         friend class Feature;
         friend class SetFeatureStaticInputCommandLog;
@@ -237,7 +242,7 @@ namespace wgp {
         Feature* GetDynamicInput(int index) const;
         int GetDynamicOutputCount() const;
         Feature* GetDynamicOutput(int index) const;
-        bool Calculate(Array<CommandLog*>& logs);
+        bool Calculate();
     protected:
         friend class Drawing;
         friend class Model;
@@ -285,16 +290,16 @@ namespace wgp {
     public:
         virtual ~CommandLog() {}
     public:
-        virtual void AppendAffectedFeature(Array<Feature*>& features) = 0;
-        virtual void AppendRecheckRelationFeature(Array<Feature*>& features) = 0;
+        virtual void AppendAffectedFeature(Drawing* drawing) = 0;
+        virtual void AppendRecheckRelationFeature(Drawing* drawing) = 0;
         virtual void Undo() = 0;
         virtual void Redo() = 0;
     };
 
     class WGP_API GroupCommandLogRefresher {
     public:
-        virtual void AppendAffectedFeature(Array<Feature*>& features) = 0;
-        virtual void AppendRecheckRelationFeature(Array<Feature*>& features) = 0;
+        virtual void AppendAffectedFeature(Drawing* drawing) = 0;
+        virtual void AppendRecheckRelationFeature(Drawing* drawing) = 0;
         virtual void AfterUndo(const Array<CommandLog*>& logs) = 0;
         virtual void AfterRedo(const Array<CommandLog*>& logs) = 0;
     };
@@ -306,8 +311,8 @@ namespace wgp {
         GroupCommandLog(int capacity);
         GroupCommandLog();
         virtual ~GroupCommandLog();
-        virtual void AppendAffectedFeature(Array<Feature*>& features);
-        virtual void AppendRecheckRelationFeature(Array<Feature*>& features);
+        virtual void AppendAffectedFeature(Drawing* drawing);
+        virtual void AppendRecheckRelationFeature(Drawing* drawing);
         virtual void Undo();
         virtual void Redo();
         void AppendLog(CommandLog* log);
@@ -331,7 +336,17 @@ namespace wgp {
     };
 
     class WGP_API CommandLogGroup {
-
+    public:
+        CommandLogGroup();
+        virtual ~CommandLogGroup();
+        void Undo();
+        void Redo();
+    protected:
+        void Clear();
+    private:
+        friend class Drawing;
+        Array<CommandLog*> m_logs;
+        String m_prompt;
     };
 
 }

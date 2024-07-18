@@ -242,11 +242,11 @@ namespace wgp {
         m_feature->DecRef();
     }
 
-    void SketchFeatureRefresher::AppendAffectedFeature(Array<Feature*>& features) {
-        features.Append(m_feature);
+    void SketchFeatureRefresher::AppendAffectedFeature(Drawing* drawing) {
+        drawing->AppendAffectedFeature(m_feature);
     }
 
-    void SketchFeatureRefresher::AppendRecheckRelationFeature(Array<Feature*>& features) {
+    void SketchFeatureRefresher::AppendRecheckRelationFeature(Drawing* drawing) {
     }
 
     void SketchFeatureRefresher::AfterUndo(const Array<CommandLog*>& logs) {
@@ -318,7 +318,6 @@ namespace wgp {
             return false;
         }
         Drawing* drawing = model->GetDrawing();
-        drawing->StartEdit();
         CommandLog* log = command->GetLog();
         if (log->GetType() == AddFeatureCommandLog::GetTypeInstance()) {
             Feature* feature = ((AddFeatureCommandLog*)log)->GetFeature();
@@ -366,7 +365,7 @@ namespace wgp {
                 AfterSolve(sketch, model, log, actived_variables);
             }
         }
-        return drawing->FinishEdit();
+        return true;
     }
 
     SketchGeometryFeature* SketchModelExecutor::FindGeometryFeature(Model* model, SketchVariableEntity* entity) {

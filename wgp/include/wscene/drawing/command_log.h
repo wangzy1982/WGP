@@ -18,8 +18,8 @@ namespace wgp {
         AddModelCommandLog(Model* model);
         virtual ~AddModelCommandLog();
         Model* GetModel() const;
-        virtual void AppendAffectedFeature(Array<Feature*>& features);
-        virtual void AppendRecheckRelationFeature(Array<Feature*>& features);
+        virtual void AppendAffectedFeature(Drawing* drawing);
+        virtual void AppendRecheckRelationFeature(Drawing* drawing);
         virtual void Undo();
         virtual void Redo();
     protected:
@@ -33,8 +33,8 @@ namespace wgp {
         RemoveModelCommandLog(Model* model);
         virtual ~RemoveModelCommandLog();
         Model* GetModel() const;
-        virtual void AppendAffectedFeature(Array<Feature*>& features);
-        virtual void AppendRecheckRelationFeature(Array<Feature*>& features);
+        virtual void AppendAffectedFeature(Drawing* drawing);
+        virtual void AppendRecheckRelationFeature(Drawing* drawing);
         virtual void Undo();
         virtual void Redo();
     protected:
@@ -49,8 +49,8 @@ namespace wgp {
         virtual ~AddFeatureCommandLog();
         Model* GetModel() const;
         Feature* GetFeature() const;
-        virtual void AppendAffectedFeature(Array<Feature*>& features);
-        virtual void AppendRecheckRelationFeature(Array<Feature*>& features);
+        virtual void AppendAffectedFeature(Drawing* drawing);
+        virtual void AppendRecheckRelationFeature(Drawing* drawing);
         virtual void Undo();
         virtual void Redo();
     protected:
@@ -66,8 +66,8 @@ namespace wgp {
         virtual ~RemoveFeatureCommandLog();
         Model* GetModel() const;
         Feature* GetFeature() const;
-        virtual void AppendAffectedFeature(Array<Feature*>& features);
-        virtual void AppendRecheckRelationFeature(Array<Feature*>& features);
+        virtual void AppendAffectedFeature(Drawing* drawing);
+        virtual void AppendRecheckRelationFeature(Drawing* drawing);
         virtual void Undo();
         virtual void Redo();
     protected:
@@ -81,8 +81,8 @@ namespace wgp {
     public:
         SetFeatureStaticInputCommandLog(Feature* feature, int index, Feature* old_input, Feature* new_input);
         virtual ~SetFeatureStaticInputCommandLog();
-        virtual void AppendAffectedFeature(Array<Feature*>& features);
-        virtual void AppendRecheckRelationFeature(Array<Feature*>& features);
+        virtual void AppendAffectedFeature(Drawing* drawing);
+        virtual void AppendRecheckRelationFeature(Drawing* drawing);
         virtual void Undo();
         virtual void Redo();
     protected:
@@ -98,8 +98,8 @@ namespace wgp {
     public:
         SetFeatureStaticOutputCommandLog(Feature* feature, int index, Feature* old_output, Feature* new_output);
         virtual ~SetFeatureStaticOutputCommandLog();
-        virtual void AppendAffectedFeature(Array<Feature*>& features);
-        virtual void AppendRecheckRelationFeature(Array<Feature*>& features);
+        virtual void AppendAffectedFeature(Drawing* drawing);
+        virtual void AppendRecheckRelationFeature(Drawing* drawing);
         virtual void Undo();
         virtual void Redo();
     protected:
@@ -115,8 +115,8 @@ namespace wgp {
     public:
         AddFeatureDynamicInputCommandLog(Feature* feature, Feature* input_feature);
         virtual ~AddFeatureDynamicInputCommandLog();
-        virtual void AppendAffectedFeature(Array<Feature*>& features);
-        virtual void AppendRecheckRelationFeature(Array<Feature*>& features);
+        virtual void AppendAffectedFeature(Drawing* drawing);
+        virtual void AppendRecheckRelationFeature(Drawing* drawing);
         virtual void Undo();
         virtual void Redo();
     protected:
@@ -130,8 +130,8 @@ namespace wgp {
     public:
         RemoveFeatureDynamicInputCommandLog(Feature* feature, Feature* input_feature);
         virtual ~RemoveFeatureDynamicInputCommandLog();
-        virtual void AppendAffectedFeature(Array<Feature*>& features);
-        virtual void AppendRecheckRelationFeature(Array<Feature*>& features);
+        virtual void AppendAffectedFeature(Drawing* drawing);
+        virtual void AppendRecheckRelationFeature(Drawing* drawing);
         virtual void Undo();
         virtual void Redo();
     protected:
@@ -145,8 +145,8 @@ namespace wgp {
     public:
         AddFeatureDynamicOutputCommandLog(Feature* feature, Feature* output_feature);
         virtual ~AddFeatureDynamicOutputCommandLog();
-        virtual void AppendAffectedFeature(Array<Feature*>& features);
-        virtual void AppendRecheckRelationFeature(Array<Feature*>& features);
+        virtual void AppendAffectedFeature(Drawing* drawing);
+        virtual void AppendRecheckRelationFeature(Drawing* drawing);
         virtual void Undo();
         virtual void Redo();
     protected:
@@ -160,8 +160,8 @@ namespace wgp {
     public:
         RemoveFeatureDynamicOutputCommandLog(Feature* feature, Feature* output_feature);
         virtual ~RemoveFeatureDynamicOutputCommandLog();
-        virtual void AppendAffectedFeature(Array<Feature*>& features);
-        virtual void AppendRecheckRelationFeature(Array<Feature*>& features);
+        virtual void AppendAffectedFeature(Drawing* drawing);
+        virtual void AppendRecheckRelationFeature(Drawing* drawing);
         virtual void Undo();
         virtual void Redo();
     protected:
@@ -175,8 +175,8 @@ namespace wgp {
     public:
         SetFieldCommandLog(Feature* feature, FeatureFieldSchema* field_schema);
         virtual ~SetFieldCommandLog();
-        virtual void AppendAffectedFeature(Array<Feature*>& features);
-        virtual void AppendRecheckRelationFeature(Array<Feature*>& features);
+        virtual void AppendAffectedFeature(Drawing* drawing);
+        virtual void AppendRecheckRelationFeature(Drawing* drawing);
     protected:
         Feature* m_feature;
         FeatureFieldSchema* m_field_schema;
