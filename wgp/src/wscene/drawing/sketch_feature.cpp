@@ -566,26 +566,30 @@ namespace wgp {
             return nullptr;
         }
         Ptr<SketchFeature> sketch_feature = new SketchFeature(model.Get(), sketch_feature_id, drawing->GetSketchFeatureSchema());
-        if (!model->AddFeature(sketch_feature.Get())) {
+        if (!model->AddFeature(sketch_feature.Get(), nullptr)) {
             drawing->AbortEdit();
             return nullptr;
         }
+        static String add_sketch_model_prompt = String("Add sketch model");
+        drawing->SetLogPrompt(add_sketch_model_prompt);
         return drawing->FinishEdit() ? model.Get() : nullptr;
     }
 
     bool SketchModelHelper::AddSketchLine2d(Model* model, SceneId geometry_id, const Vector2d& start_point, const Vector2d& end_point,
         Array<Feature*>& affected_features, Array<CommandLog*>& logs) {
+        static String add_sketch_line2d_prompt = String("Add sketch line2d");
         SketchFeature* sketch_feature = (SketchFeature*)model->GetFeature(0);
         Ptr<SketchLine2d> geometry = new SketchLine2d(sketch_feature->GetSketch(), start_point, end_point);
         Ptr<SketchLine2dFeature> geometry_feature = new SketchLine2dFeature(model, geometry_id, model->GetDrawing()->GetSketchLine2dFeatureSchema(), geometry.Get());
         ModelEditCommand edit_command;
         edit_command.SetLog(new AddFeatureCommandLog(model, geometry_feature.Get()));
-        return model->Execute(&edit_command);
+        return model->Execute(&edit_command, &add_sketch_line2d_prompt);
     }
 
     bool SketchModelHelper::AddSketchPoint2dEqualConstraint(Model* model, SceneId constraint_id,
         SketchGeometryFeature* geometry0, int x_variable_index0, int y_variable_index0,
         SketchGeometryFeature* geometry1, int x_variable_index1, int y_variable_index1, double epsilon) {
+        static String add_sketch_point2d_equal_constraint_prompt = String("Add sketch point2d equal constraint");
         SketchFeature* sketch_feature = (SketchFeature*)model->GetFeature(0);
         Ptr<SketchPoint2dEqualConstraint> constraint = new SketchPoint2dEqualConstraint(sketch_feature->GetSketch(),
             geometry0->GetGeometry(), x_variable_index0, y_variable_index0,
@@ -594,12 +598,13 @@ namespace wgp {
             model->GetDrawing()->GetSketchPoint2dEqualConstraintFeatureSchema(), constraint.Get());
         ModelEditCommand edit_command;
         edit_command.SetLog(new AddFeatureCommandLog(model, constraint_feature.Get()));
-        return model->Execute(&edit_command);
+        return model->Execute(&edit_command, &add_sketch_point2d_equal_constraint_prompt);
     }
 
     bool SketchModelHelper::AddSketchFixPoint2dConstraint(Model* model, SceneId constraint_id,
         SketchGeometryFeature* geometry, int x_variable_index, int y_variable_index,
         const Vector2d& point, double epsilon) {
+        static String add_sketch_fix_point2d_constraint_prompt = String("Add sketch fix point2d constraint");
         SketchFeature* sketch_feature = (SketchFeature*)model->GetFeature(0);
         Ptr<SketchFixPoint2dConstraint> constraint = new SketchFixPoint2dConstraint(sketch_feature->GetSketch(),
             geometry->GetGeometry(), x_variable_index, y_variable_index, point, epsilon);
@@ -607,13 +612,14 @@ namespace wgp {
             model->GetDrawing()->GetSketchFixPoint2dConstraintFeatureSchema(), constraint.Get());
         ModelEditCommand edit_command;
         edit_command.SetLog(new AddFeatureCommandLog(model, constraint_feature.Get()));
-        return model->Execute(&edit_command);
+        return model->Execute(&edit_command, &add_sketch_fix_point2d_constraint_prompt);
     }
 
     bool SketchModelHelper::AddSketchFixPoint2dPoint2dDistanceConstraint(Model* model, SceneId constraint_id,
         SketchGeometryFeature* entity0, int x_variable_index0, int y_variable_index0,
         SketchGeometryFeature* entity1, int x_variable_index1, int y_variable_index1,
         double distance, double epsilon) {
+        static String add_sketch_fix_point2d_point2d_distance_constraint_prompt = String("Add sketch fix point2d point2d distance constraint");
         SketchFeature* sketch_feature = (SketchFeature*)model->GetFeature(0);
         Ptr<SketchFixPoint2dPoint2dDistanceConstraint> constraint = new SketchFixPoint2dPoint2dDistanceConstraint(sketch_feature->GetSketch(),
             entity0->GetGeometry(), x_variable_index0, y_variable_index0, 
@@ -622,13 +628,14 @@ namespace wgp {
             model->GetDrawing()->GetSketchFixPoint2dPoint2dDistanceConstraintFeatureSchema(), constraint.Get());
         ModelEditCommand edit_command;
         edit_command.SetLog(new AddFeatureCommandLog(model, constraint_feature.Get()));
-        return model->Execute(&edit_command);
+        return model->Execute(&edit_command, &add_sketch_fix_point2d_point2d_distance_constraint_prompt);
     }
 
     bool SketchModelHelper::AddSketchFixLine2dLine2dAngleConstraint(Model* model, SceneId constraint_id,
         SketchGeometryFeature* entity0, int start_x_variable_index0, int start_y_variable_index0, int end_x_variable_index0, int end_y_variable_index0,
         SketchGeometryFeature* entity1, int start_x_variable_index1, int start_y_variable_index1, int end_x_variable_index1, int end_y_variable_index1,
         double angle, double epsilon) {
+        static String add_sketch_fix_line2d_line2d_angle_constraint_prompt = String("Add sketch fix line2d line2d angle constraint");
         SketchFeature* sketch_feature = (SketchFeature*)model->GetFeature(0);
         Ptr<SketchFixLine2dLine2dAngleConstraint> constraint = new SketchFixLine2dLine2dAngleConstraint(sketch_feature->GetSketch(),
             entity0->GetGeometry(), start_x_variable_index0, start_y_variable_index0, end_x_variable_index0, end_y_variable_index0,
@@ -637,7 +644,7 @@ namespace wgp {
             model->GetDrawing()->GetSketchFixLine2dLine2dAngleConstraintFeatureSchema(), constraint.Get());
         ModelEditCommand edit_command;
         edit_command.SetLog(new AddFeatureCommandLog(model, constraint_feature.Get()));
-        return model->Execute(&edit_command);
+        return model->Execute(&edit_command, &add_sketch_fix_line2d_line2d_angle_constraint_prompt);
     }
 
 }

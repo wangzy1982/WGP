@@ -83,21 +83,21 @@ namespace wgp {
     }
     */
 
-    TYPE_IMP_1(IntFeatureFieldSchema, FeatureFieldSchema::GetTypeInstance());
+    TYPE_IMP_1(Int32FeatureFieldSchema, FeatureFieldSchema::GetTypeInstance());
 
-    IntFeatureFieldSchema::IntFeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const String& name,
-        GetAsIntFunc get_func, DirectSetAsIntFunc direct_set_func) :
+    Int32FeatureFieldSchema::Int32FeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const String& name,
+        GetAsInt32Func get_func, DirectSetAsInt32Func direct_set_func) :
         FeatureFieldSchema(m_feature_schema, id, name),
         m_get_func(get_func),
         m_direct_set_func(direct_set_func) {
     }
 
-    int IntFeatureFieldSchema::GetAsInt(Feature* feature) {
+    int Int32FeatureFieldSchema::GetAsInt32(Feature* feature) {
         return m_get_func(feature, this);
     }
 
-    SetAsIntCommandLog* IntFeatureFieldSchema::NewSetCommandLog(Feature* feature, int value) {
-        return new SetAsIntCommandLog(feature, this, m_get_func(feature, this), value);
+    SetAsInt32CommandLog* Int32FeatureFieldSchema::NewSetCommandLog(Feature* feature, int32_t value) {
+        return new SetAsInt32CommandLog(feature, this, m_get_func(feature, this), value);
     }
 
     TYPE_IMP_1(DoubleFeatureFieldSchema, FeatureFieldSchema::GetTypeInstance());

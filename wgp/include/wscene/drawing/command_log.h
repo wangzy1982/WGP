@@ -92,23 +92,6 @@ namespace wgp {
         Feature* m_new_input;
     };
 
-    class WGP_API SetFeatureStaticOutputCommandLog : public CommandLog {
-    public:
-        TYPE_DEF_1(SetFeatureStaticOutputCommandLog);
-    public:
-        SetFeatureStaticOutputCommandLog(Feature* feature, int index, Feature* old_output, Feature* new_output);
-        virtual ~SetFeatureStaticOutputCommandLog();
-        virtual void AppendAffectedFeature(Drawing* drawing);
-        virtual void AppendRecheckRelationFeature(Drawing* drawing);
-        virtual void Undo();
-        virtual void Redo();
-    protected:
-        Feature* m_feature;
-        int m_index;
-        Feature* m_old_output;
-        Feature* m_new_output;
-    };
-
     class WGP_API AddFeatureDynamicInputCommandLog : public CommandLog {
     public:
         TYPE_DEF_1(AddFeatureDynamicInputCommandLog);
@@ -139,36 +122,6 @@ namespace wgp {
         Feature* m_input_feature;
     };
 
-    class WGP_API AddFeatureDynamicOutputCommandLog : public CommandLog {
-    public:
-        TYPE_DEF_1(AddFeatureDynamicOutputCommandLog);
-    public:
-        AddFeatureDynamicOutputCommandLog(Feature* feature, Feature* output_feature);
-        virtual ~AddFeatureDynamicOutputCommandLog();
-        virtual void AppendAffectedFeature(Drawing* drawing);
-        virtual void AppendRecheckRelationFeature(Drawing* drawing);
-        virtual void Undo();
-        virtual void Redo();
-    protected:
-        Feature* m_feature;
-        Feature* m_output_feature;
-    };
-
-    class WGP_API RemoveFeatureDynamicOutputCommandLog : public CommandLog {
-    public:
-        TYPE_DEF_1(RemoveFeatureDynamicOutputCommandLog);
-    public:
-        RemoveFeatureDynamicOutputCommandLog(Feature* feature, Feature* output_feature);
-        virtual ~RemoveFeatureDynamicOutputCommandLog();
-        virtual void AppendAffectedFeature(Drawing* drawing);
-        virtual void AppendRecheckRelationFeature(Drawing* drawing);
-        virtual void Undo();
-        virtual void Redo();
-    protected:
-        Feature* m_feature;
-        Feature* m_output_feature;
-    };
-
     class WGP_API SetFieldCommandLog : public CommandLog {
     public:
         TYPE_DEF_1(SetFieldCommandLog);
@@ -182,16 +135,16 @@ namespace wgp {
         FeatureFieldSchema* m_field_schema;
     };
 
-    class WGP_API SetAsIntCommandLog : public SetFieldCommandLog {
+    class WGP_API SetAsInt32CommandLog : public SetFieldCommandLog {
     public:
-        TYPE_DEF_1(SetAsIntCommandLog);
+        TYPE_DEF_1(SetAsInt32CommandLog);
     public:
-        SetAsIntCommandLog(Feature* feature, IntFeatureFieldSchema* field_schema, int old_value, int new_value);
+        SetAsInt32CommandLog(Feature* feature, Int32FeatureFieldSchema* field_schema, int32_t old_value, int32_t new_value);
         virtual void Undo();
         virtual void Redo();
     protected:
-        int m_old_value;
-        int m_new_value;
+        int32_t m_old_value;
+        int32_t m_new_value;
     };
 
     class WGP_API SetAsDoubleCommandLog : public SetFieldCommandLog {

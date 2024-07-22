@@ -15,6 +15,7 @@
 #include "wstd/string.h"
 #include "feature_visitor.h"
 #include "wstd/type.h"
+#include "renderer/line_stipple.h"
 
 namespace wgp {
 
@@ -129,12 +130,11 @@ namespace wgp {
         virtual ~Model();
         Drawing* GetDrawing() const;
         SceneId GetId() const;
-        bool AddFeature(Feature* feature);
-        bool RemoveFeature(Feature* feature);
+        bool AddFeature(Feature* feature, const String* prompt);
+        bool RemoveFeature(Feature* feature, const String* prompt);
         int GetFeatureCount() const;
         Feature* GetFeature(int index) const;
-        bool Execute(ModelEditCommand* command);
-        bool Execute(ModelEditCommand* command, const String& prompt);
+        bool Execute(ModelEditCommand* command, const String* prompt);
     protected:
         bool DefaultExecute(ModelEditCommand* command, Array<ModelEditCommand*>& inner_commands);
     protected:
@@ -192,32 +192,21 @@ namespace wgp {
     public:
         virtual int GetStaticInputCount() const = 0;
         virtual Feature* GetStaticInput(int index) const = 0;
-        virtual int GetStaticOutputCount() const = 0;
-        virtual Feature* GetStaticOutput(int index) const = 0;
         virtual bool SetStaticInputEnable(int index, Feature* feature) = 0;
         virtual void DirectSetStaticInput(int index, Feature* feature) = 0;
-        virtual bool SetStaticOutputEnable(int index, Feature* feature) = 0;
-        virtual void DirectSetStaticOutput(int index, Feature* feature) = 0;
         virtual int GetDynamicInputCount() const = 0;
         virtual Feature* GetDynamicInput(int index) const = 0;
-        virtual int GetDynamicOutputCount() const = 0;
-        virtual Feature* GetDynamicOutput(int index) const = 0;
         virtual bool AddDynamicInputEnable(Feature* feature) = 0;
         virtual void DirectAddDynamicInput(Feature* feature) = 0;
         virtual void DirectRemoveDynamicInput(Feature* feature) = 0;
-        virtual bool AddDynamicOutputEnable(Feature* feature) = 0;
-        virtual void DirectAddDynamicOutput(Feature* feature) = 0;
-        virtual void DirectRemoveDynamicOutput(Feature* feature) = 0;
         virtual bool Calculate() = 0;
     protected:
         friend class Feature;
         friend class SetFeatureStaticInputCommandLog;
-        friend class SetFeatureStaticOutputCommandLog;
         friend class AddFeatureDynamicInputCommandLog;
         friend class RemoveFeatureDynamicInputCommandLog;
-        friend class AddFeatureDynamicOutputCommandLog;
-        friend class RemoveFeatureDynamicOutputCommandLog;
         Feature* m_owner;
+        bool m_is_executing;
     };
 
     class WGP_API Feature : public RefObject {
@@ -228,39 +217,33 @@ namespace wgp {
         FeatureSchema* GetFeatureSchema() const;
         SceneId GetId() const;
         bool IsAlone() const;
-        bool SetStaticInput(int index, Feature* feature);
-        bool SetStaticOutput(int index, Feature* feature);
         int GetStaticInputCount() const;
         Feature* GetStaticInput(int index) const;
-        int GetStaticOutputCount() const;
-        Feature* GetStaticOutput(int index) const;
-        bool AddDynamicInput(Feature* feature);
-        bool RemoveDynamicInput(Feature* feature);
-        bool AddDynamicOutput(Feature* feature);
-        bool RemoveDynamicOutput(Feature* feature);
         int GetDynamicInputCount() const;
         Feature* GetDynamicInput(int index) const;
-        int GetDynamicOutputCount() const;
-        Feature* GetDynamicOutput(int index) const;
-        bool Calculate();
+    public:
+        bool SetValue(FeatureFieldSchema* field_schema, int32_t value, const String* prompt);
+        bool SetValue(FeatureFieldSchema* field_schema, const String& value, const String* prompt);
+        bool SetValue(FeatureFieldSchema* field_schema, LineStipple* value, const String* prompt);
+        bool SetStaticInput(int index, Feature* feature, const String* prompt);
+        bool AddDynamicInput(Feature* feature, const String* prompt);
+        bool RemoveDynamicInput(Feature* feature, const String* prompt);
     protected:
         friend class Drawing;
         friend class Model;
         friend class AddFeatureCommandLog;
         friend class RemoveFeatureCommandLog;
         friend class SetFeatureStaticInputCommandLog;
-        friend class SetFeatureStaticOutputCommandLog;
         friend class AddFeatureDynamicInputCommandLog;
         friend class RemoveFeatureDynamicInputCommandLog;
-        friend class AddFeatureDynamicOutputCommandLog;
-        friend class RemoveFeatureDynamicOutputCommandLog;
+        bool Calculate();
+    protected:
         Model* m_model;
         FeatureSchema* m_feature_schema;
         SceneId m_id;
         bool m_is_alone;
         FeatureExecutor* m_executor;
         Array<Feature*> m_affected_features;
-        Array<Feature*> m_executor_features;
     protected:
         int m_runtime_state;
     };

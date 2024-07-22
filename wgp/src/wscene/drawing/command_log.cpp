@@ -278,72 +278,6 @@ namespace wgp {
         }
     }
 
-    TYPE_IMP_1(SetFeatureStaticOutputCommandLog, CommandLog::GetTypeInstance());
-
-    SetFeatureStaticOutputCommandLog::SetFeatureStaticOutputCommandLog(Feature* feature, int index, Feature* old_output, Feature* new_output) :
-        m_feature(feature),
-        m_index(index),
-        m_old_output(old_output),
-        m_new_output(new_output) {
-        m_feature->IncRef();
-        if (m_old_output) {
-            m_old_output->IncRef();
-        }
-        if (m_new_output) {
-            m_new_output->IncRef();
-        }
-    }
-
-    SetFeatureStaticOutputCommandLog::~SetFeatureStaticOutputCommandLog() {
-        if (m_old_output) {
-            m_old_output->DecRef();
-        }
-        if (m_new_output) {
-            m_new_output->DecRef();
-        }
-        m_feature->DecRef();
-    }
-
-    void SetFeatureStaticOutputCommandLog::AppendAffectedFeature(Drawing* drawing) {
-        drawing->AppendAffectedFeature(m_feature);
-    }
-
-    void SetFeatureStaticOutputCommandLog::AppendRecheckRelationFeature(Drawing* drawing) {
-        if (m_new_output) {
-            drawing->AppendRecheckRelationFeature(m_feature);
-        }
-    }
-
-    void SetFeatureStaticOutputCommandLog::Undo() {
-        if (m_new_output) {
-            for (int k = 0; k < m_new_output->m_executor_features.GetCount(); ++k) {
-                if (m_new_output->m_executor_features.Get(k) == m_feature) {
-                    m_new_output->m_executor_features.Remove(k);
-                    break;
-                }
-            }
-        }
-        m_feature->m_executor->DirectSetStaticOutput(m_index, m_old_output);
-        if (m_old_output) {
-            m_old_output->m_executor_features.Append(m_feature);
-        }
-    }
-
-    void SetFeatureStaticOutputCommandLog::Redo() {
-        if (m_old_output) {
-            for (int k = 0; k < m_old_output->m_executor_features.GetCount(); ++k) {
-                if (m_old_output->m_executor_features.Get(k) == m_feature) {
-                    m_old_output->m_executor_features.Remove(k);
-                    break;
-                }
-            }
-        }
-        m_feature->m_executor->DirectSetStaticOutput(m_index, m_new_output);
-        if (m_new_output) {
-            m_new_output->m_executor_features.Append(m_feature);
-        }
-    }
-
     TYPE_IMP_1(AddFeatureDynamicInputCommandLog, CommandLog::GetTypeInstance());
 
     AddFeatureDynamicInputCommandLog::AddFeatureDynamicInputCommandLog(Feature* feature, Feature* input_feature) :
@@ -417,79 +351,6 @@ namespace wgp {
         m_feature->m_executor->DirectRemoveDynamicInput(m_input_feature);
     }
 
-    TYPE_IMP_1(AddFeatureDynamicOutputCommandLog, CommandLog::GetTypeInstance());
-
-    AddFeatureDynamicOutputCommandLog::AddFeatureDynamicOutputCommandLog(Feature* feature, Feature* output_feature) :
-        m_feature(feature),
-        m_output_feature(output_feature) {
-        m_feature->IncRef();
-        m_output_feature->IncRef();
-    }
-
-    AddFeatureDynamicOutputCommandLog::~AddFeatureDynamicOutputCommandLog() {
-        m_output_feature->DecRef();
-        m_feature->DecRef();
-    }
-
-    void AddFeatureDynamicOutputCommandLog::AppendAffectedFeature(Drawing* drawing) {
-        drawing->AppendAffectedFeature(m_feature);
-    }
-
-    void AddFeatureDynamicOutputCommandLog::AppendRecheckRelationFeature(Drawing* drawing) {
-        drawing->AppendRecheckRelationFeature(m_feature);
-    }
-
-    void AddFeatureDynamicOutputCommandLog::Undo() {
-        for (int k = 0; k < m_output_feature->m_executor_features.GetCount(); ++k) {
-            if (m_output_feature->m_executor_features.Get(k) == m_feature) {
-                m_output_feature->m_executor_features.Remove(k);
-                break;
-            }
-        }
-        m_feature->m_executor->DirectRemoveDynamicOutput(m_output_feature);
-    }
-
-    void AddFeatureDynamicOutputCommandLog::Redo() {
-        m_feature->m_executor->DirectAddDynamicOutput(m_output_feature);
-        m_output_feature->m_executor_features.Append(m_feature);
-    }
-
-    TYPE_IMP_1(RemoveFeatureDynamicOutputCommandLog, CommandLog::GetTypeInstance());
-
-    RemoveFeatureDynamicOutputCommandLog::RemoveFeatureDynamicOutputCommandLog(Feature* feature, Feature* output_feature) :
-        m_feature(feature),
-        m_output_feature(output_feature) {
-        m_feature->IncRef();
-        m_output_feature->IncRef();
-    }
-
-    RemoveFeatureDynamicOutputCommandLog::~RemoveFeatureDynamicOutputCommandLog() {
-        m_output_feature->DecRef();
-        m_feature->DecRef();
-    }
-
-    void RemoveFeatureDynamicOutputCommandLog::AppendAffectedFeature(Drawing* drawing) {
-        drawing->AppendAffectedFeature(m_feature);
-    }
-
-    void RemoveFeatureDynamicOutputCommandLog::AppendRecheckRelationFeature(Drawing* drawing) {
-    }
-
-    void RemoveFeatureDynamicOutputCommandLog::Undo() {
-        m_feature->m_executor->DirectAddDynamicOutput(m_output_feature);
-        m_output_feature->m_executor_features.Append(m_feature);
-    }
-
-    void RemoveFeatureDynamicOutputCommandLog::Redo() {
-        for (int k = 0; k < m_output_feature->m_executor_features.GetCount(); ++k) {
-            if (m_output_feature->m_executor_features.Get(k) == m_feature) {
-                m_output_feature->m_executor_features.Remove(k);
-                break;
-            }
-        }
-        m_feature->m_executor->DirectRemoveDynamicOutput(m_output_feature);
-    }
-
     TYPE_IMP_1(SetFieldCommandLog, CommandLog::GetTypeInstance());
 
     SetFieldCommandLog::SetFieldCommandLog(Feature* feature, FeatureFieldSchema* field_schema) :
@@ -509,20 +370,20 @@ namespace wgp {
     void SetFieldCommandLog::AppendRecheckRelationFeature(Drawing* drawing) {
     }
 
-    TYPE_IMP_1(SetAsIntCommandLog, SetFieldCommandLog::GetTypeInstance());
+    TYPE_IMP_1(SetAsInt32CommandLog, SetFieldCommandLog::GetTypeInstance());
 
-    SetAsIntCommandLog::SetAsIntCommandLog(Feature* feature, IntFeatureFieldSchema* field_schema, int old_value, int new_value) :
+    SetAsInt32CommandLog::SetAsInt32CommandLog(Feature* feature, Int32FeatureFieldSchema* field_schema, int32_t old_value, int32_t new_value) :
         SetFieldCommandLog(feature, field_schema),
         m_old_value(old_value),
         m_new_value(new_value) {
     }
 
-    void SetAsIntCommandLog::Undo() {
-        ((IntFeatureFieldSchema*)m_field_schema)->m_direct_set_func(m_feature, m_field_schema, m_old_value);
+    void SetAsInt32CommandLog::Undo() {
+        ((Int32FeatureFieldSchema*)m_field_schema)->m_direct_set_func(m_feature, m_field_schema, m_old_value);
     }
 
-    void SetAsIntCommandLog::Redo() {
-        ((IntFeatureFieldSchema*)m_field_schema)->m_direct_set_func(m_feature, m_field_schema, m_new_value);
+    void SetAsInt32CommandLog::Redo() {
+        ((Int32FeatureFieldSchema*)m_field_schema)->m_direct_set_func(m_feature, m_field_schema, m_new_value);
     }
 
     TYPE_IMP_1(SetAsDoubleCommandLog, SetFieldCommandLog::GetTypeInstance());

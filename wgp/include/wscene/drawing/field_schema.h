@@ -16,21 +16,21 @@
 
 namespace wgp {
 
-    typedef int (*GetAsIntFunc)(Feature* feature, FeatureFieldSchema* field_schema);
-    typedef void (*DirectSetAsIntFunc)(Feature* feature, FeatureFieldSchema* field_schema, int value);
+    typedef int (*GetAsInt32Func)(Feature* feature, FeatureFieldSchema* field_schema);
+    typedef void (*DirectSetAsInt32Func)(Feature* feature, FeatureFieldSchema* field_schema, int value);
 
-    class WGP_API IntFeatureFieldSchema : public FeatureFieldSchema {
+    class WGP_API Int32FeatureFieldSchema : public FeatureFieldSchema {
     public:
-        TYPE_DEF_1(IntFeatureFieldSchema);
+        TYPE_DEF_1(Int32FeatureFieldSchema);
     public:
-        IntFeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const String& name,
-            GetAsIntFunc get_func, DirectSetAsIntFunc direct_set_func);
-        int GetAsInt(Feature* feature);
-        friend class SetAsIntCommandLog;
-        SetAsIntCommandLog* NewSetCommandLog(Feature* feature, int value);
+        Int32FeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const String& name,
+            GetAsInt32Func get_func, DirectSetAsInt32Func direct_set_func);
+        int32_t GetAsInt32(Feature* feature);
+        friend class SetAsInt32CommandLog;
+        SetAsInt32CommandLog* NewSetCommandLog(Feature* feature, int32_t value);
     private:
-        GetAsIntFunc m_get_func;
-        DirectSetAsIntFunc m_direct_set_func;
+        GetAsInt32Func m_get_func;
+        DirectSetAsInt32Func m_direct_set_func;
     };
 
     typedef double (*GetAsDoubleFunc)(Feature* feature, FeatureFieldSchema* field_schema);
