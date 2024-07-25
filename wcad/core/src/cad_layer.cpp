@@ -10,21 +10,23 @@ namespace wcad {
 
     TYPE_IMP_1(LayerFeatureSchema, wgp::FeatureSchema::GetTypeInstance());
 
-    LayerFeatureSchema::LayerFeatureSchema(Drawing* drawing, wgp::SceneId id, const wgp::String& name, wgp::SceneId name_field_schema_id,
-        wgp::SceneId color_field_schema_id, wgp::SceneId transparent_field_schema_id, wgp::SceneId line_weight_field_schema_id) :
-        wgp::FeatureSchema(drawing, id, name) {
+    LayerFeatureSchema::LayerFeatureSchema(Drawing* drawing, const wgp::String& name) :
+        wgp::FeatureSchema(drawing, name) {
         wgp::StringFeatureFieldSchema* name_field_schema = new wgp::StringFeatureFieldSchema(
-            this, name_field_schema_id, "Name", GetName, DirectSetName);
+            this, wgp::StringResource("Name"), GetName, DirectSetName);
         AddFieldSchema(name_field_schema);
         wgp::Int32FeatureFieldSchema* color_field_schema = new wgp::Int32FeatureFieldSchema(
-            this, color_field_schema_id, "Color", GetColor, DirectSetColor);
+            this, wgp::StringResource("Color"), GetColor, DirectSetColor);
         AddFieldSchema(color_field_schema);
         wgp::Int32FeatureFieldSchema* transparent_field_schema = new wgp::Int32FeatureFieldSchema(
-            this, transparent_field_schema_id, "Transparent", GetTransparent, DirectSetTransparent);
+            this, wgp::StringResource("Transparent"), GetTransparent, DirectSetTransparent);
         AddFieldSchema(transparent_field_schema);
         wgp::Int32FeatureFieldSchema* line_weight_field_schema = new wgp::Int32FeatureFieldSchema(
-            this, line_weight_field_schema_id, "LineWeight", GetLineWeight, DirectSetLineWeight);
+            this, wgp::StringResource("LineWeight"), GetLineWeight, DirectSetLineWeight);
         AddFieldSchema(line_weight_field_schema);
+        wgp::DoubleFeatureFieldSchema* linetype_scale_field_schema = new wgp::DoubleFeatureFieldSchema(
+            this, wgp::StringResource("LinetypeScale"), GetLinetypeScale, DirectSetLinetypeScale);
+        AddFieldSchema(linetype_scale_field_schema);
     }
 
     wgp::StringFeatureFieldSchema* LayerFeatureSchema::GetNameFieldSchema() const {
@@ -41,6 +43,10 @@ namespace wcad {
 
     wgp::Int32FeatureFieldSchema* LayerFeatureSchema::GetLineWeightFieldSchema() const {
         return (wgp::Int32FeatureFieldSchema*)GetFieldSchema(3);
+    }
+
+    wgp::DoubleFeatureFieldSchema* LayerFeatureSchema::GetLinetypeScaleFieldSchema() const {
+        return (wgp::DoubleFeatureFieldSchema*)GetFieldSchema(4);
     }
 
     wgp::String LayerFeatureSchema::GetName(wgp::Feature* feature, wgp::FeatureFieldSchema* field_schema) {
@@ -67,12 +73,20 @@ namespace wcad {
         ((LayerFeature*)feature)->m_transparent = value;
     }
 
-    int LayerFeatureSchema::GetLineWeight(wgp::Feature* feature, wgp::FeatureFieldSchema* field_schema) {
-        return ((LayerFeature*)feature)->m_line_weight;
+    int32_t LayerFeatureSchema::GetLineWeight(wgp::Feature* feature, wgp::FeatureFieldSchema* field_schema) {
+        return (int32_t)((LayerFeature*)feature)->m_line_weight;
     }
 
-    void LayerFeatureSchema::DirectSetLineWeight(wgp::Feature* feature, wgp::FeatureFieldSchema* field_schema, int value) {
+    void LayerFeatureSchema::DirectSetLineWeight(wgp::Feature* feature, wgp::FeatureFieldSchema* field_schema, int32_t value) {
         ((LayerFeature*)feature)->m_line_weight = value;
+    }
+
+    double LayerFeatureSchema::GetLinetypeScale(wgp::Feature* feature, wgp::FeatureFieldSchema* field_schema) {
+        return ((LayerFeature*)feature)->m_linetype_scale;
+    }
+
+    void LayerFeatureSchema::DirectSetLinetypeScale(wgp::Feature* feature, wgp::FeatureFieldSchema* field_schema, double value) {
+        ((LayerFeature*)feature)->m_linetype_scale = value;
     }
 
     LayerFeatureExecutor::LayerFeatureExecutor(wgp::Feature* owner) :
@@ -125,7 +139,7 @@ namespace wcad {
         m_name(),
         m_color(0),
         m_transparent(0),
-        m_line_weight(0) {
+        m_line_weight((int32_t)LineWeight::LineWeight0) {
         //todo 初始化
     }
 
@@ -144,8 +158,20 @@ namespace wcad {
         return m_transparent;
     }
 
-    int LayerFeature::GetLineWeight() const {
+    int32_t LayerFeature::GetLineWeight() const {
         return m_line_weight;
+    }
+
+    Linetype* LayerFeature::GetLinetype() const {
+        wgp::ReferenceFeature* linetype_feature = (wgp::ReferenceFeature*)GetStaticInput(0);
+        if (!linetype_feature) {
+            return nullptr;
+        }
+        return (Linetype*)linetype_feature->GetReferenceModel();
+    }
+
+    double LayerFeature::GetLinetypeScale() const {
+        return m_linetype_scale;
     }
 
     TYPE_IMP_1(Layer, wgp::Model::GetTypeInstance());
@@ -154,105 +180,93 @@ namespace wcad {
         wgp::Model(drawing, id, nullptr) {
     }
 
-    Layer* Layer::AddLayer(Drawing* drawing, wgp::SceneId id, wgp::SceneId feature_id, const wgp::String& name,
-        int32_t color, int32_t transparent, int32_t line_weight) {
-        drawing->StartEdit();
-        wgp::Ptr<Layer> layer = new Layer(drawing, id);
-        if (!drawing->AddModel(layer.Get())) {
-            drawing->AbortEdit();
-            return nullptr;
-        }
-        wgp::Ptr<LayerFeature> feature = new LayerFeature(layer.Get(), feature_id, drawing->GetLayerFeatureSchema());
-        if (!layer->AddFeature(feature.Get(), nullptr)) {
-            drawing->AbortEdit();
-            return nullptr;
-        }
-        if (!layer->SetName(name)) {
-            drawing->AbortEdit();
-            return nullptr;
-        }
-        if (!layer->SetColor(color)) {
-            drawing->AbortEdit();
-            return nullptr;
-        }
-        if (!layer->SetTransparent(transparent)) {
-            drawing->AbortEdit();
-            return nullptr;
-        }
-        if (!layer->SetLineWeight(line_weight)) {
-            drawing->AbortEdit();
-            return nullptr;
-        }
-        static wgp::String add_layer_prompt = wgp::String("Add layer");
-        drawing->SetLogPrompt(add_layer_prompt);
-        return drawing->FinishEdit() ? layer.Get() : nullptr;
-    }
-
     wgp::String Layer::GetName() const {
         return ((LayerFeature*)GetFeature(0))->GetName();
     }
 
     bool Layer::SetName(const wgp::String& value) {
-        static wgp::String layer_set_name_prompt = wgp::String("Set layer name");
+        static wgp::String layer_set_name_prompt = wgp::StringResource("Set layer name");
         LayerFeature* feature = (LayerFeature*)GetFeature(0);
         return feature->SetValue(((LayerFeatureSchema*)feature->GetFeatureSchema())->GetNameFieldSchema(), value, &layer_set_name_prompt);
     }
 
-    int32_t Layer::GetColor() const {
+    Color Layer::GetColor() const {
         return ((LayerFeature*)GetFeature(0))->GetColor();
     }
 
-    bool Layer::SetColor(int32_t value) {
-        static wgp::String layer_set_color_prompt = wgp::String("Set layer color");
+    bool Layer::SetColor(const Color& value) {
+        static wgp::String layer_set_color_prompt = wgp::StringResource("Set layer color");
         LayerFeature* feature = (LayerFeature*)GetFeature(0);
-        return feature->SetValue(((LayerFeatureSchema*)feature->GetFeatureSchema())->GetColorFieldSchema(), value, &layer_set_color_prompt);
+        return feature->SetValue(((LayerFeatureSchema*)feature->GetFeatureSchema())->GetColorFieldSchema(), value.GetData(), &layer_set_color_prompt);
     }
 
-    int32_t Layer::GetTransparent() const {
+    Transparent Layer::GetTransparent() const {
         return ((LayerFeature*)GetFeature(0))->GetTransparent();
     }
 
-    bool Layer::SetTransparent(int32_t value) {
-        static wgp::String layer_set_transparent_prompt = wgp::String("Set layer transparent");
+    bool Layer::SetTransparent(const Transparent& value) {
+        static wgp::String layer_set_transparent_prompt = wgp::StringResource("Set layer transparent");
         LayerFeature* feature = (LayerFeature*)GetFeature(0);
-        return feature->SetValue(((LayerFeatureSchema*)feature->GetFeatureSchema())->GetTransparentFieldSchema(), value, &layer_set_transparent_prompt);
+        return feature->SetValue(((LayerFeatureSchema*)feature->GetFeatureSchema())->GetTransparentFieldSchema(), value.GetData(), &layer_set_transparent_prompt);
     }
 
-    int32_t Layer::GetLineWeight() const {
-        return ((LayerFeature*)GetFeature(0))->GetLineWeight();
+    LineWeight Layer::GetLineWeight() const {
+        return (LineWeight)((LayerFeature*)GetFeature(0))->GetLineWeight();
     }
 
-    bool Layer::SetLineWeight(int32_t value) {
-        static wgp::String layer_set_line_weight_prompt = wgp::String("Set layer line weight");
+    bool Layer::SetLineWeight(LineWeight value) {
+        static wgp::String layer_set_line_weight_prompt = wgp::StringResource("Set layer line weight");
         LayerFeature* feature = (LayerFeature*)GetFeature(0);
-        return feature->SetValue(((LayerFeatureSchema*)feature->GetFeatureSchema())->GetLineWeightFieldSchema(), value, &layer_set_line_weight_prompt);
+        return feature->SetValue(((LayerFeatureSchema*)feature->GetFeatureSchema())->GetLineWeightFieldSchema(), (int32_t)value, &layer_set_line_weight_prompt);
     }
 
     Linetype* Layer::GetLinetype() const {
-        wgp::ReferenceFeature* linetype_feature = (wgp::ReferenceFeature*)GetFeature(0)->GetStaticInput(0);
-        if (!linetype_feature) {
-            return nullptr;
-        }
-        return (Linetype*)linetype_feature->GetReferenceModel();
+        return ((LayerFeature*)GetFeature(0))->GetLinetype();
     }
 
-    bool Layer::SetLinetype(Linetype* linetype) {
-        if (GetLinetype() == linetype) {
+    bool Layer::SetLinetype(Linetype* value) {
+        if (GetLinetype() == value) {
             return true;
         }
-        static wgp::String layer_set_linetype_prompt = wgp::String("Set layer linetype");
+        static wgp::String layer_set_linetype_prompt = wgp::StringResource("Set layer linetype");
         LayerFeature* feature = (LayerFeature*)GetFeature(0);
-        if (!linetype) {
-            return feature->SetStaticInput(0, nullptr, &layer_set_linetype_prompt);
-        }
+        wgp::ReferenceFeature* old_linetype_feature = (wgp::ReferenceFeature*)feature->GetStaticInput(0);
         m_drawing->StartEdit();
-        wgp::ReferenceFeature* linetype_feature = new wgp::ReferenceFeature(this, m_drawing->AllocId(), nullptr, linetype);
-        if (!AddFeature(linetype_feature, nullptr)) {
-            m_drawing->AbortEdit();
-            return false;
+        if (value) {
+            wgp::ReferenceFeature* linetype_feature = new wgp::ReferenceFeature(this, m_drawing->AllocId(), nullptr, value);
+            if (!AddFeature(linetype_feature, nullptr)) {
+                m_drawing->AbortEdit();
+                return false;
+            }
+            if (!feature->SetStaticInput(0, linetype_feature, nullptr)) {
+                m_drawing->AbortEdit();
+                return false;
+            }
+        }
+        else {
+            if (!feature->SetStaticInput(0, nullptr, nullptr)) {
+                m_drawing->AbortEdit();
+                return false;
+            }
+        }
+        if (old_linetype_feature) {
+            if (!RemoveFeature(old_linetype_feature, nullptr)) {
+                m_drawing->AbortEdit();
+                return false;
+            }
         }
         m_drawing->SetLogPrompt(layer_set_linetype_prompt);
         return m_drawing->FinishEdit();
+    }
+
+    double Layer::GetLinetypeScale() const {
+        return ((LayerFeature*)GetFeature(0))->GetLinetypeScale();
+    }
+
+    bool Layer::SetLinetypeScale(double value) {
+        static wgp::String layer_set_linetype_scale_prompt = wgp::StringResource("Set layer line type scale");
+        LayerFeature* feature = (LayerFeature*)GetFeature(0);
+        return feature->SetValue(((LayerFeatureSchema*)feature->GetFeatureSchema())->GetLinetypeScaleFieldSchema(), value, &layer_set_linetype_scale_prompt);
     }
 
 

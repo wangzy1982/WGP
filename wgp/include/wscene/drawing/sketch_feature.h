@@ -17,7 +17,7 @@ namespace wgp {
     public:
         TYPE_DEF_1(SketchFeatureSchema);
     public:
-        SketchFeatureSchema(Drawing* drawing, SceneId id, const String& name, SceneId sketch_field_schema_id);
+        SketchFeatureSchema(Drawing* drawing, const String& name);
         SketchFeatureFieldSchema* GetSketchFieldSchema() const;
     protected:
         static int GetFieldCount() { return 1; }
@@ -39,7 +39,7 @@ namespace wgp {
     public:
         TYPE_DEF_1(SketchGeometryFeatureSchema);
     public:
-        SketchGeometryFeatureSchema(Drawing* drawing, SceneId id, const String& name, SceneId geometry_field_schema_id);
+        SketchGeometryFeatureSchema(Drawing* drawing, const String& name);
         SketchGeometryFeatureFieldSchema* GetGeometryFieldSchema() const;
     protected:
         static int GetFieldCount() { return 1; }
@@ -61,7 +61,7 @@ namespace wgp {
     public:
         TYPE_DEF_1(SketchConstraintFeatureSchema);
     public:
-        SketchConstraintFeatureSchema(Drawing* drawing, SceneId id, const String& name, SceneId constraint_field_schema_id);
+        SketchConstraintFeatureSchema(Drawing* drawing, const String& name);
         SketchConstraintFeatureFieldSchema* GetConstraintFieldSchema() const;
     protected:
         static int GetFieldCount() { return 1; }
@@ -83,8 +83,7 @@ namespace wgp {
     public:
         TYPE_DEF_1(SketchLine2dFeatureSchema);
     public:
-        SketchLine2dFeatureSchema(Drawing* drawing, SceneId id, const String& name,
-            SceneId geometry_field_schema_id, SceneId start_point_field_schema_id, SceneId end_point_field_schema_id);
+        SketchLine2dFeatureSchema(Drawing* drawing, const String& name);
         Vector2dFeatureFieldSchema* GetStartPointFieldSchema() const;
         Vector2dFeatureFieldSchema* GetEndPointFieldSchema() const;
     protected:
@@ -107,7 +106,7 @@ namespace wgp {
     public:
         TYPE_DEF_1(SketchPoint2dEqualConstraintFeatureSchema);
     public:
-        SketchPoint2dEqualConstraintFeatureSchema(Drawing* drawing, SceneId id, const String& name, SceneId constraint_field_schema_id);
+        SketchPoint2dEqualConstraintFeatureSchema(Drawing* drawing, const String& name);
     protected:
         static int GetFieldCount() { return SketchConstraintFeatureSchema::GetFieldCount(); }
     };
@@ -124,7 +123,7 @@ namespace wgp {
     public:
         TYPE_DEF_1(SketchFixPoint2dConstraintFeatureSchema);
     public:
-        SketchFixPoint2dConstraintFeatureSchema(Drawing* drawing, SceneId id, const String& name, SceneId constraint_field_schema_id);
+        SketchFixPoint2dConstraintFeatureSchema(Drawing* drawing, const String& name);
     protected:
         static int GetFieldCount() { return SketchConstraintFeatureSchema::GetFieldCount(); }
     };
@@ -141,7 +140,7 @@ namespace wgp {
     public:
         TYPE_DEF_1(SketchFixPoint2dPoint2dDistanceConstraintFeatureSchema);
     public:
-        SketchFixPoint2dPoint2dDistanceConstraintFeatureSchema(Drawing* drawing, SceneId id, const String& name, SceneId constraint_field_schema_id);
+        SketchFixPoint2dPoint2dDistanceConstraintFeatureSchema(Drawing* drawing, const String& name);
     protected:
         static int GetFieldCount() { return SketchConstraintFeatureSchema::GetFieldCount(); }
     };
@@ -159,7 +158,7 @@ namespace wgp {
     public:
         TYPE_DEF_1(SketchFixLine2dLine2dAngleConstraintFeatureSchema);
     public:
-        SketchFixLine2dLine2dAngleConstraintFeatureSchema(Drawing* drawing, SceneId id, const String& name, SceneId constraint_field_schema_id);
+        SketchFixLine2dLine2dAngleConstraintFeatureSchema(Drawing* drawing, const String& name);
     protected:
         static int GetFieldCount() { return SketchConstraintFeatureSchema::GetFieldCount(); }
     };
@@ -197,9 +196,8 @@ namespace wgp {
 
     class WGP_API SketchModelHelper {
     public:
-        static Model* AddSketchModel(Drawing* drawing, SceneId id, SceneId sketch_feature_id);
-        static bool AddSketchLine2d(Model* model, SceneId geometry_id, const Vector2d& start_point, const Vector2d& end_point, 
-            Array<Feature*>& affected_features, Array<CommandLog*>& logs);
+        static bool InitializeSketchModel(Model* model, SceneId sketch_feature_id);
+        static SketchLine2dFeature* AddSketchLine2d(Model* model, SceneId geometry_id, const Vector2d& start_point, const Vector2d& end_point);
         static bool AddSketchPoint2dEqualConstraint(Model* model, SceneId constraint_id,
             SketchGeometryFeature* geometry0, int x_variable_index0, int y_variable_index0,
             SketchGeometryFeature* geometry1, int x_variable_index1, int y_variable_index1, double epsilon);

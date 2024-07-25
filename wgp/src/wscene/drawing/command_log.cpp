@@ -278,6 +278,22 @@ namespace wgp {
         }
     }
 
+    Feature* SetFeatureStaticInputCommandLog::GetFeature() const {
+        return m_feature;
+    }
+
+    int SetFeatureStaticInputCommandLog::GetIndex() const {
+        return m_index;
+    }
+
+    Feature* SetFeatureStaticInputCommandLog::GetOldInput() const {
+        return m_old_input;
+    }
+
+    Feature* SetFeatureStaticInputCommandLog::GetNewInput() const {
+        return m_new_input;
+    }
+
     TYPE_IMP_1(AddFeatureDynamicInputCommandLog, CommandLog::GetTypeInstance());
 
     AddFeatureDynamicInputCommandLog::AddFeatureDynamicInputCommandLog(Feature* feature, Feature* input_feature) :

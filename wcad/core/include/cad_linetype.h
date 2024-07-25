@@ -14,7 +14,7 @@ namespace wcad {
     public:
         TYPE_DEF_1(LinetypeFeatureSchema);
     public:
-        LinetypeFeatureSchema(Drawing* drawing, wgp::SceneId id, const wgp::String& name, wgp::SceneId name_field_schema_id, wgp::SceneId stipple_field_schema_id);
+        LinetypeFeatureSchema(Drawing* drawing, const wgp::String& name);
         wgp::StringFeatureFieldSchema* GetNameFieldSchema() const;
         wgp::LineStippleFeatureFieldSchema* GetStippleFieldSchema() const;
     protected:
@@ -48,7 +48,6 @@ namespace wcad {
     protected:
         friend class Drawing;
         Linetype(Drawing* drawing, wgp::SceneId id);
-        static Linetype* AddLinetype(Drawing* drawing, wgp::SceneId id, wgp::SceneId feature_id, const wgp::String& name, wgp::LineStipple* stipple);
     };
 
 }

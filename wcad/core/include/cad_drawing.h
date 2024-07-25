@@ -8,6 +8,7 @@
 #include "wcad_base.h"
 #include "wscene/drawing.h"
 #include "wscene/drawing/field_schema.h"
+#include "cad_common.h"
 
 namespace wcad {
 
@@ -15,23 +16,36 @@ namespace wcad {
     class Linetype;
     class LayerFeatureSchema;
     class Layer;
+    class Block;
+    class EntityFeature;
+    class EntityFeatureSchema;
 
     class WCAD_API Drawing : public wgp::Drawing {
     public:
         Drawing();
         virtual ~Drawing();
         Linetype* AddLinetype(const wgp::String& name, wgp::LineStipple* stipple);
-        Layer* AddLayer(const wgp::String& name, int32_t color, int32_t transparent, int32_t line_weight);
+        Layer* AddLayer(const wgp::String& name, const Color& color, const Transparent& transparent, 
+            Linetype* linetype, LineWeight line_weight, double linetype_scale);
+        Block* AddBlock();
     public:
         LinetypeFeatureSchema* GetLinetypeFeatureSchema();
         LayerFeatureSchema* GetLayerFeatureSchema();
+        EntityFeatureSchema* GetEntityFeatureSchema();
+    protected:
+        Linetype* AddLinetype(wgp::SceneId id, wgp::SceneId feature_id, const wgp::String& name, wgp::LineStipple* stipple);
+        Layer* AddLayer(wgp::SceneId id, wgp::SceneId feature_id, const wgp::String& name, const Color& color, const Transparent& transparent, 
+            Linetype* linetype, LineWeight line_weight, double linetype_scale);
+        Block* AddBlock(wgp::SceneId id, wgp::SceneId sketch_feature_id);
     protected:
         LinetypeFeatureSchema* m_linetype_feature_schema;
         LayerFeatureSchema* m_layer_feature_schema;
+        EntityFeatureSchema* m_entity_feature_schema;
     protected:
         friend class DrawingTableObserver;
         wgp::Array<Linetype*> m_linetype_table;
         wgp::Array<Layer*> m_layer_table;
+        wgp::Array<Block*> m_block_table;
     };
 
 }

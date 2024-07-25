@@ -6,6 +6,7 @@
 #define _WCAD_LAYER_
 
 #include "wcad_base.h"
+#include "cad_common.h"
 #include "cad_drawing.h"
 #include "cad_linetype.h"
 
@@ -15,22 +16,24 @@ namespace wcad {
     public:
         TYPE_DEF_1(LayerFeatureSchema);
     public:
-        LayerFeatureSchema(Drawing* drawing, wgp::SceneId id, const wgp::String& name, wgp::SceneId name_field_schema_id, 
-            wgp::SceneId color_field_schema_id, wgp::SceneId transparent_field_schema_id, wgp::SceneId line_weight_field_schema_id);
+        LayerFeatureSchema(Drawing* drawing, const wgp::String& name);
         wgp::StringFeatureFieldSchema* GetNameFieldSchema() const;
         wgp::Int32FeatureFieldSchema* GetColorFieldSchema() const;
         wgp::Int32FeatureFieldSchema* GetTransparentFieldSchema() const;
         wgp::Int32FeatureFieldSchema* GetLineWeightFieldSchema() const;
+        wgp::DoubleFeatureFieldSchema* GetLinetypeScaleFieldSchema() const;
     protected:
-        static int GetFieldCount() { return 4; }
+        static int GetFieldCount() { return 5; }
         static wgp::String GetName(wgp::Feature* feature, wgp::FeatureFieldSchema* field_schema);
         static void DirectSetName(wgp::Feature* feature, wgp::FeatureFieldSchema* field_schema, const wgp::String& value);
         static int32_t GetColor(wgp::Feature* feature, wgp::FeatureFieldSchema* field_schema);
         static void DirectSetColor(wgp::Feature* feature, wgp::FeatureFieldSchema* field_schema, int32_t value);
         static int32_t GetTransparent(wgp::Feature* feature, wgp::FeatureFieldSchema* field_schema);
         static void DirectSetTransparent(wgp::Feature* feature, wgp::FeatureFieldSchema* field_schema, int32_t value);
-        static int GetLineWeight(wgp::Feature* feature, wgp::FeatureFieldSchema* field_schema);
-        static void DirectSetLineWeight(wgp::Feature* feature, wgp::FeatureFieldSchema* field_schema, int value);
+        static int32_t GetLineWeight(wgp::Feature* feature, wgp::FeatureFieldSchema* field_schema);
+        static void DirectSetLineWeight(wgp::Feature* feature, wgp::FeatureFieldSchema* field_schema, int32_t value);
+        static double GetLinetypeScale(wgp::Feature* feature, wgp::FeatureFieldSchema* field_schema);
+        static void DirectSetLinetypeScale(wgp::Feature* feature, wgp::FeatureFieldSchema* field_schema, double value);
     };
 
     class LayerFeatureExecutor : public wgp::FeatureExecutor {
@@ -58,13 +61,16 @@ namespace wcad {
         wgp::String GetName() const;
         int32_t GetColor() const;
         int32_t GetTransparent() const;
-        int GetLineWeight() const;
+        int32_t GetLineWeight() const;
+        Linetype* GetLinetype() const;
+        double GetLinetypeScale() const;
     protected:
         friend class LayerFeatureSchema;
         wgp::String m_name;
         int32_t m_color;
         int32_t m_transparent;
-        int m_line_weight;
+        int32_t m_line_weight;
+        double m_linetype_scale;
     };
 
     class WCAD_API Layer : public wgp::Model {
@@ -73,19 +79,19 @@ namespace wcad {
     public:
         wgp::String GetName() const;
         bool SetName(const wgp::String& value);
-        int32_t GetColor() const;
-        bool SetColor(int32_t value);
-        int32_t GetTransparent() const;
-        bool SetTransparent(int32_t value);
-        int32_t GetLineWeight() const;
-        bool SetLineWeight(int32_t value);
+        Color GetColor() const;
+        bool SetColor(const Color& value);
+        Transparent GetTransparent() const;
+        bool SetTransparent(const Transparent& value);
+        LineWeight GetLineWeight() const;
+        bool SetLineWeight(LineWeight value);
         Linetype* GetLinetype() const;
-        bool SetLinetype(Linetype* linetype);
+        bool SetLinetype(Linetype* value);
+        double GetLinetypeScale() const;
+        bool SetLinetypeScale(double value);
     protected:
         friend class Drawing;
         Layer(Drawing* drawing, wgp::SceneId id);
-        static Layer* AddLayer(Drawing* drawing, wgp::SceneId id, wgp::SceneId feature_id, const wgp::String& name, 
-            int32_t color, int32_t transparent, int32_t line_weight);
     };
 
 }

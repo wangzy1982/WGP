@@ -10,13 +10,13 @@ namespace wcad {
 
     TYPE_IMP_1(LinetypeFeatureSchema, wgp::FeatureSchema::GetTypeInstance());
 
-    LinetypeFeatureSchema::LinetypeFeatureSchema(Drawing* drawing, wgp::SceneId id, const wgp::String& name, wgp::SceneId name_field_schema_id, wgp::SceneId stipple_field_schema_id) :
-        wgp::FeatureSchema(drawing, id, name) {
+    LinetypeFeatureSchema::LinetypeFeatureSchema(Drawing* drawing, const wgp::String& name) :
+        wgp::FeatureSchema(drawing, name) {
         wgp::StringFeatureFieldSchema* name_field_schema = new wgp::StringFeatureFieldSchema(
-            this, name_field_schema_id, "Name", GetName, DirectSetName);
+            this, wgp::StringResource("Name"), GetName, DirectSetName);
         AddFieldSchema(name_field_schema);
         wgp::LineStippleFeatureFieldSchema* stipple_field_schema = new wgp::LineStippleFeatureFieldSchema(
-            this, stipple_field_schema_id, "Stipple", GetStipple, DirectSetStipple);
+            this, wgp::StringResource("Stipple"), GetStipple, DirectSetStipple);
         AddFieldSchema(stipple_field_schema);
     }
 
@@ -71,37 +71,12 @@ namespace wcad {
         wgp::Model(drawing, id, nullptr) {
     }
 
-    Linetype* Linetype::AddLinetype(Drawing* drawing, wgp::SceneId id, wgp::SceneId feature_id, const wgp::String& name, wgp::LineStipple* stipple) {
-        drawing->StartEdit();
-        wgp::Ptr<Linetype> linetype = new Linetype(drawing, id);
-        if (!drawing->AddModel(linetype.Get())) {
-            drawing->AbortEdit();
-            return nullptr;
-        }
-        wgp::Ptr<LinetypeFeature> feature = new LinetypeFeature(linetype.Get(), feature_id, drawing->GetLinetypeFeatureSchema());
-        if (!linetype->AddFeature(feature.Get(), nullptr)) {
-            drawing->AbortEdit();
-            return nullptr;
-        }
-        if (!linetype->SetName(name)) {
-            drawing->AbortEdit();
-            return nullptr;
-        }
-        if (!linetype->SetStipple(stipple)) {
-            drawing->AbortEdit();
-            return nullptr;
-        }
-        wgp::String add_line_type_prompt = wgp::String("Add line type");
-        drawing->SetLogPrompt(add_line_type_prompt);
-        return drawing->FinishEdit() ? linetype.Get() : nullptr;
-    }
-
     wgp::String Linetype::GetName() const {
         return ((LinetypeFeature*)GetFeature(0))->GetName();
     }
 
     bool Linetype::SetName(const wgp::String& value) {
-        static wgp::String linetype_set_name_prompt = wgp::String("Set linetype name");
+        static wgp::String linetype_set_name_prompt = wgp::StringResource("Set linetype name");
         LinetypeFeature* feature = (LinetypeFeature*)GetFeature(0);
         return feature->SetValue(((LinetypeFeatureSchema*)feature->GetFeatureSchema())->GetNameFieldSchema(), value, &linetype_set_name_prompt);
     }
@@ -111,7 +86,7 @@ namespace wcad {
     }
 
     bool Linetype::SetStipple(wgp::LineStipple* value) {
-        static wgp::String linetype_set_stipple_prompt = wgp::String("Set linetype stipple");
+        static wgp::String linetype_set_stipple_prompt = wgp::StringResource("Set linetype stipple");
         LinetypeFeature* feature = (LinetypeFeature*)GetFeature(0);
         return feature->SetValue(((LinetypeFeatureSchema*)feature->GetFeatureSchema())->GetStippleFieldSchema(), value, &linetype_set_stipple_prompt);
     }

@@ -85,6 +85,10 @@ namespace wgp {
         virtual void AppendRecheckRelationFeature(Drawing* drawing);
         virtual void Undo();
         virtual void Redo();
+        Feature* GetFeature() const;
+        int GetIndex() const;
+        Feature* GetOldInput() const;
+        Feature* GetNewInput() const;
     protected:
         Feature* m_feature;
         int m_index;

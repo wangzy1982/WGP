@@ -135,7 +135,7 @@ namespace wgp {
         int GetFeatureCount() const;
         Feature* GetFeature(int index) const;
         bool Execute(ModelEditCommand* command, const String* prompt);
-    protected:
+    public:
         bool DefaultExecute(ModelEditCommand* command, Array<ModelEditCommand*>& inner_commands);
     protected:
         friend class Drawing;
@@ -155,13 +155,11 @@ namespace wgp {
     public:
         TYPE_DEF_0(FeatureFieldSchema);
     public:
-        FeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const String& name);
+        FeatureFieldSchema(FeatureSchema* feature_schema, const String& name);
         virtual ~FeatureFieldSchema();
-        SceneId GetId() const;
         String GetName() const;
     protected:
         FeatureSchema* m_feature_schema;
-        SceneId m_id;
         String m_name;
     };
 
@@ -169,17 +167,15 @@ namespace wgp {
     public:
         TYPE_DEF_0(FeatureSchema);
     public:
-        FeatureSchema(Drawing* drawing, SceneId id, const String& name);
+        FeatureSchema(Drawing* drawing, const String& name);
         virtual ~FeatureSchema();
         Drawing* GetDrawing() const;
-        SceneId GetId() const;
         String GetName() const;
         void AddFieldSchema(FeatureFieldSchema* field_schema);
         int GetFieldSchemaCount() const;
         FeatureFieldSchema* GetFieldSchema(int index) const;
     protected:
         Drawing* m_drawing;
-        SceneId m_id;
         String m_name;
         Array<FeatureFieldSchema*> m_field_schemas;
     };
@@ -223,6 +219,7 @@ namespace wgp {
         Feature* GetDynamicInput(int index) const;
     public:
         bool SetValue(FeatureFieldSchema* field_schema, int32_t value, const String* prompt);
+        bool SetValue(FeatureFieldSchema* field_schema, double value, const String* prompt);
         bool SetValue(FeatureFieldSchema* field_schema, const String& value, const String* prompt);
         bool SetValue(FeatureFieldSchema* field_schema, LineStipple* value, const String* prompt);
         bool SetStaticInput(int index, Feature* feature, const String* prompt);
@@ -252,7 +249,7 @@ namespace wgp {
     public:
         TYPE_DEF_1(ReferenceFeatureSchema);
     public:
-        ReferenceFeatureSchema(Drawing* drawing, SceneId id, const String& name);
+        ReferenceFeatureSchema(Drawing* drawing, const String& name);
     protected:
         static int GetFieldCount() { return 0; }
     };

@@ -288,7 +288,7 @@ namespace wgp {
 
     ReferenceFeatureSchema* Drawing::GetReferenceFeatureSchema() {
         if (!m_reference_feature_schema) {
-            m_reference_feature_schema = new ReferenceFeatureSchema(this, AllocId(), "Reference");
+            m_reference_feature_schema = new ReferenceFeatureSchema(this, StringResource("Reference"));
             m_feature_schemas.Append(m_reference_feature_schema);
         }
         return m_reference_feature_schema;
@@ -296,7 +296,7 @@ namespace wgp {
 
     SketchFeatureSchema* Drawing::GetSketchFeatureSchema() {
         if (!m_sketch_feature_schema) {
-            m_sketch_feature_schema = new SketchFeatureSchema(this, AllocId(), "Sketch", AllocId());
+            m_sketch_feature_schema = new SketchFeatureSchema(this, StringResource("Sketch"));
             m_feature_schemas.Append(m_sketch_feature_schema);
         }
         return m_sketch_feature_schema;
@@ -304,7 +304,7 @@ namespace wgp {
 
     SketchLine2dFeatureSchema* Drawing::GetSketchLine2dFeatureSchema() {
         if (!m_sketch_line2d_feature_schema) {
-            m_sketch_line2d_feature_schema = new SketchLine2dFeatureSchema(this, AllocId(), "SketchLine2d", AllocId(), AllocId(), AllocId());
+            m_sketch_line2d_feature_schema = new SketchLine2dFeatureSchema(this, StringResource("SketchLine2d"));
             m_feature_schemas.Append(m_sketch_line2d_feature_schema);
         }
         return m_sketch_line2d_feature_schema;
@@ -313,7 +313,7 @@ namespace wgp {
     SketchPoint2dEqualConstraintFeatureSchema* Drawing::GetSketchPoint2dEqualConstraintFeatureSchema() {
         if (!m_sketch_point2d_equal_constraint_feature_schema) {
             m_sketch_point2d_equal_constraint_feature_schema = new SketchPoint2dEqualConstraintFeatureSchema(
-                this, AllocId(), "SketchPoint2dEqualConstraint", AllocId());
+                this, StringResource("SketchPoint2dEqualConstraint"));
             m_feature_schemas.Append(m_sketch_point2d_equal_constraint_feature_schema);
         }
         return m_sketch_point2d_equal_constraint_feature_schema;
@@ -322,7 +322,7 @@ namespace wgp {
     SketchFixPoint2dConstraintFeatureSchema* Drawing::GetSketchFixPoint2dConstraintFeatureSchema() {
         if (!m_sketch_fix_point2d_constraint_feature_schema) {
             m_sketch_fix_point2d_constraint_feature_schema = new SketchFixPoint2dConstraintFeatureSchema(
-                this, AllocId(), "SketchFixPoint2dConstraint", AllocId());
+                this, StringResource("SketchFixPoint2dConstraint"));
             m_feature_schemas.Append(m_sketch_fix_point2d_constraint_feature_schema);
         }
         return m_sketch_fix_point2d_constraint_feature_schema;
@@ -331,7 +331,7 @@ namespace wgp {
     SketchFixPoint2dPoint2dDistanceConstraintFeatureSchema* Drawing::GetSketchFixPoint2dPoint2dDistanceConstraintFeatureSchema() {
         if (!m_sketch_fix_point2d_point2d_distance_constraint_feature_schema) {
             m_sketch_fix_point2d_point2d_distance_constraint_feature_schema = new SketchFixPoint2dPoint2dDistanceConstraintFeatureSchema(
-                this, AllocId(), "SketchFixPoint2dPoint2dDistanceConstraint", AllocId());
+                this, StringResource("SketchFixPoint2dPoint2dDistanceConstraint"));
             m_feature_schemas.Append(m_sketch_fix_point2d_point2d_distance_constraint_feature_schema);
         }
         return m_sketch_fix_point2d_point2d_distance_constraint_feature_schema;
@@ -340,7 +340,7 @@ namespace wgp {
     SketchFixLine2dLine2dAngleConstraintFeatureSchema* Drawing::GetSketchFixLine2dLine2dAngleConstraintFeatureSchema() {
         if (!m_sketch_fix_line2d_line2d_angle_constraint_feature_schema) {
             m_sketch_fix_line2d_line2d_angle_constraint_feature_schema = new SketchFixLine2dLine2dAngleConstraintFeatureSchema(
-                this, AllocId(), "SketchFixLine2dLine2dAngleConstraint", AllocId());
+                this, StringResource("SketchFixLine2dLine2dAngleConstraint"));
             m_feature_schemas.Append(m_sketch_fix_line2d_line2d_angle_constraint_feature_schema);
         }
         return m_sketch_fix_line2d_line2d_angle_constraint_feature_schema;
@@ -528,18 +528,13 @@ namespace wgp {
 
     TYPE_IMP_0(FeatureFieldSchema);
 
-    FeatureFieldSchema::FeatureFieldSchema(FeatureSchema* feature_schema, SceneId id, const String& name) :
+    FeatureFieldSchema::FeatureFieldSchema(FeatureSchema* feature_schema, const String& name) :
         m_feature_schema(feature_schema),
-        m_id(id),
         m_name(name) {
 
     }
 
     FeatureFieldSchema::~FeatureFieldSchema() {
-    }
-
-    SceneId FeatureFieldSchema::GetId() const {
-        return m_id;
     }
 
     String FeatureFieldSchema::GetName() const {
@@ -548,9 +543,8 @@ namespace wgp {
 
     TYPE_IMP_0(FeatureSchema);
 
-    FeatureSchema::FeatureSchema(Drawing* drawing, SceneId id, const String& name) :
+    FeatureSchema::FeatureSchema(Drawing* drawing, const String& name) :
         m_drawing(drawing),
-        m_id(id),
         m_name(name) {
     }
 
@@ -562,10 +556,6 @@ namespace wgp {
 
     Drawing* FeatureSchema::GetDrawing() const {
         return m_drawing;
-    }
-
-    SceneId FeatureSchema::GetId() const {
-        return m_id;
     }
 
     String FeatureSchema::GetName() const {
@@ -659,6 +649,22 @@ namespace wgp {
         }
         assert(field_schema->GetType()->IsImplement(Int32FeatureFieldSchema::GetTypeInstance()));
         CommandLog* log = ((Int32FeatureFieldSchema*)field_schema)->NewSetCommandLog(this, value);
+        if (m_executor && m_executor->m_is_executing) {
+            log->Redo();
+            GetModel()->GetDrawing()->AppendLog(log);
+            return true;
+        }
+        ModelEditCommand command;
+        command.SetLog(log);
+        return GetModel()->Execute(&command, prompt);
+    }
+
+    bool Feature::SetValue(FeatureFieldSchema* field_schema, double value, const String* prompt) {
+        if (m_is_alone) {
+            return false;
+        }
+        assert(field_schema->GetType()->IsImplement(DoubleFeatureFieldSchema::GetTypeInstance()));
+        CommandLog* log = ((DoubleFeatureFieldSchema*)field_schema)->NewSetCommandLog(this, value);
         if (m_executor && m_executor->m_is_executing) {
             log->Redo();
             GetModel()->GetDrawing()->AppendLog(log);
@@ -771,8 +777,8 @@ namespace wgp {
 
     TYPE_IMP_1(ReferenceFeatureSchema, FeatureSchema::GetTypeInstance());
 
-    ReferenceFeatureSchema::ReferenceFeatureSchema(Drawing* drawing, SceneId id, const String& name) :
-        FeatureSchema(drawing, id, name) {
+    ReferenceFeatureSchema::ReferenceFeatureSchema(Drawing* drawing, const String& name) :
+        FeatureSchema(drawing, name) {
     }
 
     ReferenceFeature::ReferenceFeature(Model* model, SceneId id, FeatureExecutor* executor, Model* reference_model) :
