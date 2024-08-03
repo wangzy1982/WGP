@@ -143,8 +143,7 @@ namespace wgp {
 
     Vector2d SketchLine2dFeatureSchema::GetStartPoint(Feature* feature, FeatureFieldSchema* field_schema) {
         SketchLine2dFeature* line2d_feature = (SketchLine2dFeature*)feature;
-        SketchLine2d* line2d = (SketchLine2d*)line2d_feature;
-        return Vector2d(line2d->GetCurrentVariable(0), line2d->GetCurrentVariable(1));
+        return line2d_feature->GetStartPoint();
     }
 
     void SketchLine2dFeatureSchema::DirectSetStartPoint(Feature* feature, FeatureFieldSchema* field_schema, const Vector2d& point) {
@@ -153,8 +152,7 @@ namespace wgp {
 
     Vector2d SketchLine2dFeatureSchema::GetEndPoint(Feature* feature, FeatureFieldSchema* field_schema) {
         SketchLine2dFeature* line2d_feature = (SketchLine2dFeature*)feature;
-        SketchLine2d* line2d = (SketchLine2d*)line2d_feature;
-        return Vector2d(line2d->GetCurrentVariable(2), line2d->GetCurrentVariable(3));
+        return line2d_feature->GetEndPoint();
     }
 
     void SketchLine2dFeatureSchema::DirectSetEndPoint(Feature* feature, FeatureFieldSchema* field_schema, const Vector2d& point) {
@@ -167,6 +165,16 @@ namespace wgp {
 
     void SketchLine2dFeature::Accept(FeatureVisitor* visitor) {
         visitor->Visit(this);
+    }
+
+    Vector2d SketchLine2dFeature::GetStartPoint() const {
+        SketchLine2d* line2d = (SketchLine2d*)GetGeometry();
+        return Vector2d(line2d->GetCurrentVariable(0), line2d->GetCurrentVariable(1));
+    }
+
+    Vector2d SketchLine2dFeature::GetEndPoint() const {
+        SketchLine2d* line2d = (SketchLine2d*)GetGeometry();
+        return Vector2d(line2d->GetCurrentVariable(2), line2d->GetCurrentVariable(3));
     }
 
     TYPE_IMP_1(SketchPoint2dEqualConstraintFeatureSchema, SketchConstraintFeatureSchema::GetTypeInstance());
@@ -236,6 +244,10 @@ namespace wgp {
 
     SketchFeatureRefresher::~SketchFeatureRefresher() {
         m_feature->DecRef();
+    }
+
+    void SketchFeatureRefresher::AppendAffectedFeature(Array<Feature*>& affected_features) {
+        affected_features.Append(m_feature);
     }
 
     void SketchFeatureRefresher::AppendAffectedFeature(Drawing* drawing) {

@@ -34,6 +34,25 @@ namespace wcad {
         static void DirectSetLinetypeScale(wgp::Feature* feature, wgp::FeatureFieldSchema* field_schema, double value);
     };
 
+    class EntityFeature;
+
+    class EntityDisplayChangedLog : public wgp::CommandLog {
+    public:
+        TYPE_DEF_1(EntityDisplayChangedLog);
+    public:
+        EntityDisplayChangedLog(EntityFeature* feature);
+        virtual ~EntityDisplayChangedLog();
+        EntityFeature* GetFeature() const;
+    public:
+        virtual void AppendAffectedFeature(wgp::Array<wgp::Feature*>& affected_features);
+        virtual void AppendAffectedFeature(wgp::Drawing* drawing);
+        virtual void AppendRecheckRelationFeature(wgp::Drawing* drawing);
+        virtual void Undo();
+        virtual void Redo();
+    private:
+        EntityFeature* m_feature;
+    };
+
     class EntityFeatureExecutor : public wgp::FeatureExecutor {
     public:
         EntityFeatureExecutor(wgp::Feature* owner);
@@ -42,14 +61,16 @@ namespace wcad {
         virtual wgp::Feature* GetStaticInput(int index) const;
         virtual bool SetStaticInputEnable(int index, wgp::Feature* feature);
         virtual void DirectSetStaticInput(int index, wgp::Feature* feature);
-        virtual int GetDynamicInputCount() const;
-        virtual wgp::Feature* GetDynamicInput(int index) const;
-        virtual bool AddDynamicInputEnable(wgp::Feature* feature);
-        virtual void DirectAddDynamicInput(wgp::Feature* feature);
-        virtual void DirectRemoveDynamicInput(wgp::Feature* feature);
+        virtual int GetStaticOutputCount() const;
+        virtual wgp::Feature* GetStaticOutput(int index) const;
+        virtual bool SetStaticOutputEnable(int index, wgp::Feature* feature);
+        virtual void DirectSetStaticOutput(int index, wgp::Feature* feature);
         virtual bool Calculate();
     protected:
+        void AppendDisplayChangedLogs(EntityFeature* feature);
+    protected:
         wgp::Feature* m_static_input_features[3];
+        wgp::Feature* m_static_output_features[1];
     };
 
     class WCAD_API EntityFeature : public wgp::Feature {

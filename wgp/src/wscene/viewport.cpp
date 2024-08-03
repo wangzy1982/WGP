@@ -8,9 +8,8 @@
 
 namespace wgp {
 
-	Viewport::Viewport(Layout* layout, Renderer* renderer) : 
+	Viewport::Viewport(Layout* layout) : 
 		m_layout(layout), 
-		m_renderer(renderer), 
 		m_rect(Rect(0, 0, 1, 1)) {
 		m_camera = new Camera();
 		m_background = new Background();
@@ -19,10 +18,8 @@ namespace wgp {
 	Viewport::~Viewport() {
 		for (int i = 0; i < m_rendering_trees.GetCount(); ++i) {
 			RenderingTree* rendering_tree = m_rendering_trees.Get(i);
-			rendering_tree->GetModel()->GetDrawing()->UnregisterObserver(rendering_tree);
 			rendering_tree->DecRef();
 		}
-		delete m_renderer;
 		delete m_background;
 		delete m_camera;
 	}
@@ -39,12 +36,10 @@ namespace wgp {
 		return m_background;
 	}
 
-	int Viewport::AddRenderingTree(Model* model, bool is_order_affected_rendering, int complexity) {
-		RenderingTree* rendering_tree = NewRenderingTree(model, is_order_affected_rendering, complexity);
+	int Viewport::AddRenderingTree(RenderingTree* rendering_tree) {
 		int index = m_rendering_trees.GetCount();
 		m_rendering_trees.Append(rendering_tree);
 		rendering_tree->IncRef();
-		model->GetDrawing()->RegisterObserver(rendering_tree);
 		return index;
 	}
 
@@ -73,12 +68,12 @@ namespace wgp {
 	}
 
 	void Viewport::Draw() {
-		m_renderer->BeginDraw(m_background, m_camera, GetScreenWidth(), GetScreenHeight());
+		wgp::Array<RenderingObject*> rendering_objects;
 		for (int i = 0; i < m_rendering_trees.GetCount(); ++i) {
 			RenderingTree* rendering_tree = m_rendering_trees.Get(i);
-			rendering_tree->Render(m_renderer, GetClassification(rendering_tree));
+			rendering_tree->GetRenderingObjects(GetClassification(rendering_tree), rendering_objects);
 		}
-		m_renderer->EndDraw();
+		Draw(rendering_objects);
 	}
 
 	int Viewport::GetClassification(RenderingTree* rendering_tree) {

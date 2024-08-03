@@ -9,21 +9,21 @@
 
 namespace wgp {
 
-    class RenderingLine2dFragment;
+    class RenderingLineFragment;
 
-    class WGP_API RenderingLine2d : public RenderingObject {
+    class WGP_API RenderingLine : public RenderingObject {
     public:
-        RenderingLine2d(int classification, RenderingMaterial* material);
-        RenderingLine2d(int classification, RenderingMaterial* material, Array<float>&& vertices, Array<int>&& line_indices, 
+        RenderingLine(int classification, RenderingMaterial* material);
+        RenderingLine(int classification, RenderingMaterial* material, Array<float>&& vertices, Array<int>&& line_indices, 
             Array<float>&& orders, Array<float>&& tex_offsets, Array<float>&& tex_lengths, Array<int>&& states);
-        virtual ~RenderingLine2d();
+        virtual ~RenderingLine();
         virtual RenderingObjectFragment* NewFragment();
         virtual RenderingObjectFragment* Merge(RenderingObject* rendering_object);
         virtual RenderingObjectFragment* Merge(RenderingObjectFragment* fragment);
         virtual void DataChanged() = 0;
     protected:
-        void GetFragmentData(RenderingLine2dFragment* fragment, Array<float>& vertices, Array<int>& line_indices,
-            Array<float>& orders, Array<float>& tex_offsets, Array<float>& tex_lengths, int& state) const;
+        void GetFragmentData(RenderingLineFragment* fragment, Array<float>& vertices, Array<int>& line_indices,
+            Array<float>& orders, Array<float>& tex_offsets, Array<float>& tex_lengths, Array<int>& states) const;
     protected:
         friend class RenderingLine2dFragment;
         Array<float> m_vertices;
@@ -34,18 +34,17 @@ namespace wgp {
         Array<int> m_states;
     };
 
-    class WGP_API RenderingLine2dFragment : public RenderingObjectFragment {
+    class WGP_API RenderingLineFragment : public RenderingObjectFragment {
     public:
-        RenderingLine2dFragment(RenderingObject* rendering_object);
-        virtual ~RenderingLine2dFragment();
+        RenderingLineFragment(RenderingObject* rendering_object);
+        virtual ~RenderingLineFragment();
         virtual void SetState(int state);
     protected:
-        friend class RenderingLine2d;
+        friend class RenderingLine;
         int m_vertex_index;
         int m_vertex_count;
         int m_line_index;
         int m_line_count;
-        int m_state_index;
     };
 
 }

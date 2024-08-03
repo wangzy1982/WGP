@@ -14,6 +14,8 @@
 
 namespace wgp {
 
+    const int g_renderer_state_count = 16;
+
     class RenderingMaterial;
     class RenderingObjectFragment;
 
@@ -27,6 +29,8 @@ namespace wgp {
         virtual RenderingObjectFragment* NewFragment() = 0;
         virtual RenderingObjectFragment* Merge(RenderingObject* rendering_object) = 0;
         virtual RenderingObjectFragment* Merge(RenderingObjectFragment* fragment) = 0;
+    public:
+        RenderingMaterial* CurrentMaterial;
     protected:
         RenderingMaterial* m_material;
         int m_classification;
@@ -54,7 +58,7 @@ namespace wgp {
 
     class WGP_API RenderingMaterial {
     public:
-        TYPE_DEF_0(RenderingMaterial)
+        TYPE_DEF_0(RenderingMaterial);
     public:
         virtual ~RenderingMaterial() {}
         virtual int Compare(RenderingMaterial* material) = 0;
@@ -81,6 +85,7 @@ namespace wgp {
     struct WGP_API FeatureInfo {
         Feature* Feature;
         Array<wgp::Feature*> Path;
+        Matrix4x4 Matrix;
         int Order;
         Interval3d Box;
         int Complexity;
@@ -92,14 +97,6 @@ namespace wgp {
         FeatureInfo* RightChild;
     };
 
-    class Renderer {
-    public:
-        virtual ~Renderer() {}
-        virtual void BeginDraw(Background* background, Camera* camera, double screen_width, double screen_height) = 0;
-        virtual void Draw(RenderingMaterial* material, RenderingObject* rendering_object) = 0;
-        virtual void EndDraw() = 0;
-    };
-
     class WGP_API RenderingTree : public DrawingObserver {
     public:
         RenderingTree(Model* model, bool is_order_affected_rendering, int complexity);
@@ -107,14 +104,16 @@ namespace wgp {
         virtual void Notify(const Array<CommandLog*>& logs);
         Model* GetModel() const;
         void RemoveRenderingObjects(int classification);
-        void Render(Renderer* renderer, int classification);
+        void GetRenderingObjects(int classification, wgp::Array<RenderingObject*>& rendering_objects);
         void SetState(Feature* feature, const Array<wgp::Feature*>& path, int state);
-        void ClearState(int clear_state);
+        void ClearState();
     protected:
         virtual int GetDirtyLevel(CommandLog* log) = 0;
+        virtual void AppendDirtyFeatures(CommandLog* log, Array<Feature*>& dirty_features) = 0;
         virtual bool IsRenderingFeature(Feature* feature) = 0;
         virtual void SortFeatures(Array<Feature*>& features) = 0;
-        virtual Model* GetReferenceModel(Feature* feature, Matrix4x4& matrix) = 0;
+        virtual Model* GetReferenceModel(Feature* feature) = 0;
+        virtual void GetReferenceMatrix(wgp::Feature* feature, Matrix4x4& matrix) = 0;
         virtual void Calculate(FeatureInfo* feature_info, RenderingMaterial*& material, bool& is_classification_enabled, Interval3d& box, int& complexity) = 0;
         virtual void BuildRenderingObject(FeatureInfo* feature_info, int classification, Array<RenderingObject*>& rendering_objects) = 0;
     protected:
@@ -122,7 +121,7 @@ namespace wgp {
         void UpdateDirty1(FeatureInfo* feature_info);
         void UpdateDirty2(Array<Feature*>& path, const Matrix4x4& matrix, int& order, Model* model);
         void RemoveUnrenderedFeatureInfo(FeatureInfo** feature_info_address);
-        void UpdateDirtyFeatureInfo(FeatureInfo* feature_info);
+        void UpdateDirtyFeatureInfo(FeatureInfo* feature_info, const Matrix4x4& matrix);
         void RemoveFeatureInfo(FeatureInfo* feature_info);
         void AddFeatureInfoToGroup(FeatureInfo* feature_info);
         RenderingNode* AddFeatureInfoToGroup(RenderingNode* node, FeatureInfo* feature_info);
@@ -141,8 +140,8 @@ namespace wgp {
         void RemoveRenderingObjects(RenderingGroup* group, int classification);
         void RemoveRenderingObjects(RenderingGroup* group, int classification, RenderingNode* node);
         void RemoveRenderingObjects(int classification, FeatureInfo* feature_info);
-        void Render(RenderingGroup* group, Renderer* renderer, int classification);
-        void Render(RenderingGroup* group, RenderingNode* node, Renderer* renderer, int classification);
+        void GetRenderingObjects(RenderingGroup* group, int classification, wgp::Array<RenderingObject*>& rendering_objects);
+        void GetRenderingObjects(RenderingGroup* group, RenderingNode* node, int classification, wgp::Array<RenderingObject*>& rendering_objects);
         void ClearState(FeatureInfo* feature_info, int clear_state);
         int Compare(FeatureInfo* feature_info, Feature* feature, const Array<Feature*>& path);
         int Compare(RenderingGroup* rendering_group, RenderingMaterial* material, bool is_classification_enabled);

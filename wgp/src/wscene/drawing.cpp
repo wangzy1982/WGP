@@ -258,6 +258,21 @@ namespace wgp {
                 return false;
             }
         }
+        for (int i = 0; i < feature->GetStaticOutputCount(); ++i) {
+            Feature* output_feature = feature->GetStaticOutput(i);
+            if (output_feature) {
+                if (!TopoSortAffectedFeatures(output_feature, state, sorted_features)) {
+                    feature->m_runtime_state &= ~g_feature_runtime_state_dfs;
+                    return false;
+                }
+            }
+        }
+        for (int i = 0; i < feature->GetDynamicOutputCount(); ++i) {
+            if (!TopoSortAffectedFeatures(feature->GetDynamicOutput(i), state, sorted_features)) {
+                feature->m_runtime_state &= ~g_feature_runtime_state_dfs;
+                return false;
+            }
+        }
         for (int i = 0; i < feature->m_model->m_reference_features.GetCount(); ++i) {
             if (!TopoSortAffectedFeatures(feature->m_model->m_reference_features.Get(i), state, sorted_features)) {
                 feature->m_runtime_state &= ~g_feature_runtime_state_dfs;
@@ -519,6 +534,22 @@ namespace wgp {
                     log1->Redo();
                     m_drawing->AppendLog(log1);
                 }
+                for (int i = 0; i < feature->GetStaticOutputCount(); ++i) {
+                    if (!feature->m_executor->SetStaticOutputEnable(i, nullptr)) {
+                        return false;
+                    }
+                    Feature* old_output = feature->m_executor->GetStaticOutput(i);
+                    if (old_output) {
+                        SetFeatureStaticOutputCommandLog* log1 = new SetFeatureStaticOutputCommandLog(feature, i, old_output, nullptr);
+                        log1->Redo();
+                        m_drawing->AppendLog(log1);
+                    }
+                }
+                for (int i = feature->GetDynamicOutputCount() - 1; i >= 0; --i) {
+                    RemoveFeatureDynamicOutputCommandLog* log1 = new RemoveFeatureDynamicOutputCommandLog(feature, feature->GetDynamicOutput(i));
+                    log1->Redo();
+                    m_drawing->AppendLog(log1);
+                }
             }
             log->Redo();
             m_drawing->AppendLog(log);
@@ -586,6 +617,76 @@ namespace wgp {
         return m_owner;
     }
 
+    int FeatureExecutor::GetStaticInputCount() const {
+        return 0;
+    }
+
+    Feature* FeatureExecutor::GetStaticInput(int index) const {
+        return nullptr;
+    }
+
+    bool FeatureExecutor::SetStaticInputEnable(int index, Feature* feature) {
+        return false;
+    }
+
+    void FeatureExecutor::DirectSetStaticInput(int index, Feature* feature) {
+    }
+
+    int FeatureExecutor::GetDynamicInputCount() const {
+        return 0;
+    }
+
+    Feature* FeatureExecutor::GetDynamicInput(int index) const {
+        return nullptr;
+    }
+
+    bool FeatureExecutor::AddDynamicInputEnable(Feature* feature) {
+        return false;
+    }
+
+    void FeatureExecutor::DirectAddDynamicInput(Feature* feature) {
+    }
+
+    void FeatureExecutor::DirectRemoveDynamicInput(Feature* feature) {
+    }
+
+    int FeatureExecutor::GetStaticOutputCount() const {
+        return 0;
+    }
+
+    Feature* FeatureExecutor::GetStaticOutput(int index) const {
+        return nullptr;
+    }
+
+    bool FeatureExecutor::SetStaticOutputEnable(int index, Feature* feature) {
+        return false;
+    }
+
+    void FeatureExecutor::DirectSetStaticOutput(int index, Feature* feature) {
+    }
+
+    int FeatureExecutor::GetDynamicOutputCount() const {
+        return 0;
+    }
+
+    Feature* FeatureExecutor::GetDynamicOutput(int index) const {
+        return nullptr;
+    }
+
+    bool FeatureExecutor::AddDynamicOutputEnable(Feature* feature) {
+        return false;
+    }
+
+    void FeatureExecutor::DirectAddDynamicOutput(Feature* feature) {
+    }
+
+    void FeatureExecutor::DirectRemoveDynamicOutput(Feature* feature) {
+    }
+
+    bool FeatureExecutor::Calculate() {
+        return false;
+    }
+
     Feature::Feature(Model* model, SceneId id, FeatureSchema* feature_schema, FeatureExecutor* executor) :
         m_model(model),
         m_feature_schema(feature_schema),
@@ -641,6 +742,38 @@ namespace wgp {
             return m_executor->GetDynamicInput(index);
         }
         return nullptr;
+    }
+
+    int Feature::GetStaticOutputCount() const {
+        if (!m_executor) {
+            return 0;
+        }
+        return m_executor->GetStaticOutputCount();
+    }
+
+    Feature* Feature::GetStaticOutput(int index) const {
+        if (m_executor) {
+            return m_executor->GetStaticOutput(index);
+        }
+        return nullptr;
+    }
+
+    int Feature::GetDynamicOutputCount() const {
+        if (!m_executor) {
+            return 0;
+        }
+        return m_executor->GetDynamicOutputCount();
+    }
+
+    Feature* Feature::GetDynamicOutput(int index) const {
+        if (m_executor) {
+            return m_executor->GetDynamicOutput(index);
+        }
+        return nullptr;
+    }
+
+    bool Feature::IsChanged() const {
+        return m_runtime_state & g_feature_runtime_state_changed;
     }
 
     bool Feature::SetValue(FeatureFieldSchema* field_schema, int32_t value, const String* prompt) {
@@ -756,6 +889,61 @@ namespace wgp {
         return m_model->Execute(&command, prompt);
     }
 
+    bool Feature::SetStaticOutput(int index, Feature* feature, const String* prompt) {
+        if (m_is_alone) {
+            return false;
+        }
+        if (!m_executor || !m_executor->SetStaticOutputEnable(index, feature)) {
+            return false;
+        }
+        if (m_executor->m_is_executing) {
+            return false;
+        }
+        Feature* old_output = m_executor->GetStaticOutput(index);
+        if (old_output == feature) {
+            return true;
+        }
+        if (feature && feature->m_executor) {
+            return false;
+        }
+        ModelEditCommand command;
+        command.SetLog(new SetFeatureStaticOutputCommandLog(this, index, old_output, feature));
+        return m_model->Execute(&command, prompt);
+    }
+
+    bool Feature::AddDynamicOutput(Feature* feature, const String* prompt) {
+        if (m_is_alone) {
+            return false;
+        }
+        if (!m_executor || !m_executor->AddDynamicOutputEnable(feature)) {
+            return false;
+        }
+        if (m_executor->m_is_executing) {
+            return false;
+        }
+        if (feature && feature->m_executor) {
+            return false;
+        }
+        ModelEditCommand command;
+        command.SetLog(new AddFeatureDynamicOutputCommandLog(this, feature));
+        return m_model->Execute(&command, prompt);
+    }
+
+    bool Feature::RemoveDynamicOutput(Feature* feature, const String* prompt) {
+        if (m_is_alone) {
+            return false;
+        }
+        if (!m_executor) {
+            return false;
+        }
+        if (m_executor->m_is_executing) {
+            return false;
+        }
+        ModelEditCommand command;
+        command.SetLog(new RemoveFeatureDynamicOutputCommandLog(this, feature));
+        return m_model->Execute(&command, prompt);
+    }
+
     bool Feature::Calculate() {
         Drawing* drawing = m_model->GetDrawing();
         drawing->StartEdit();
@@ -812,6 +1000,15 @@ namespace wgp {
         delete m_refresher;
         for (int i = 0; i < m_logs.GetCount(); ++i) {
             delete m_logs.Get(i);
+        }
+    }
+
+    void GroupCommandLog::AppendAffectedFeature(Array<Feature*>& affected_features) {
+        for (int i = 0; i < m_logs.GetCount(); ++i) {
+            m_logs.Get(i)->AppendAffectedFeature(affected_features);
+        }
+        if (m_refresher) {
+            m_refresher->AppendAffectedFeature(affected_features);
         }
     }
 

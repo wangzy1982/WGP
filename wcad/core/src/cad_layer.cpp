@@ -92,11 +92,10 @@ namespace wcad {
     LayerFeatureExecutor::LayerFeatureExecutor(wgp::Feature* owner) :
         wgp::FeatureExecutor(owner) {
         m_static_input_features[0] = nullptr;
-        m_static_input_features[1] = nullptr;
     }
 
     int LayerFeatureExecutor::GetStaticInputCount() const {
-        return 2;
+        return 1;
     }
 
     wgp::Feature* LayerFeatureExecutor::GetStaticInput(int index) const {
@@ -139,7 +138,8 @@ namespace wcad {
         m_name(),
         m_color(0),
         m_transparent(0),
-        m_line_weight((int32_t)LineWeight::LineWeight0) {
+        m_line_weight((int32_t)LineWeight::LineWeight0),
+        m_linetype_scale(1) {
         //todo 初始化
     }
 
@@ -178,6 +178,10 @@ namespace wcad {
 
     Layer::Layer(Drawing* drawing, wgp::SceneId id) :
         wgp::Model(drawing, id, nullptr) {
+    }
+
+    bool Layer::IsZeroLayer() const {
+        return GetName().Compare(Drawing::ZeroLayerName) != 0;
     }
 
     wgp::String Layer::GetName() const {

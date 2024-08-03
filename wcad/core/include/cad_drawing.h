@@ -32,6 +32,10 @@ namespace wcad {
         LinetypeFeatureSchema* GetLinetypeFeatureSchema();
         LayerFeatureSchema* GetLayerFeatureSchema();
         EntityFeatureSchema* GetEntityFeatureSchema();
+    public:
+        static wgp::String ByBlockName;
+        static wgp::String ByLayerName;
+        static wgp::String ZeroLayerName;
     protected:
         Linetype* AddLinetype(wgp::SceneId id, wgp::SceneId feature_id, const wgp::String& name, wgp::LineStipple* stipple);
         Layer* AddLayer(wgp::SceneId id, wgp::SceneId feature_id, const wgp::String& name, const Color& color, const Transparent& transparent, 

@@ -15,12 +15,12 @@ namespace wgp {
 
 	class WGP_API Viewport {
 	public:
-		Viewport(Layout* layout, Renderer* renderer);
+		Viewport(Layout* layout);
 		virtual ~Viewport();
 		void SetRect(const Rect& rect);
 		Camera* GetCamera() const;
 		Background* GetBackground() const;
-		int AddRenderingTree(Model* model, bool is_order_affected_rendering, int complexity);
+		int AddRenderingTree(RenderingTree* rendering_tree);
 		int GetRenderingTreeCount() const;
 		RenderingTree* GetRenderingTree(int index) const;
 		double GetScreenLeft() const;
@@ -30,10 +30,9 @@ namespace wgp {
 		void Draw();
 	protected:
 		virtual int GetClassification(RenderingTree* rendering_tree);
-		virtual RenderingTree* NewRenderingTree(Model* model, bool is_order_affected_rendering, int complexity) = 0;
-	private:
+		virtual void Draw(Array<RenderingObject*>& rendering_objects) = 0;
+	protected:
 		Layout* m_layout;
-		Renderer* m_renderer;
 		Camera* m_camera;
 		Rect m_rect;
 		Background* m_background;

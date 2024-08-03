@@ -71,6 +71,14 @@ namespace wcad {
         wgp::Model(drawing, id, nullptr) {
     }
 
+    bool Linetype::IsByBlock() const {
+        return GetName().Compare(Drawing::ByBlockName) == 0;
+    }
+
+    bool Linetype::IsByLayer() const {
+        return GetName().Compare(Drawing::ByLayerName) == 0;
+    }
+
     wgp::String Linetype::GetName() const {
         return ((LinetypeFeature*)GetFeature(0))->GetName();
     }

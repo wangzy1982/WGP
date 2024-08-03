@@ -51,7 +51,7 @@ namespace wcad {
         virtual void DirectRemoveDynamicInput(wgp::Feature* feature);
         virtual bool Calculate();
     protected:
-        wgp::Feature* m_static_input_features[2];
+        wgp::Feature* m_static_input_features[1];
     };
 
     class WCAD_API LayerFeature : public wgp::Feature {
@@ -76,6 +76,8 @@ namespace wcad {
     class WCAD_API Layer : public wgp::Model {
     public:
         TYPE_DEF_1(Layer);
+    public:
+        bool IsZeroLayer() const;
     public:
         wgp::String GetName() const;
         bool SetName(const wgp::String& value);

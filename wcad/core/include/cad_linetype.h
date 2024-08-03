@@ -41,6 +41,9 @@ namespace wcad {
     public:
         TYPE_DEF_1(Linetype);
     public:
+        bool IsByBlock() const;
+        bool IsByLayer() const;
+    public:
         wgp::String GetName() const;
         bool SetName(const wgp::String& value);
         wgp::LineStipple* GetStipple() const;

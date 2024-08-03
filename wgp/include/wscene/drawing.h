@@ -186,21 +186,33 @@ namespace wgp {
         virtual ~FeatureExecutor();
         Feature* GetOwner() const;
     public:
-        virtual int GetStaticInputCount() const = 0;
-        virtual Feature* GetStaticInput(int index) const = 0;
-        virtual bool SetStaticInputEnable(int index, Feature* feature) = 0;
-        virtual void DirectSetStaticInput(int index, Feature* feature) = 0;
-        virtual int GetDynamicInputCount() const = 0;
-        virtual Feature* GetDynamicInput(int index) const = 0;
-        virtual bool AddDynamicInputEnable(Feature* feature) = 0;
-        virtual void DirectAddDynamicInput(Feature* feature) = 0;
-        virtual void DirectRemoveDynamicInput(Feature* feature) = 0;
-        virtual bool Calculate() = 0;
+        virtual int GetStaticInputCount() const;
+        virtual Feature* GetStaticInput(int index) const;
+        virtual bool SetStaticInputEnable(int index, Feature* feature);
+        virtual void DirectSetStaticInput(int index, Feature* feature);
+        virtual int GetDynamicInputCount() const;
+        virtual Feature* GetDynamicInput(int index) const;
+        virtual bool AddDynamicInputEnable(Feature* feature);
+        virtual void DirectAddDynamicInput(Feature* feature);
+        virtual void DirectRemoveDynamicInput(Feature* feature);
+        virtual int GetStaticOutputCount() const;
+        virtual Feature* GetStaticOutput(int index) const;
+        virtual bool SetStaticOutputEnable(int index, Feature* feature);
+        virtual void DirectSetStaticOutput(int index, Feature* feature);
+        virtual int GetDynamicOutputCount() const;
+        virtual Feature* GetDynamicOutput(int index) const;
+        virtual bool AddDynamicOutputEnable(Feature* feature);
+        virtual void DirectAddDynamicOutput(Feature* feature);
+        virtual void DirectRemoveDynamicOutput(Feature* feature);
+        virtual bool Calculate();
     protected:
         friend class Feature;
         friend class SetFeatureStaticInputCommandLog;
         friend class AddFeatureDynamicInputCommandLog;
         friend class RemoveFeatureDynamicInputCommandLog;
+        friend class SetFeatureStaticOutputCommandLog;
+        friend class AddFeatureDynamicOutputCommandLog;
+        friend class RemoveFeatureDynamicOutputCommandLog;
         Feature* m_owner;
         bool m_is_executing;
     };
@@ -217,6 +229,11 @@ namespace wgp {
         Feature* GetStaticInput(int index) const;
         int GetDynamicInputCount() const;
         Feature* GetDynamicInput(int index) const;
+        int GetStaticOutputCount() const;
+        Feature* GetStaticOutput(int index) const;
+        int GetDynamicOutputCount() const;
+        Feature* GetDynamicOutput(int index) const;
+        bool IsChanged() const;
     public:
         bool SetValue(FeatureFieldSchema* field_schema, int32_t value, const String* prompt);
         bool SetValue(FeatureFieldSchema* field_schema, double value, const String* prompt);
@@ -225,6 +242,9 @@ namespace wgp {
         bool SetStaticInput(int index, Feature* feature, const String* prompt);
         bool AddDynamicInput(Feature* feature, const String* prompt);
         bool RemoveDynamicInput(Feature* feature, const String* prompt);
+        bool SetStaticOutput(int index, Feature* feature, const String* prompt);
+        bool AddDynamicOutput(Feature* feature, const String* prompt);
+        bool RemoveDynamicOutput(Feature* feature, const String* prompt);
     protected:
         friend class Drawing;
         friend class Model;
@@ -233,6 +253,9 @@ namespace wgp {
         friend class SetFeatureStaticInputCommandLog;
         friend class AddFeatureDynamicInputCommandLog;
         friend class RemoveFeatureDynamicInputCommandLog;
+        friend class SetFeatureStaticOutputCommandLog;
+        friend class AddFeatureDynamicOutputCommandLog;
+        friend class RemoveFeatureDynamicOutputCommandLog;
         bool Calculate();
     protected:
         Model* m_model;
@@ -270,6 +293,7 @@ namespace wgp {
     public:
         virtual ~CommandLog() {}
     public:
+        virtual void AppendAffectedFeature(Array<Feature*>& affected_features) = 0;
         virtual void AppendAffectedFeature(Drawing* drawing) = 0;
         virtual void AppendRecheckRelationFeature(Drawing* drawing) = 0;
         virtual void Undo() = 0;
@@ -278,6 +302,7 @@ namespace wgp {
 
     class WGP_API GroupCommandLogRefresher {
     public:
+        virtual void AppendAffectedFeature(Array<Feature*>& affected_features) = 0;
         virtual void AppendAffectedFeature(Drawing* drawing) = 0;
         virtual void AppendRecheckRelationFeature(Drawing* drawing) = 0;
         virtual void AfterUndo(const Array<CommandLog*>& logs) = 0;
@@ -291,6 +316,7 @@ namespace wgp {
         GroupCommandLog(int capacity);
         GroupCommandLog();
         virtual ~GroupCommandLog();
+        virtual void AppendAffectedFeature(Array<Feature*>& affected_features);
         virtual void AppendAffectedFeature(Drawing* drawing);
         virtual void AppendRecheckRelationFeature(Drawing* drawing);
         virtual void Undo();

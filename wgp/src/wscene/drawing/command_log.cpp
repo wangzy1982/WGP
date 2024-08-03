@@ -21,6 +21,9 @@ namespace wgp {
         return m_model;
     }
 
+    void AddModelCommandLog::AppendAffectedFeature(Array<Feature*>& affected_features) {
+    }
+
     void AddModelCommandLog::AppendAffectedFeature(Drawing* drawing) {
     }
 
@@ -59,6 +62,9 @@ namespace wgp {
 
     Model* RemoveModelCommandLog::GetModel() const {
         return m_model;
+    }
+
+    void RemoveModelCommandLog::AppendAffectedFeature(Array<Feature*>& affected_features) {
     }
 
     void RemoveModelCommandLog::AppendAffectedFeature(Drawing* drawing) {
@@ -106,6 +112,10 @@ namespace wgp {
 
     Feature* AddFeatureCommandLog::GetFeature() const {
         return m_feature;
+    }
+
+    void AddFeatureCommandLog::AppendAffectedFeature(Array<Feature*>& affected_features) {
+        affected_features.Append(m_feature);
     }
 
     void AddFeatureCommandLog::AppendAffectedFeature(Drawing* drawing) {
@@ -172,6 +182,9 @@ namespace wgp {
         return m_feature;
     }
 
+    void RemoveFeatureCommandLog::AppendAffectedFeature(Array<Feature*>& affected_features) {
+    }
+
     void RemoveFeatureCommandLog::AppendAffectedFeature(Drawing* drawing) {
     }
 
@@ -236,6 +249,10 @@ namespace wgp {
             m_new_input->DecRef();
         }
         m_feature->DecRef();
+    }
+
+    void SetFeatureStaticInputCommandLog::AppendAffectedFeature(Array<Feature*>& affected_features) {
+        affected_features.Append(m_feature);
     }
 
     void SetFeatureStaticInputCommandLog::AppendAffectedFeature(Drawing* drawing) {
@@ -308,6 +325,10 @@ namespace wgp {
         m_feature->DecRef();
     }
 
+    void AddFeatureDynamicInputCommandLog::AppendAffectedFeature(Array<Feature*>& affected_features) {
+        affected_features.Append(m_feature);
+    }
+
     void AddFeatureDynamicInputCommandLog::AppendAffectedFeature(Drawing* drawing) {
         drawing->AppendAffectedFeature(m_feature);
     }
@@ -345,6 +366,10 @@ namespace wgp {
         m_feature->DecRef();
     }
 
+    void RemoveFeatureDynamicInputCommandLog::AppendAffectedFeature(Array<Feature*>& affected_features) {
+        affected_features.Append(m_feature);
+    }
+
     void RemoveFeatureDynamicInputCommandLog::AppendAffectedFeature(Drawing* drawing) {
         drawing->AppendAffectedFeature(m_feature);
     }
@@ -367,6 +392,173 @@ namespace wgp {
         m_feature->m_executor->DirectRemoveDynamicInput(m_input_feature);
     }
 
+    TYPE_IMP_1(SetFeatureStaticOutputCommandLog, CommandLog::GetTypeInstance());
+
+    SetFeatureStaticOutputCommandLog::SetFeatureStaticOutputCommandLog(Feature* feature, int index, Feature* old_output, Feature* new_output) :
+        m_feature(feature),
+        m_index(index),
+        m_old_output(old_output),
+        m_new_output(new_output) {
+        m_feature->IncRef();
+        if (m_old_output) {
+            m_old_output->IncRef();
+        }
+        if (m_new_output) {
+            m_new_output->IncRef();
+        }
+    }
+
+    SetFeatureStaticOutputCommandLog::~SetFeatureStaticOutputCommandLog() {
+        if (m_old_output) {
+            m_old_output->DecRef();
+        }
+        if (m_new_output) {
+            m_new_output->DecRef();
+        }
+        m_feature->DecRef();
+    }
+
+    void SetFeatureStaticOutputCommandLog::AppendAffectedFeature(Array<Feature*>& affected_features) {
+        affected_features.Append(m_feature);
+    }
+
+    void SetFeatureStaticOutputCommandLog::AppendAffectedFeature(Drawing* drawing) {
+        drawing->AppendAffectedFeature(m_feature);
+    }
+
+    void SetFeatureStaticOutputCommandLog::AppendRecheckRelationFeature(Drawing* drawing) {
+        if (m_new_output) {
+            drawing->AppendRecheckRelationFeature(m_feature);
+        }
+    }
+
+    void SetFeatureStaticOutputCommandLog::Undo() {
+        if (m_new_output) {
+            for (int k = 0; k < m_new_output->m_affected_features.GetCount(); ++k) {
+                if (m_new_output->m_affected_features.Get(k) == m_feature) {
+                    m_new_output->m_affected_features.Remove(k);
+                    break;
+                }
+            }
+        }
+        m_feature->m_executor->DirectSetStaticOutput(m_index, m_old_output);
+        if (m_old_output) {
+            m_old_output->m_affected_features.Append(m_feature);
+        }
+    }
+
+    void SetFeatureStaticOutputCommandLog::Redo() {
+        if (m_old_output) {
+            for (int k = 0; k < m_old_output->m_affected_features.GetCount(); ++k) {
+                if (m_old_output->m_affected_features.Get(k) == m_feature) {
+                    m_old_output->m_affected_features.Remove(k);
+                    break;
+                }
+            }
+        }
+        m_feature->m_executor->DirectSetStaticOutput(m_index, m_new_output);
+        if (m_new_output) {
+            m_new_output->m_affected_features.Append(m_feature);
+        }
+    }
+
+    Feature* SetFeatureStaticOutputCommandLog::GetFeature() const {
+        return m_feature;
+    }
+
+    int SetFeatureStaticOutputCommandLog::GetIndex() const {
+        return m_index;
+    }
+
+    Feature* SetFeatureStaticOutputCommandLog::GetOldOutput() const {
+        return m_old_output;
+    }
+
+    Feature* SetFeatureStaticOutputCommandLog::GetNewOutput() const {
+        return m_new_output;
+    }
+
+    TYPE_IMP_1(AddFeatureDynamicOutputCommandLog, CommandLog::GetTypeInstance());
+
+    AddFeatureDynamicOutputCommandLog::AddFeatureDynamicOutputCommandLog(Feature* feature, Feature* output_feature) :
+        m_feature(feature),
+        m_output_feature(output_feature) {
+        m_feature->IncRef();
+        output_feature->IncRef();
+    }
+
+    AddFeatureDynamicOutputCommandLog::~AddFeatureDynamicOutputCommandLog() {
+        m_output_feature->DecRef();
+        m_feature->DecRef();
+    }
+
+    void AddFeatureDynamicOutputCommandLog::AppendAffectedFeature(Array<Feature*>& affected_features) {
+        affected_features.Append(m_feature);
+    }
+
+    void AddFeatureDynamicOutputCommandLog::AppendAffectedFeature(Drawing* drawing) {
+        drawing->AppendAffectedFeature(m_feature);
+    }
+
+    void AddFeatureDynamicOutputCommandLog::AppendRecheckRelationFeature(Drawing* drawing) {
+        drawing->AppendRecheckRelationFeature(m_feature);
+    }
+
+    void AddFeatureDynamicOutputCommandLog::Undo() {
+        for (int k = 0; k < m_output_feature->m_affected_features.GetCount(); ++k) {
+            if (m_output_feature->m_affected_features.Get(k) == m_feature) {
+                m_output_feature->m_affected_features.Remove(k);
+                break;
+            }
+        }
+        m_feature->m_executor->DirectRemoveDynamicOutput(m_output_feature);
+    }
+
+    void AddFeatureDynamicOutputCommandLog::Redo() {
+        m_feature->m_executor->DirectAddDynamicOutput(m_output_feature);
+        m_output_feature->m_affected_features.Append(m_feature);
+    }
+
+    TYPE_IMP_1(RemoveFeatureDynamicOutputCommandLog, CommandLog::GetTypeInstance());
+
+    RemoveFeatureDynamicOutputCommandLog::RemoveFeatureDynamicOutputCommandLog(Feature* feature, Feature* output_feature) :
+        m_feature(feature),
+        m_output_feature(output_feature) {
+        m_feature->IncRef();
+        output_feature->IncRef();
+    }
+
+    RemoveFeatureDynamicOutputCommandLog::~RemoveFeatureDynamicOutputCommandLog() {
+        m_output_feature->DecRef();
+        m_feature->DecRef();
+    }
+
+    void RemoveFeatureDynamicOutputCommandLog::AppendAffectedFeature(Array<Feature*>& affected_features) {
+        affected_features.Append(m_feature);
+    }
+
+    void RemoveFeatureDynamicOutputCommandLog::AppendAffectedFeature(Drawing* drawing) {
+        drawing->AppendAffectedFeature(m_feature);
+    }
+
+    void RemoveFeatureDynamicOutputCommandLog::AppendRecheckRelationFeature(Drawing* drawing) {
+    }
+
+    void RemoveFeatureDynamicOutputCommandLog::Undo() {
+        m_feature->m_executor->DirectAddDynamicOutput(m_output_feature);
+        m_output_feature->m_affected_features.Append(m_feature);
+    }
+
+    void RemoveFeatureDynamicOutputCommandLog::Redo() {
+        for (int k = 0; k < m_output_feature->m_affected_features.GetCount(); ++k) {
+            if (m_output_feature->m_affected_features.Get(k) == m_feature) {
+                m_output_feature->m_affected_features.Remove(k);
+                break;
+            }
+        }
+        m_feature->m_executor->DirectRemoveDynamicOutput(m_output_feature);
+    }
+
     TYPE_IMP_1(SetFieldCommandLog, CommandLog::GetTypeInstance());
 
     SetFieldCommandLog::SetFieldCommandLog(Feature* feature, FeatureFieldSchema* field_schema) :
@@ -377,6 +569,10 @@ namespace wgp {
 
     SetFieldCommandLog::~SetFieldCommandLog() {
         m_feature->DecRef();
+    }
+
+    void SetFieldCommandLog::AppendAffectedFeature(Array<Feature*>& affected_features) {
+        affected_features.Append(m_feature);
     }
 
     void SetFieldCommandLog::AppendAffectedFeature(Drawing* drawing) {

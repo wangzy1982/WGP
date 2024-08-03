@@ -10,7 +10,8 @@ namespace wgp {
 
     RenderingObject::RenderingObject(int classification, RenderingMaterial* material) : 
         m_classification(classification),
-        m_material(material) {
+        m_material(material),
+        CurrentMaterial(nullptr) {
     }
 
     RenderingMaterial* RenderingObject::GetMaterial() const {
@@ -68,9 +69,11 @@ namespace wgp {
         m_dirty_level(2),
         m_complexity(complexity) {
         m_model->IncRef();
+        m_model->GetDrawing()->RegisterObserver(this);
     }
 
     RenderingTree::~RenderingTree() {
+        m_model->GetDrawing()->UnregisterObserver(this);
         if (m_rendering_group_root) {
             FreeRenderingGroups(m_rendering_group_root);
         }
@@ -81,24 +84,21 @@ namespace wgp {
     }
 
     void RenderingTree::Notify(const Array<CommandLog*>& logs) {
-        /*
-        Array<Feature*> affected_features;
+        Array<Feature*> dirty_features;
         for (int i = 0; i < logs.GetCount(); ++i) {
             CommandLog* log = logs.Get(i);
             int dirty_level = GetDirtyLevel(log);
             if (dirty_level > 0) {
-                log->AppendAffectedFeature(affected_features);
-                for (int j = 0; j < affected_features.GetCount(); ++j) {
-                    SetFeatureInfoDirty(affected_features.Get(j));
+                AppendDirtyFeatures(log, dirty_features);
+                for (int j = 0; j < dirty_features.GetCount(); ++j) {
+                    SetFeatureInfoDirty(dirty_features.Get(j));
                 }
-                affected_features.Clear();
+                dirty_features.Clear();
                 if (dirty_level == 2) {
                     m_dirty_level = 2;
                 }
             }
         }
-        */
-        //todo
     }
 
     Model* RenderingTree::GetModel() const {
@@ -111,10 +111,10 @@ namespace wgp {
         }
     }
 
-    void RenderingTree::Render(Renderer* renderer, int classification) {
+    void RenderingTree::GetRenderingObjects(int classification, wgp::Array<RenderingObject*>& rendering_objects) {
         Update();
         if (m_rendering_group_root) {
-            Render(m_rendering_group_root, renderer, classification);
+            GetRenderingObjects(m_rendering_group_root, classification, rendering_objects);
         }
     }
 
@@ -128,10 +128,10 @@ namespace wgp {
         }
     }
 
-    void RenderingTree::ClearState(int clear_state) {
+    void RenderingTree::ClearState() {
         Update();
         if (m_feature_info_root) {
-            ClearState(m_feature_info_root, clear_state);
+            ClearState(m_feature_info_root, 0);
         }
     }
 
@@ -158,7 +158,13 @@ namespace wgp {
 
     void RenderingTree::UpdateDirty1(FeatureInfo* feature_info) {
         if (feature_info->IsDirty) {
-            UpdateDirtyFeatureInfo(feature_info);
+            Matrix4x4 matrix = Matrix4x4::Identity();
+            for (int i = 0; i < feature_info->Path.GetCount(); ++i) {
+                Matrix4x4 temp_matrix;
+                GetReferenceMatrix(feature_info->Path.Get(i), temp_matrix);
+                matrix = matrix * temp_matrix;
+            }
+            UpdateDirtyFeatureInfo(feature_info, matrix);
         }
         if (feature_info->LeftChild) {
             UpdateDirty1(feature_info->LeftChild);
@@ -192,13 +198,14 @@ namespace wgp {
                 }
             }
             if (feature_info->IsDirty) {
-                UpdateDirtyFeatureInfo(feature_info);
+                UpdateDirtyFeatureInfo(feature_info, matrix);
                 feature_info->IsDirty = false;
             }
             feature_info->IsRendered = true;
-            Matrix4x4 temp_matrix;
-            Model* model2 = GetReferenceModel(feature, temp_matrix);
+            Model* model2 = GetReferenceModel(feature);
             if (model2) {
+                Matrix4x4 temp_matrix;
+                GetReferenceMatrix(feature, temp_matrix);
                 path.Append(feature);
                 Matrix4x4 matrix2 = matrix * temp_matrix;
                 UpdateDirty2(path, matrix2, order, model2);
@@ -245,8 +252,9 @@ namespace wgp {
         RemoveFeatureInfo(feature_info);
     }
 
-    void RenderingTree::UpdateDirtyFeatureInfo(FeatureInfo* feature_info) {
+    void RenderingTree::UpdateDirtyFeatureInfo(FeatureInfo* feature_info, const Matrix4x4& matrix) {
         RemoveFeatureInfoFromGroup(feature_info);
+        feature_info->Matrix = matrix;
         RenderingMaterial* material = nullptr;
         bool is_classification_enabled = false;
         Calculate(feature_info, material, is_classification_enabled, feature_info->Box, feature_info->Complexity);
@@ -1276,20 +1284,20 @@ namespace wgp {
         }
     }
 
-    void RenderingTree::Render(RenderingGroup* group, Renderer* renderer, int classification) {
+    void RenderingTree::GetRenderingObjects(RenderingGroup* group, int classification, wgp::Array<RenderingObject*>& rendering_objects) {
         if (group->LeftChild) {
-            Render(group->LeftChild, renderer, classification);
+            GetRenderingObjects(group->LeftChild, classification, rendering_objects);
         }
         AppendRenderingObjects(group, classification);
         if (group->Root) {
-            Render(group, group->Root, renderer, group->IsClassificationEnabled ? classification : 0);
+            GetRenderingObjects(group, group->Root, group->IsClassificationEnabled ? classification : 0, rendering_objects);
         }
         if (group->RightChild) {
-            Render(group->RightChild, renderer, classification);
+            GetRenderingObjects(group->RightChild, classification, rendering_objects);
         }
     }
 
-    void RenderingTree::Render(RenderingGroup* group, RenderingNode* node, Renderer* renderer, int classification) {
+    void RenderingTree::GetRenderingObjects(RenderingGroup* group, RenderingNode* node, int classification, wgp::Array<RenderingObject*>& rendering_objects) {
         if (node->IsDirty) {
             return;
         }
@@ -1300,7 +1308,8 @@ namespace wgp {
                 if (!material) {
                     material = group->Material;
                 }
-                renderer->Draw(material, rendering_object);
+                rendering_object->CurrentMaterial = material;
+                rendering_objects.Append(rendering_object);
             }
         }
         if (node->Height > 0) {
@@ -1308,7 +1317,7 @@ namespace wgp {
                 if (!node->Children[i]) {
                     break;
                 }
-                Render(group, node, renderer, classification);
+                GetRenderingObjects(group, node, classification, rendering_objects);
             }
         }
     }

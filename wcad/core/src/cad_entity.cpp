@@ -74,15 +74,46 @@ namespace wcad {
         ((EntityFeature*)feature)->m_linetype_scale = value;
     }
 
+    TYPE_IMP_1(EntityDisplayChangedLog, wgp::CommandLog::GetTypeInstance());
+
+    EntityDisplayChangedLog::EntityDisplayChangedLog(EntityFeature* feature) :
+        m_feature(feature) {
+        m_feature->IncRef();
+    }
+
+    EntityDisplayChangedLog::~EntityDisplayChangedLog() {
+        m_feature->DecRef();
+    }
+
+    EntityFeature* EntityDisplayChangedLog::GetFeature() const {
+        return m_feature;
+    }
+
+    void EntityDisplayChangedLog::AppendAffectedFeature(wgp::Array<wgp::Feature*>& affected_features) {
+    }
+
+    void EntityDisplayChangedLog::AppendAffectedFeature(wgp::Drawing* drawing) {
+    }
+
+    void EntityDisplayChangedLog::AppendRecheckRelationFeature(wgp::Drawing* drawing) {
+    }
+
+    void EntityDisplayChangedLog::Undo() {
+    }
+
+    void EntityDisplayChangedLog::Redo() {
+    }
+
     EntityFeatureExecutor::EntityFeatureExecutor(wgp::Feature* owner) :
         wgp::FeatureExecutor(owner) {
         m_static_input_features[0] = nullptr;
         m_static_input_features[1] = nullptr;
         m_static_input_features[2] = nullptr;
+        m_static_output_features[0] = nullptr;
     }
 
     int EntityFeatureExecutor::GetStaticInputCount() const {
-        return 3;
+        return 2;
     }
 
     wgp::Feature* EntityFeatureExecutor::GetStaticInput(int index) const {
@@ -98,33 +129,47 @@ namespace wcad {
         m_static_input_features[index] = feature;
     }
 
-    int EntityFeatureExecutor::GetDynamicInputCount() const {
-        return 0;
+    int EntityFeatureExecutor::GetStaticOutputCount() const {
+        return 1;
     }
 
-    wgp::Feature* EntityFeatureExecutor::GetDynamicInput(int index) const {
-        return nullptr;
+    wgp::Feature* EntityFeatureExecutor::GetStaticOutput(int index) const {
+        return m_static_output_features[index];
     }
 
-    bool EntityFeatureExecutor::AddDynamicInputEnable(wgp::Feature* feature) {
-        return false;
+    bool EntityFeatureExecutor::SetStaticOutputEnable(int index, wgp::Feature* feature) {
+        return true;
     }
 
-    void EntityFeatureExecutor::DirectAddDynamicInput(wgp::Feature* feature) {
-    }
-
-    void EntityFeatureExecutor::DirectRemoveDynamicInput(wgp::Feature* feature) {
+    void EntityFeatureExecutor::DirectSetStaticOutput(int index, wgp::Feature* feature) {
+        m_static_output_features[index] = feature;
     }
 
     bool EntityFeatureExecutor::Calculate() {
+        AppendDisplayChangedLogs((EntityFeature*)m_owner);
         return true;
+    }
+
+    void EntityFeatureExecutor::AppendDisplayChangedLogs(EntityFeature* feature) {
+        feature->GetModel()->GetDrawing()->AppendLog(new EntityDisplayChangedLog(feature));
+        wgp::ReferenceFeature* reference_feature = (wgp::ReferenceFeature*)feature->GetStaticOutput(0);
+        if (reference_feature) {
+            wgp::Model* reference_model = reference_feature->GetReferenceModel();
+            for (int i = 0; i < reference_model->GetFeatureCount(); ++i) {
+                wgp::Feature* child_feature = reference_model->GetFeature(i);
+                if (child_feature->GetFeatureSchema()->GetType() == EntityFeatureSchema::GetTypeInstance()) {
+                    AppendDisplayChangedLogs((EntityFeature*)child_feature);
+                }
+            }
+        }
     }
 
     EntityFeature::EntityFeature(wgp::Model* model, wgp::SceneId id, wgp::FeatureSchema* feature_schema) :
         wgp::Feature(model, id, feature_schema, new EntityFeatureExecutor(this)),
         m_color(0),
         m_transparent(0),
-        m_line_weight(LineWeight::ByLayer) {
+        m_line_weight(LineWeight::ByLayer),
+        m_linetype_scale(1) {
         //todo 初始化
     }
 

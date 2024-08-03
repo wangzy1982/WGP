@@ -98,6 +98,8 @@ namespace wgp {
     public:
         SketchLine2dFeature(Model* model, SceneId id, FeatureSchema* feature_schema, SketchLine2d* geometry);
         virtual void Accept(FeatureVisitor* visitor);
+        Vector2d GetStartPoint() const;
+        Vector2d GetEndPoint() const;
     protected:
         friend class SketchGeometryFeatureSchema;
     };
@@ -176,6 +178,7 @@ namespace wgp {
     public:
         SketchFeatureRefresher(SketchFeature* feature);
         virtual ~SketchFeatureRefresher();
+        virtual void AppendAffectedFeature(Array<Feature*>& affected_features);
         virtual void AppendAffectedFeature(Drawing* drawing);
         virtual void AppendRecheckRelationFeature(Drawing* drawing);
         virtual void AfterUndo(const Array<CommandLog*>& logs);

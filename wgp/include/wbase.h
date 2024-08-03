@@ -21,4 +21,7 @@
     #define WGP_API_C extern "C" WGP_API
 #endif
 
+#pragma warning(disable:6385)
+#pragma warning(disable:6386)
+
 #endif

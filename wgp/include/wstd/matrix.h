@@ -15,6 +15,7 @@ namespace wgp {
     class WGP_API Matrix4x4 {
     public:
         static Matrix4x4 Identity();
+        void Transpose();
         Matrix4x4 operator*(const Matrix4x4& m2) const;
         Vector3d MulPoint(const Vector3d& point) const;
     public:
@@ -40,6 +41,28 @@ namespace wgp {
         m.Terms[3][2] = 0;
         m.Terms[3][3] = 1;
         return m;
+    }
+
+    inline void Matrix4x4::Transpose() {
+        double t;
+        t = Terms[0][1];
+        Terms[0][1] = Terms[1][0];
+        Terms[1][0] = t;
+        t = Terms[0][2];
+        Terms[0][2] = Terms[2][0];
+        Terms[2][0] = t;
+        t = Terms[0][3];
+        Terms[0][3] = Terms[3][0];
+        Terms[3][0] = t;
+        t = Terms[1][2];
+        Terms[1][2] = Terms[2][1];
+        Terms[2][1] = t;
+        t = Terms[1][3];
+        Terms[1][3] = Terms[3][1];
+        Terms[3][1] = t;
+        t = Terms[2][3];
+        Terms[2][3] = Terms[3][2];
+        Terms[3][2] = t;
     }
 
     inline Matrix4x4 Matrix4x4::operator*(const Matrix4x4& m2) const {

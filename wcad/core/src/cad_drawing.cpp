@@ -126,6 +126,10 @@ namespace wcad {
         return m_entity_feature_schema;
     }
 
+    wgp::String Drawing::ByBlockName = wgp::StringResource("ByBlock");
+    wgp::String Drawing::ByLayerName = wgp::StringResource("ByLayer");
+    wgp::String Drawing::ZeroLayerName = wgp::StringResource("0");
+
     Linetype* Drawing::AddLinetype(wgp::SceneId id, wgp::SceneId feature_id, const wgp::String& name, wgp::LineStipple* stipple) {
         StartEdit();
         wgp::Ptr<Linetype> linetype = new Linetype(this, id);
