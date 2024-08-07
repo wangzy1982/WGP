@@ -54,8 +54,8 @@ namespace wgp {
         m_tex_offsets.Append(line->m_tex_offsets);
         m_tex_lengths.Append(line->m_tex_lengths);
         m_states.Append(line->m_states);
-        for (int i = fragment->m_line_index; i < fragment->m_line_count; ++i) {
-            int j = i * 2;
+        for (int i = 0; i < fragment->m_line_count; ++i) {
+            int j = (i + fragment->m_line_index) * 2;
             m_line_indices.Set(j, m_line_indices.Get(j) + fragment->m_vertex_index);
             ++j;
             m_line_indices.Set(j, m_line_indices.Get(j) + fragment->m_vertex_index);
@@ -94,8 +94,8 @@ namespace wgp {
         }
         m_states.Append(line->m_states, src_fragment->m_line_index, src_fragment->m_line_count);
         int n = new_fragment->m_vertex_index - src_fragment->m_vertex_index;
-        for (int i = new_fragment->m_line_index; i < new_fragment->m_line_count; ++i) {
-            int j = i * 2;
+        for (int i = 0; i < new_fragment->m_line_count; ++i) {
+            int j = (i + new_fragment->m_line_index) * 2;
             m_line_indices.Set(j, m_line_indices.Get(j) + n);
             ++j;
             m_line_indices.Set(j, m_line_indices.Get(j) + n);

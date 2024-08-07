@@ -400,6 +400,8 @@ namespace wcad {
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        GLsizei screen_left = (GLsizei)GetScreenLeft();
+        GLsizei screen_bottom = (GLsizei)GetScreenBottom();
         GLsizei screen_width = (GLsizei)GetScreenWidth();
         GLsizei screen_height = (GLsizei)GetScreenHeight();
         if (screen_width < 1) {
@@ -413,7 +415,7 @@ namespace wcad {
         float opengl_model_view_matrix[16];
         wgp::MatrixToOpenGLMatrix(model_view_matrix, opengl_model_view_matrix);
         wgp::Matrix4x4 projection_matrix;
-        m_camera->GetProjectionMatrix(screen_width / screen_height, projection_matrix);
+        m_camera->GetProjectionMatrix((double)screen_width / screen_height, projection_matrix);
         float opengl_projection_matrix[16];
         wgp::MatrixToOpenGLMatrix(projection_matrix, opengl_projection_matrix);
         
@@ -432,7 +434,9 @@ namespace wcad {
 
         glBindFramebuffer(GL_FRAMEBUFFER, frame_buffer);
 
-        glViewport((GLint)GetScreenLeft(), (GLint)GetScreenBottom(), (GLint)screen_width, (GLint)screen_height);
+        glViewport(screen_left, screen_bottom, screen_width, screen_height);
+        glEnable(GL_SCISSOR_TEST);
+        glScissor(screen_left, screen_bottom, screen_width, screen_height);
         switch (m_background->GetClearFlag()) {
         case wgp::Background::ClearFlag::Color: {
                 wgp::Color color = m_background->GetClearColor();
@@ -447,8 +451,9 @@ namespace wcad {
                 break;
             }
         }
+        glDisable(GL_SCISSOR_TEST);
         Draw(rendering_objects, opengl_model_view_matrix, opengl_projection_matrix, screen_width, screen_height, 0);
-        //wgp::OpenGLMergeTexture(m_texture1.GetColorTexture(), wgp::Color(0, 0, 1, 0));
+        wgp::OpenGLMergeTextureShader::Instance.Draw(m_texture1.GetColorTexture(), wgp::Color(1, 1, 1, 1));
     }
 
     void Viewport::Draw(wgp::Array<wgp::RenderingObject*>& rendering_objects, float* model_view_matrix,

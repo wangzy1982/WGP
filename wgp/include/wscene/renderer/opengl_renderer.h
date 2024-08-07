@@ -51,8 +51,8 @@ namespace wgp {
     class WGP_API OpenGLMergeTextureShader : public OpenGLShader {
     public:
         OpenGLMergeTextureShader();
-        GLuint GetTextureLocation() const;
-        GLuint GetColorLocation() const;
+        virtual ~OpenGLMergeTextureShader();
+        void Draw(GLuint texture, const Color& color);
     protected:
         virtual const GLchar* GetVertexSource();
         virtual const GLchar* GetFragmentSource();
@@ -62,18 +62,17 @@ namespace wgp {
     private:
         GLuint m_texture_location;
         GLuint m_color_location;
+        GLuint m_vertex_buffer;
+        GLuint m_uv_buffer;
     };
 
     WGP_API void MatrixToOpenGLMatrix(const Matrix4x4& matrix, float* opengl_matrix);
-    WGP_API void OpenGLMergeTexture(GLuint texture, const Color& color);
-
+    
     class WGP_API OpenGLOrderSimpleLineShader : public OpenGLShader {
     public:
         OpenGLOrderSimpleLineShader();
-        GLuint GetStateLocation() const;
-        GLuint GetColorLocation() const;
-        GLuint GetModelViewMatrixLocation() const;
-        GLuint GetProjectionMatrixLocation() const;
+        void Draw(float* model_view_matrix, float* projection_matrix, GLuint vertex_buffer, GLuint order_buffer,
+            GLuint state_buffer, GLuint index_buffer, int index_count, const wgp::Color& color, int state);
     protected:
         virtual const GLchar* GetVertexSource();
         virtual const GLchar* GetFragmentSource();

@@ -154,7 +154,7 @@ namespace wgp {
             glBindFramebuffer(GL_FRAMEBUFFER, m_frame_buffer);
             glGenTextures(1, &m_color_texture);
             glBindTexture(GL_TEXTURE_2D, m_color_texture);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_width, m_height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_width, m_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -172,15 +172,77 @@ namespace wgp {
 
     OpenGLMergeTextureShader::OpenGLMergeTextureShader() :
         m_texture_location(0),
-        m_color_location(0) {
+        m_color_location(0),
+        m_vertex_buffer(0),
+        m_uv_buffer(0) {
     }
 
-    GLuint OpenGLMergeTextureShader::GetTextureLocation() const {
-        return m_texture_location;
+    OpenGLMergeTextureShader::~OpenGLMergeTextureShader() {
+        if (m_vertex_buffer) {
+            glDeleteBuffers(1, &m_vertex_buffer);
+        }
+        if (m_uv_buffer) {
+            glDeleteBuffers(1, &m_uv_buffer);
+        }
     }
 
-    GLuint OpenGLMergeTextureShader::GetColorLocation() const {
-        return m_color_location;
+    void OpenGLMergeTextureShader::Draw(GLuint texture, const Color& color) {
+        GLboolean depth_test_enable;
+        glGetBooleanv(GL_DEPTH_TEST, &depth_test_enable);
+        if (depth_test_enable) {
+            glDisable(GL_DEPTH_TEST);
+        }
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        if (!m_vertex_buffer) {
+            GLfloat vertices[] = {
+                -1, -1, 0.5,
+                1, -1, 0.5,
+                1, 1, 0.5,
+                -1, -1, 0.5,
+                1, 1, 0.5,
+                -1, 1, 0.5
+            };
+            glGenBuffers(1, &m_vertex_buffer);
+            glBindBuffer(GL_ARRAY_BUFFER, m_vertex_buffer);
+            glBufferData(GL_ARRAY_BUFFER, 18 * sizeof(float), vertices, GL_STATIC_DRAW);
+        }
+        if (!m_uv_buffer) {
+            GLfloat uvs[] = {
+                0, 0,
+                1, 0,
+                1, 1,
+                0, 0,
+                1, 1,
+                0, 1
+            };
+            glGenBuffers(1, &m_uv_buffer);
+            glBindBuffer(GL_ARRAY_BUFFER, m_uv_buffer);
+            glBufferData(GL_ARRAY_BUFFER, 12 * sizeof(float), uvs, GL_STATIC_DRAW);
+        }
+
+        GLint old_program;
+        glGetIntegerv(GL_CURRENT_PROGRAM, &old_program);
+
+        glUseProgram(OpenGLMergeTextureShader::Instance.GetProgram());
+        glBindBuffer(GL_ARRAY_BUFFER, m_vertex_buffer);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+        glBindBuffer(GL_ARRAY_BUFFER, m_uv_buffer);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
+        glUniform4f(m_color_location, color.R, color.G, color.B, color.A);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        glUniform1i(m_texture_location, 0);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+
+        glDisableVertexAttribArray(0);
+        glDisableVertexAttribArray(1);
+        glUseProgram(old_program);
+        if (depth_test_enable) {
+            glEnable(GL_DEPTH_TEST);
+        }
     }
 
     const GLchar* OpenGLMergeTextureShader::GetVertexSource() {
@@ -237,45 +299,6 @@ namespace wgp {
         opengl_matrix[15] = (float)matrix.Terms[3][3];
     }
 
-    void OpenGLMergeTexture(GLuint texture, const Color& color) {
-        glClearDepth(1);
-        glClear(GL_DEPTH_BUFFER_BIT);
-        static GLfloat vertices[] = {
-            -1, -1, 0.5,
-            1, -1, 0.5,
-            1, 1, 0.5,
-            -1, -1, 0.5,
-            1, 1, 0.5,
-            -1, 1, 0.5
-        };
-        static GLfloat uvs[] = {
-            0, 0,
-            1, 0,
-            1, 1,
-            0, 0,
-            1, 1,
-            0, 1
-        };
-
-        GLint old_program;
-        glGetIntegerv(GL_CURRENT_PROGRAM, &old_program);
-
-        glUseProgram(OpenGLMergeTextureShader::Instance.GetProgram());
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, vertices);
-        glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, uvs);
-        glUniform4f(OpenGLMergeTextureShader::Instance.GetColorLocation(), color.R, color.G, color.B, color.A);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture);
-        glUniform1i(OpenGLMergeTextureShader::Instance.GetTextureLocation(), 0);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-
-        glDisableVertexAttribArray(0);
-        glDisableVertexAttribArray(1);
-        glUseProgram(old_program);
-    }
-
     OpenGLOrderSimpleLineShader::OpenGLOrderSimpleLineShader() :
         m_state_location(0),
         m_color_location(0),
@@ -283,20 +306,37 @@ namespace wgp {
         m_projection_matrix_location(0) {
     }
 
-    GLuint OpenGLOrderSimpleLineShader::GetStateLocation() const {
-        return m_state_location;
-    }
+    void OpenGLOrderSimpleLineShader::Draw(float* model_view_matrix, float* projection_matrix, GLuint vertex_buffer, GLuint order_buffer, 
+        GLuint state_buffer, GLuint index_buffer, int index_count, const wgp::Color& color, int state) {
+        GLuint program = GetProgram();
+        if (!program) {
+            return;
+        }
+        glUseProgram(program);
 
-    GLuint OpenGLOrderSimpleLineShader::GetColorLocation() const {
-        return m_color_location;
-    }
+        glEnableVertexAttribArray(0);
+        glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
-    GLuint OpenGLOrderSimpleLineShader::GetModelViewMatrixLocation() const {
-        return m_model_view_matrix_location;
-    }
+        glEnableVertexAttribArray(1);
+        glBindBuffer(GL_ARRAY_BUFFER, order_buffer);
+        glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 0, 0);
 
-    GLuint OpenGLOrderSimpleLineShader::GetProjectionMatrixLocation() const {
-        return m_projection_matrix_location;
+        glEnableVertexAttribArray(2);
+        glBindBuffer(GL_ARRAY_BUFFER, state_buffer);
+        glVertexAttribPointer(2, 1, GL_INT, GL_FALSE, 0, 0);
+
+        glUniform1i(m_state_location, state);
+        glUniform4f(m_color_location, color.R, color.G, color.B, color.A);
+        glUniformMatrix4fv(m_model_view_matrix_location, 1, GL_FALSE, model_view_matrix);
+        glUniformMatrix4fv(m_projection_matrix_location, 1, GL_FALSE, projection_matrix);
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
+        glDrawElements(GL_LINES, index_count, GL_UNSIGNED_INT, 0);
+
+        glDisableVertexAttribArray(0);
+        glDisableVertexAttribArray(1);
+        glDisableVertexAttribArray(2);
     }
 
     const GLchar* OpenGLOrderSimpleLineShader::GetVertexSource() {
@@ -507,35 +547,8 @@ namespace wgp {
                 //todo
             }
             else {
-                GLuint program = OpenGLOrderSimpleLineShader::Instance.GetProgram();
-                if (!program) {
-                    return;
-                }
-                glUseProgram(program);
-
-                glEnableVertexAttribArray(0);
-                glBindBuffer(GL_ARRAY_BUFFER, m_vertex_buffer);
-                glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-
-                glEnableVertexAttribArray(1);
-                glBindBuffer(GL_ARRAY_BUFFER, m_order_buffer);
-                glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 0, 0);
-
-                glEnableVertexAttribArray(2);
-                glBindBuffer(GL_ARRAY_BUFFER, m_state_buffer);
-                glVertexAttribPointer(2, 1, GL_INT, GL_FALSE, 0, 0);
-
-                glUniform1i(OpenGLOrderSimpleLineShader::Instance.GetStateLocation(), state);
-                glUniform4f(OpenGLOrderSimpleLineShader::Instance.GetColorLocation(), color.R, color.G, color.B, color.A);
-                glUniformMatrix4fv(OpenGLOrderSimpleLineShader::Instance.GetModelViewMatrixLocation(), 1, GL_FALSE, model_view_matrix);
-                glUniformMatrix4fv(OpenGLOrderSimpleLineShader::Instance.GetProjectionMatrixLocation(), 1, GL_FALSE, projection_matrix);
-
-                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_index_buffer);
-                glDrawElements(GL_LINES, m_index_count, GL_UNSIGNED_INT, 0);
-
-                glDisableVertexAttribArray(0);
-                glDisableVertexAttribArray(1);
-                glDisableVertexAttribArray(2);
+                OpenGLOrderSimpleLineShader::Instance.Draw(model_view_matrix, projection_matrix, m_vertex_buffer, m_order_buffer,
+                    m_state_buffer, m_index_buffer, m_index_count, color, state);
             }
         }
     }

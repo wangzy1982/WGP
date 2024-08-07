@@ -21,13 +21,10 @@ namespace wgp {
 		Background();
 		void SetClearFlag(ClearFlag clear_flag);
 		ClearFlag GetClearFlag() const;
-		void SetClearDepth(double clear_depth);
-		double GetClearDepth() const;
 		void SetClearColor(const Color& clear_color);
 		Color GetClearColor() const;
 	private:
 		ClearFlag m_clear_flag;
-		double m_clear_depth;
 		Color m_clear_color;
 	};
 
