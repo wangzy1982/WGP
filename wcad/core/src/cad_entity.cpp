@@ -43,40 +43,40 @@ namespace wcad {
     }
 
     int32_t EntityFeatureSchema::GetColor(wgp::Feature* feature, wgp::FeatureFieldSchema* field_schema) {
-        return ((EntityFeature*)feature)->m_color.GetData();
+        return ((Entity*)feature)->m_color.GetData();
     }
 
     void EntityFeatureSchema::DirectSetColor(wgp::Feature* feature, wgp::FeatureFieldSchema* field_schema, int32_t value) {
-        ((EntityFeature*)feature)->m_color = value;
+        ((Entity*)feature)->m_color = value;
     }
 
     int32_t EntityFeatureSchema::GetTransparent(wgp::Feature* feature, wgp::FeatureFieldSchema* field_schema) {
-        return ((EntityFeature*)feature)->m_transparent.GetData();
+        return ((Entity*)feature)->m_transparent.GetData();
     }
 
     void EntityFeatureSchema::DirectSetTransparent(wgp::Feature* feature, wgp::FeatureFieldSchema* field_schema, int32_t value) {
-        ((EntityFeature*)feature)->m_transparent = value;
+        ((Entity*)feature)->m_transparent = value;
     }
 
     int32_t EntityFeatureSchema::GetLineWeight(wgp::Feature* feature, wgp::FeatureFieldSchema* field_schema) {
-        return (int32_t)((EntityFeature*)feature)->m_line_weight;
+        return (int32_t)((Entity*)feature)->m_line_weight;
     }
 
     void EntityFeatureSchema::DirectSetLineWeight(wgp::Feature* feature, wgp::FeatureFieldSchema* field_schema, int32_t value) {
-        ((EntityFeature*)feature)->m_line_weight = (LineWeight)value;
+        ((Entity*)feature)->m_line_weight = (LineWeight)value;
     }
 
     double EntityFeatureSchema::GetLinetypeScale(wgp::Feature* feature, wgp::FeatureFieldSchema* field_schema) {
-        return ((EntityFeature*)feature)->m_linetype_scale;
+        return ((Entity*)feature)->m_linetype_scale;
     }
 
     void EntityFeatureSchema::DirectSetLinetypeScale(wgp::Feature* feature, wgp::FeatureFieldSchema* field_schema, double value) {
-        ((EntityFeature*)feature)->m_linetype_scale = value;
+        ((Entity*)feature)->m_linetype_scale = value;
     }
 
     TYPE_IMP_1(EntityDisplayChangedLog, wgp::CommandLog::GetTypeInstance());
 
-    EntityDisplayChangedLog::EntityDisplayChangedLog(EntityFeature* feature) :
+    EntityDisplayChangedLog::EntityDisplayChangedLog(Entity* feature) :
         m_feature(feature) {
         m_feature->IncRef();
     }
@@ -85,7 +85,7 @@ namespace wcad {
         m_feature->DecRef();
     }
 
-    EntityFeature* EntityDisplayChangedLog::GetFeature() const {
+    Entity* EntityDisplayChangedLog::GetFeature() const {
         return m_feature;
     }
 
@@ -146,11 +146,11 @@ namespace wcad {
     }
 
     bool EntityFeatureExecutor::Calculate() {
-        AppendDisplayChangedLogs((EntityFeature*)m_owner);
+        AppendDisplayChangedLogs((Entity*)m_owner);
         return true;
     }
 
-    void EntityFeatureExecutor::AppendDisplayChangedLogs(EntityFeature* feature) {
+    void EntityFeatureExecutor::AppendDisplayChangedLogs(Entity* feature) {
         feature->GetModel()->GetDrawing()->AppendLog(new EntityDisplayChangedLog(feature));
         wgp::ReferenceFeature* reference_feature = (wgp::ReferenceFeature*)feature->GetStaticOutput(0);
         if (reference_feature) {
@@ -158,13 +158,15 @@ namespace wcad {
             for (int i = 0; i < reference_model->GetFeatureCount(); ++i) {
                 wgp::Feature* child_feature = reference_model->GetFeature(i);
                 if (child_feature->GetFeatureSchema()->GetType() == EntityFeatureSchema::GetTypeInstance()) {
-                    AppendDisplayChangedLogs((EntityFeature*)child_feature);
+                    AppendDisplayChangedLogs((Entity*)child_feature);
                 }
             }
         }
     }
 
-    EntityFeature::EntityFeature(wgp::Model* model, wgp::SceneId id, wgp::FeatureSchema* feature_schema) :
+    TYPE_IMP_0(Entity);
+
+    Entity::Entity(wgp::Model* model, wgp::SceneId id, wgp::FeatureSchema* feature_schema) :
         wgp::Feature(model, id, feature_schema, new EntityFeatureExecutor(this)),
         m_color(0),
         m_transparent(0),
@@ -173,37 +175,37 @@ namespace wcad {
         //todo 初始化
     }
 
-    EntityFeature::~EntityFeature() {
+    Entity::~Entity() {
     }
 
-    Color EntityFeature::GetColor() const {
+    Color Entity::GetColor() const {
         return m_color;
     }
 
-    bool EntityFeature::SetColor(const Color& value) {
+    bool Entity::SetColor(const Color& value) {
         static wgp::String entity_set_color_prompt = wgp::StringResource("Set entity color");
         return SetValue(((EntityFeatureSchema*)GetFeatureSchema())->GetColorFieldSchema(), value.GetData(), &entity_set_color_prompt);
     }
 
-    Transparent EntityFeature::GetTransparent() const {
+    Transparent Entity::GetTransparent() const {
         return m_transparent;
     }
 
-    bool EntityFeature::SetTransparent(const Transparent& value) {
+    bool Entity::SetTransparent(const Transparent& value) {
         static wgp::String entity_set_transparent_prompt = wgp::StringResource("Set entity transparent");
         return SetValue(((EntityFeatureSchema*)GetFeatureSchema())->GetTransparentFieldSchema(), value.GetData(), &entity_set_transparent_prompt);
     }
 
-    LineWeight EntityFeature::GetLineWeight() const {
+    LineWeight Entity::GetLineWeight() const {
         return m_line_weight;
     }
 
-    bool EntityFeature::SetLineWeight(LineWeight value) {
+    bool Entity::SetLineWeight(LineWeight value) {
         static wgp::String entity_set_line_weight_prompt = wgp::StringResource("Set entity line weight");
         return SetValue(((EntityFeatureSchema*)GetFeatureSchema())->GetLineWeightFieldSchema(), (int32_t)value, &entity_set_line_weight_prompt);
     }
 
-    Layer* EntityFeature::GetLayer() const {
+    Layer* Entity::GetLayer() const {
         wgp::ReferenceFeature* layer_feature = (wgp::ReferenceFeature*)GetStaticInput(0);
         if (!layer_feature) {
             return nullptr;
@@ -211,7 +213,7 @@ namespace wcad {
         return (Layer*)layer_feature->GetReferenceModel();
     }
 
-    bool EntityFeature::SetLayer(Layer* value) {
+    bool Entity::SetLayer(Layer* value) {
         if (GetLayer() == value) {
             return true;
         }
@@ -246,7 +248,7 @@ namespace wcad {
         return drawing->FinishEdit();
     }
 
-    Linetype* EntityFeature::GetLinetype() const {
+    Linetype* Entity::GetLinetype() const {
         wgp::ReferenceFeature* linetype_feature = (wgp::ReferenceFeature*)GetStaticInput(1);
         if (!linetype_feature) {
             return nullptr;
@@ -254,7 +256,7 @@ namespace wcad {
         return (Linetype*)linetype_feature->GetReferenceModel();
     }
 
-    bool EntityFeature::SetLinetype(Linetype* value) {
+    bool Entity::SetLinetype(Linetype* value) {
         if (GetLinetype() == value) {
             return true;
         }
@@ -289,20 +291,20 @@ namespace wcad {
         return drawing->FinishEdit();
     }
 
-    double EntityFeature::GetLinetypeScale() const {
+    double Entity::GetLinetypeScale() const {
         return m_linetype_scale;
     }
 
-    bool EntityFeature::SetLinetypeScale(double value) {
+    bool Entity::SetLinetypeScale(double value) {
         static wgp::String entity_set_linetype_scale_prompt = wgp::StringResource("Set entity linetype scale");
         return SetValue(((EntityFeatureSchema*)GetFeatureSchema())->GetLinetypeScaleFieldSchema(), value, &entity_set_linetype_scale_prompt);
     }
 
-    wgp::Feature* EntityFeature::GetGeometry() const {
+    wgp::Feature* Entity::GetGeometry() const {
         return GetStaticInput(2);
     }
 
-    bool EntityFeature::SetGeometry(wgp::Feature* value) {
+    bool Entity::SetGeometry(wgp::Feature* value) {
         Feature* old_geometry = GetGeometry();
         if (old_geometry == value) {
             return true;

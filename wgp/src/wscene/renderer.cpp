@@ -56,7 +56,7 @@ namespace wgp {
         return m_classification;
     }
 
-    void NullRenderingObjectFragment::SetState(int state) {
+    void NullRenderingObjectFragment::SetLayer(int layer) {
     }
 
     TYPE_IMP_0(RenderingMaterial);
@@ -118,20 +118,20 @@ namespace wgp {
         }
     }
 
-    void RenderingTree::SetState(Feature* feature, const Array<wgp::Feature*>& path, int state) {
+    void RenderingTree::SetLayer(Feature* feature, const Array<wgp::Feature*>& path, int layer) {
         Update();
         FeatureInfo* feature_info = GetFeatureInfo(feature, path, false);
         if (feature_info) {
             for (int i = 0; i < feature_info->Fragments.GetCount(); ++i) {
-                feature_info->Fragments.Get(i)->SetState(state);
+                feature_info->Fragments.Get(i)->SetLayer(layer);
             }
         }
     }
 
-    void RenderingTree::ClearState() {
+    void RenderingTree::ClearLayer() {
         Update();
         if (m_feature_info_root) {
-            ClearState(m_feature_info_root, 0);
+            ClearLayer(m_feature_info_root, 0);
         }
     }
 
@@ -1322,15 +1322,15 @@ namespace wgp {
         }
     }
 
-    void RenderingTree::ClearState(FeatureInfo* feature_info, int clear_state) {
+    void RenderingTree::ClearLayer(FeatureInfo* feature_info, int clear_layer) {
         for (int i = 0; i < feature_info->Fragments.GetCount(); ++i) {
-            feature_info->Fragments.Get(i)->SetState(clear_state);
+            feature_info->Fragments.Get(i)->SetLayer(clear_layer);
         }
         if (feature_info->LeftChild) {
-            ClearState(feature_info->LeftChild, clear_state);
+            ClearLayer(feature_info->LeftChild, clear_layer);
         }
         if (feature_info->RightChild) {
-            ClearState(feature_info->RightChild, clear_state);
+            ClearLayer(feature_info->RightChild, clear_layer);
         }
     }
 

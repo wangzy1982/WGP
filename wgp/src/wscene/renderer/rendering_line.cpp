@@ -13,14 +13,14 @@ namespace wgp {
     }
 
     RenderingLine::RenderingLine(int classification, RenderingMaterial* material, Array<float>&& vertices, Array<int>&& line_indices,
-        Array<float>&& orders, Array<float>&& tex_offsets, Array<float>&& tex_lengths, Array<int>&& states) :
+        Array<float>&& orders, Array<float>&& tex_offsets, Array<float>&& tex_lengths, Array<int>&& layers) :
         RenderingObject(classification, material),
         m_vertices(std::forward<Array<float>>(vertices)),
         m_line_indices(std::forward<Array<int>>(line_indices)),
         m_orders(std::forward<Array<float>>(orders)),
         m_tex_offsets(std::forward<Array<float>>(tex_offsets)),
         m_tex_lengths(std::forward<Array<float>>(tex_lengths)),
-        m_states(std::forward<Array<int>>(states)) {
+        m_layers(std::forward<Array<int>>(layers)) {
     }
 
     RenderingLine::~RenderingLine() {
@@ -53,7 +53,7 @@ namespace wgp {
         m_orders.Append(line->m_orders);
         m_tex_offsets.Append(line->m_tex_offsets);
         m_tex_lengths.Append(line->m_tex_lengths);
-        m_states.Append(line->m_states);
+        m_layers.Append(line->m_layers);
         for (int i = 0; i < fragment->m_line_count; ++i) {
             int j = (i + fragment->m_line_index) * 2;
             m_line_indices.Set(j, m_line_indices.Get(j) + fragment->m_vertex_index);
@@ -92,7 +92,7 @@ namespace wgp {
         if (line->m_tex_lengths.GetCount() > 0) {
             m_tex_lengths.Append(line->m_tex_lengths, src_fragment->m_line_index, src_fragment->m_line_count);
         }
-        m_states.Append(line->m_states, src_fragment->m_line_index, src_fragment->m_line_count);
+        m_layers.Append(line->m_layers, src_fragment->m_line_index, src_fragment->m_line_count);
         int n = new_fragment->m_vertex_index - src_fragment->m_vertex_index;
         for (int i = 0; i < new_fragment->m_line_count; ++i) {
             int j = (i + new_fragment->m_line_index) * 2;
@@ -105,7 +105,7 @@ namespace wgp {
     }
 
     void RenderingLine::GetFragmentData(RenderingLineFragment* fragment, Array<float>& vertices, Array<int>& line_indices,
-        Array<float>& orders, Array<float>& tex_offsets, Array<float>& tex_lengths, Array<int>& states) const {
+        Array<float>& orders, Array<float>& tex_offsets, Array<float>& tex_lengths, Array<int>& layers) const {
         vertices.Append(m_vertices, fragment->m_vertex_index * 3, fragment->m_vertex_count * 3);
         line_indices.Append(m_line_indices, fragment->m_line_index * 2, fragment->m_line_count * 2);
         if (m_orders.GetCount() > 0) {
@@ -117,7 +117,7 @@ namespace wgp {
         if (m_tex_lengths.GetCount() > 0) {
             tex_lengths.Append(m_tex_lengths, fragment->m_line_index, fragment->m_line_count);
         }
-        states.Append(m_states, fragment->m_line_index, fragment->m_line_count);
+        layers.Append(m_layers, fragment->m_line_index, fragment->m_line_count);
         int n = -fragment->m_vertex_index * 3;
         for (int i = 0; i < line_indices.GetCount(); ++i) {
             line_indices.Set(i, line_indices.Get(i) + n);
@@ -135,7 +135,7 @@ namespace wgp {
     RenderingLineFragment::~RenderingLineFragment() {
     }
 
-    void RenderingLineFragment::SetState(int state) {
+    void RenderingLineFragment::SetLayer(int layer) {
         //todo
     }
 }

@@ -7,7 +7,7 @@
 
 namespace wgp {
 
-	Background::Background() : m_clear_flag(ClearFlag::Color), m_clear_color(Color(0, 0, 0, 1)) {
+	Background::Background() : m_clear_flag(ClearFlag::Color), m_clear_color(Color(0, 0, 0, 255)) {
 	}
 
 	void Background::SetClearFlag(ClearFlag clear_flag) {

@@ -191,8 +191,12 @@ namespace wgp {
 
     class WGP_API SketchModelExecutor : public ModelExecutor {
     public:
+        void AppendAffectedConstaintFeature(SketchGeometryFeature* feature, Array<Feature*>& affected_features);
+        void AppendAffectedConstaintFeature(SketchGeometryFeature* feature, Drawing* drawing);
+    public:
         virtual bool Execute(Model* model, ModelEditCommand* command, Array<ModelEditCommand*>& inner_commands);
     private:
+        bool IsAffected(SketchGeometry* geometry, Feature* feature);
         SketchGeometryFeature* FindGeometryFeature(Model* model, SketchVariableEntity* entity);
         void AfterSolve(Sketch* sketch, Model* model, CommandLog* log, const Array<SketchEntityVariable>& actived_variables);
     };
@@ -201,7 +205,7 @@ namespace wgp {
     public:
         static bool InitializeSketchModel(Model* model, SceneId sketch_feature_id);
         static SketchLine2dFeature* AddSketchLine2d(Model* model, SceneId geometry_id, const Vector2d& start_point, const Vector2d& end_point);
-        static bool AddSketchPoint2dEqualConstraint(Model* model, SceneId constraint_id,
+        static SketchPoint2dEqualConstraintFeature* AddSketchPoint2dEqualConstraint(Model* model, SceneId constraint_id,
             SketchGeometryFeature* geometry0, int x_variable_index0, int y_variable_index0,
             SketchGeometryFeature* geometry1, int x_variable_index1, int y_variable_index1, double epsilon);
         static bool AddSketchFixPoint2dConstraint(Model* model, SceneId constraint_id,
@@ -215,6 +219,9 @@ namespace wgp {
             SketchGeometryFeature* entity0, int start_x_variable_index0, int start_y_variable_index0, int end_x_variable_index0, int end_y_variable_index0,
             SketchGeometryFeature* entity1, int start_x_variable_index1, int start_y_variable_index1, int end_x_variable_index1, int end_y_variable_index1,
             double angle, double epsilon);
+    public:
+        static bool SetSketchLine2dStartPoint(SketchLine2dFeature* line2d_feature, const Vector2d& point, double epsilon);
+        static bool SetSketchLine2dEndPoint(SketchLine2dFeature* line2d_feature, const Vector2d& point, double epsilon);
     };
 
 }

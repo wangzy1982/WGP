@@ -34,15 +34,15 @@ namespace wcad {
         static void DirectSetLinetypeScale(wgp::Feature* feature, wgp::FeatureFieldSchema* field_schema, double value);
     };
 
-    class EntityFeature;
+    class Entity;
 
     class EntityDisplayChangedLog : public wgp::CommandLog {
     public:
         TYPE_DEF_1(EntityDisplayChangedLog);
     public:
-        EntityDisplayChangedLog(EntityFeature* feature);
+        EntityDisplayChangedLog(Entity* feature);
         virtual ~EntityDisplayChangedLog();
-        EntityFeature* GetFeature() const;
+        Entity* GetFeature() const;
     public:
         virtual void AppendAffectedFeature(wgp::Array<wgp::Feature*>& affected_features);
         virtual void AppendAffectedFeature(wgp::Drawing* drawing);
@@ -50,7 +50,7 @@ namespace wcad {
         virtual void Undo();
         virtual void Redo();
     private:
-        EntityFeature* m_feature;
+        Entity* m_feature;
     };
 
     class EntityFeatureExecutor : public wgp::FeatureExecutor {
@@ -67,16 +67,18 @@ namespace wcad {
         virtual void DirectSetStaticOutput(int index, wgp::Feature* feature);
         virtual bool Calculate();
     protected:
-        void AppendDisplayChangedLogs(EntityFeature* feature);
+        void AppendDisplayChangedLogs(Entity* feature);
     protected:
         wgp::Feature* m_static_input_features[3];
         wgp::Feature* m_static_output_features[1];
     };
 
-    class WCAD_API EntityFeature : public wgp::Feature {
+    class WCAD_API Entity : public wgp::Feature {
     public:
-        EntityFeature(wgp::Model* model, wgp::SceneId id, wgp::FeatureSchema* feature_schema);
-        virtual ~EntityFeature();
+        TYPE_DEF_0(Entity);
+    public:
+        Entity(wgp::Model* model, wgp::SceneId id, wgp::FeatureSchema* feature_schema);
+        virtual ~Entity();
         Color GetColor() const;
         bool SetColor(const Color& value);
         Transparent GetTransparent() const;

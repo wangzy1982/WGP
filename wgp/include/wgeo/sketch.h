@@ -72,6 +72,7 @@ namespace wgp {
         SketchEquation();
         void SetOwner(SketchEquations* owner);
         SketchEquations* GetOwner();
+        double GetCurrentValue(int index);
         virtual int GetVariableCount() = 0;
         virtual SketchVariableEntity* GetVariableEntity(int index) = 0;
         virtual int GetEntityVariableIndex(int index) = 0;
@@ -119,14 +120,10 @@ namespace wgp {
         virtual bool IsStrategy() { return false; }
     };
 
-    class WGP_API SketchAdditiveType {
-    };
-
     class WGP_API SketchAdditive {
     public:
         SketchAdditive(SketchEquation* equation, double v);
         virtual ~SketchAdditive();
-        virtual SketchAdditiveType* GetType() const = 0;
         double GetCurrentVariable();
         void SetCurrentVariable(double variable);
         SketchEquation* GetFirstRelatedEquation();

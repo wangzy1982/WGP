@@ -420,6 +420,10 @@ namespace wgp {
         return m_id;
     }
 
+    ModelExecutor* Model::GetExecutor() const {
+        return m_executor;
+    }
+
     bool Model::AddFeature(Feature* feature, const String* prompt) {
         if (m_is_alone) {
             return false;
@@ -1107,6 +1111,126 @@ namespace wgp {
         }
         m_logs.Clear();
         m_prompt = String();
+    }
+
+    TYPE_IMP_1(StreamCommandLog, CommandLog::GetTypeInstance());
+
+    StreamCommandLog::StreamCommandLog(Type* stream_type) :
+        m_stream_type(stream_type),
+        m_size(0),
+        m_ref_object_count(0),
+        m_current_offset(0) {
+    }
+
+    StreamCommandLog::~StreamCommandLog() {
+        for (int i = 0; i < m_ref_object_count; ++i) {
+            m_ref_objects[i]->DecRef();
+        }
+    }
+
+    Type* StreamCommandLog::GetStreamType() const {
+        return m_stream_type;
+    }
+
+    void StreamCommandLog::SeekBegin() {
+        m_current_offset = 0;
+    }
+
+    void StreamCommandLog::SeekEnd() {
+        m_current_offset = m_size;
+    }
+
+    StreamCommandLog* StreamCommandLog::Write(Feature* value) {
+        m_size = m_current_offset;
+        int new_size = m_size + sizeof(Feature*);
+        if (new_size > m_data_capacity) {
+            throw "Out of memory";
+        }
+        *(Feature**)(m_data + m_size) = value;
+        m_size = new_size;
+        m_current_offset = m_size;
+        if (value) {
+            if (m_ref_object_count >= m_ref_object_capacity) {
+                throw "Out of memory";
+            }
+            m_ref_objects[m_ref_object_count++] = value;
+            value->IncRef();
+        }
+        return this;
+    }
+
+    StreamCommandLog* StreamCommandLog::Read(Feature*& value) {
+        int new_offset = m_current_offset + sizeof(Feature*);
+        if (new_offset > m_size) {
+            throw "Out of memory";
+        }
+        value = *(Feature**)(m_data + m_current_offset);
+        m_current_offset = new_offset;
+        return this;
+    }
+
+    StreamCommandLog* StreamCommandLog::Write(double value) {
+        m_size = m_current_offset;
+        int new_size = m_size + sizeof(double);
+        if (new_size > m_data_capacity) {
+            throw "Out of memory";
+        }
+        *(double*)(m_data + m_size) = value;
+        m_size = new_size;
+        m_current_offset = m_size;
+        return this;
+    }
+
+    StreamCommandLog* StreamCommandLog::Read(double& value) {
+        int new_offset = m_current_offset + sizeof(double);
+        if (new_offset > m_size) {
+            throw "Out of memory";
+        }
+        value = *(double*)(m_data + m_current_offset);
+        m_current_offset = new_offset;
+        return this;
+    }
+
+    StreamCommandLog* StreamCommandLog::Write(const Vector2d& value) {
+        m_size = m_current_offset;
+        int new_size = m_size + sizeof(Vector2d);
+        if (new_size > m_data_capacity) {
+            throw "Out of memory";
+        }
+        *(Vector2d*)(m_data + m_size) = value;
+        m_size = new_size;
+        m_current_offset = m_size;
+        return this;
+    }
+
+    StreamCommandLog* StreamCommandLog::Read(Vector2d& value) {
+        int new_offset = m_current_offset + sizeof(Vector2d);
+        if (new_offset > m_size) {
+            throw "Out of memory";
+        }
+        value = *(Vector2d*)(m_data + m_current_offset);
+        m_current_offset = new_offset;
+        return this;
+    }
+
+    void StreamCommandLog::AppendAffectedFeature(Array<Feature*>& affected_features) {
+        throw "No implemention";
+    }
+
+    void StreamCommandLog::AppendAffectedFeature(Drawing* drawing) {
+        throw "No implemention";
+    }
+
+    void StreamCommandLog::AppendRecheckRelationFeature(Drawing* drawing) {
+        throw "No implemention";
+    }
+
+    void StreamCommandLog::Undo() {
+        throw "No implemention";
+    }
+
+    void StreamCommandLog::Redo() {
+        throw "No implemention";
     }
 
 }

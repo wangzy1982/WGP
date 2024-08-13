@@ -321,6 +321,31 @@ namespace wgp {
         }
     }
 
+    void SketchModelExecutor::AppendAffectedConstaintFeature(SketchGeometryFeature* feature, Array<Feature*>& affected_features) {
+        SketchGeometry* geometry = feature->GetGeometry();
+        Model* model = feature->GetModel();
+        for (int i = 0; model->GetFeatureCount(); ++i) {
+            Feature* feature2 = model->GetFeature(i);
+            if (IsAffected(geometry, feature2)) {
+                affected_features.Append(feature2);
+            }
+        }
+    }
+
+    void SketchModelExecutor::AppendAffectedConstaintFeature(SketchGeometryFeature* feature, Drawing* drawing) {
+        SketchGeometry* geometry = feature->GetGeometry();
+        Model* model = feature->GetModel();
+        for (int i = 0; i < model->GetFeatureCount(); ++i) {
+            Feature* feature2 = model->GetFeature(i);
+            if (IsAffected(geometry, feature2)) {
+                drawing->AppendAffectedFeature(feature2);
+            }
+        }
+    }
+
+    static Type g_set_sketch_line2d_start_point_command_log_type = Type();
+    static Type g_set_sketch_line2d_end_point_command_log_type = Type();
+
     bool SketchModelExecutor::Execute(Model* model, ModelEditCommand* command, Array<ModelEditCommand*>& inner_commands) {
         if (command->GetPath()->GetCount() > 0) {
             return model->DefaultExecute(command, inner_commands);
@@ -377,8 +402,70 @@ namespace wgp {
                 AfterSolve(sketch, model, log, actived_variables);
                 return true;
             }
+            return model->DefaultExecute(command, inner_commands);
+        }
+        if (log->GetType() == StreamCommandLog::GetTypeInstance()) {
+            StreamCommandLog* stream_log = (StreamCommandLog*)log;
+            Type* stream_type = stream_log->GetStreamType();
+            if (stream_type == &g_set_sketch_line2d_start_point_command_log_type) {
+                stream_log->SeekBegin();
+                Feature* feature;
+                Vector2d point;
+                double epsilon;
+                stream_log->Read(feature)->Read(point)->Read(epsilon);
+                SketchGeometry* geometry = ((SketchGeometryFeature*)feature)->GetGeometry();
+                Sketch* sketch = ((SketchFeature*)model->GetFeature(0))->GetSketch();
+                Array<SketchEntityVariable> actived_variables;
+                SketchAction action;
+                action.AddConstraint(new SketchFixPoint2dConstraint(sketch, geometry, 0, 1, point, epsilon));
+                SketchStrategy* strategy = new SketchStrategy(sketch);
+                action.AddStrategy(strategy->SetAdditive(new SketchAdditive(new SketchEqualEquation(geometry, 2, strategy, 0, epsilon), geometry->GetCurrentVariable(2))));
+                strategy = new SketchStrategy(sketch);
+                action.AddStrategy(strategy->SetAdditive(new SketchAdditive(new SketchEqualEquation(geometry, 3, strategy, 0, epsilon), geometry->GetCurrentVariable(3))));
+                if (!sketch->Solve(&action, actived_variables)) {
+                    return false;
+                }
+                AfterSolve(sketch, model, nullptr, actived_variables);
+                return true;
+            }
+            if (stream_type == &g_set_sketch_line2d_end_point_command_log_type) {
+                stream_log->SeekBegin();
+                Feature* feature;
+                Vector2d point;
+                double epsilon;
+                stream_log->Read(feature)->Read(point)->Read(epsilon);
+                SketchGeometry* geometry = ((SketchGeometryFeature*)feature)->GetGeometry();
+                Sketch* sketch = ((SketchFeature*)model->GetFeature(0))->GetSketch();
+                Array<SketchEntityVariable> actived_variables;
+                SketchAction action;
+                action.AddConstraint(new SketchFixPoint2dConstraint(sketch, geometry, 2, 3, point, epsilon));
+                SketchStrategy* strategy = new SketchStrategy(sketch);
+                action.AddStrategy(strategy->SetAdditive(new SketchAdditive(new SketchEqualEquation(geometry, 0, strategy, 0, epsilon), geometry->GetCurrentVariable(0))));
+                strategy = new SketchStrategy(sketch);
+                action.AddStrategy(strategy->SetAdditive(new SketchAdditive(new SketchEqualEquation(geometry, 1, strategy, 0, epsilon), geometry->GetCurrentVariable(1))));
+                if (!sketch->Solve(&action, actived_variables)) {
+                    return false;
+                }
+                AfterSolve(sketch, model, nullptr, actived_variables);
+                return true;
+            }
         }
         return model->DefaultExecute(command, inner_commands);
+    }
+
+    bool SketchModelExecutor::IsAffected(SketchGeometry* geometry, Feature* feature) {
+        if (feature->GetFeatureSchema()->GetType()->IsImplement(SketchConstraintFeatureSchema::GetTypeInstance())) {
+            SketchConstraint* constraint = ((SketchConstraintFeature*)feature)->GetConstraint();
+            for (int j = 0; j < constraint->GetEquationCount(); ++j) {
+                SketchEquation* equation = constraint->GetEquation(j);
+                for (int k = 0; k < equation->GetVariableCount(); ++k) {
+                    if (equation->GetVariableEntity(k) == geometry) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     SketchGeometryFeature* SketchModelExecutor::FindGeometryFeature(Model* model, SketchVariableEntity* entity) {
@@ -396,192 +483,42 @@ namespace wgp {
     void SketchModelExecutor::AfterSolve(Sketch* sketch, Model* model, CommandLog* log,
         const Array<SketchEntityVariable>& actived_variables) {
         Drawing* drawing = model->GetDrawing();
-        GroupCommandLog* group_log = new GroupCommandLog();
-        group_log->AppendLog(log);
-        group_log->Redo();
-        group_log->SetRefersher(new SketchFeatureRefresher((SketchFeature*)model->GetFeature(0)));
-        drawing->AppendLog(group_log);
+        if (log) {
+            GroupCommandLog* group_log = new GroupCommandLog();
+            group_log->AppendLog(log);
+            group_log->Redo();
+            group_log->SetRefersher(new SketchFeatureRefresher((SketchFeature*)model->GetFeature(0)));
+            drawing->AppendLog(group_log);
+        }
         for (int i = 0; i < actived_variables.GetCount(); ++i) {
             const SketchEntityVariable* variable = actived_variables.GetPointer(i);
             if (variable->Entity->IsStrategy()) {
                 continue;
             }
-            double old_value = variable->Entity->GetCurrentVariable(variable->Index);
-            if (old_value != variable->CurrentValue) {
+            double new_value = variable->Entity->GetCurrentVariable(variable->Index);
+            if (new_value != variable->CurrentValue) {
                 SketchGeometryFeature* feature = FindGeometryFeature(model, variable->Entity);
                 if (feature) {
                     SetSketchGeometryVariableCommandLog* log1 = new SetSketchGeometryVariableCommandLog(feature,
                         ((SketchGeometryFeatureSchema*)feature->GetFeatureSchema())->GetGeometryFieldSchema(),
-                        variable->Index, old_value, variable->CurrentValue);
-                    log1->Redo();
+                        variable->Index, variable->CurrentValue, new_value);
                     drawing->AppendLog(log1);
                 }
             }
         }
     }
 
-    /*
-    void SketchModelExecutor::GetSketchVariables(Sketch* sketch, Array<SketchEntityVariable>& variables) {
-        for (int i = 0; i < sketch->GetGeometryCount(); ++i) {
-            SketchGeometry* geometry = sketch->GetGeometry(i);
-            for (int j = 0; j < geometry->GetVariableCount(); ++j) {
-                SketchEntityVariable variable;
-                variable.Entity = geometry;
-                variable.Index = j;
-                variable.CurrentValue = geometry->GetCurrentVariable(j);
-                geometry->IncRef();
-                variables.Append(variable);
-            }
-        }
-    }
-
-    void SketchModelExecutor::RefreshAfterSketchChanged(Sketch* sketch, Model* model, Array<SketchEntityVariable>* old_variables,
-        Array<SketchEntityVariable>* new_variables, Array<CommandLog*>& logs) {
-        GroupCommandLog* log = new GroupCommandLog();
-        for (int i = 0; i < sketch->GetGeometryCount(); ++i) {
-            SketchGeometry* geometry = sketch->GetGeometry(i);
-            bool b = true;
-            for (int j = 0; j < model->GetFeatureCount(); ++j) {
-                Feature* feature = model->GetFeature(j);
-                if (feature->GetFeatureSchema()->GetType()->IsImplement(SketchGeometryFeatureSchema::GetTypeInstance())) {
-                    SketchGeometry* geometry2 = ((SketchGeometryFeature*)feature)->GetGeometry();
-                    if (geometry == geometry2) {
-                        b = false;
-                        break;
-                    }
-                }
-            }
-            if (b) {
-                if (geometry->GetType() == SketchLine2d::GetTypeInstance()) {
-                    SketchLine2dFeature* geometry_feature = new SketchLine2dFeature(model, model->GetDrawing()->AllocId(), 
-                        model->GetDrawing()->GetSketchLine2dFeatureSchema(), (SketchLine2d*)geometry);
-                    AddFeatureCommandLog* log1 = new AddFeatureCommandLog(model, geometry_feature);
-                    log->AppendLog(log1);
-                }
-            }
-        }
-        for (int i = 0; i < sketch->GetConstraintCount(); ++i) {
-            SketchConstraint* constraint = sketch->GetConstraint(i);
-            bool b = true;
-            for (int j = 0; j < model->GetFeatureCount(); ++j) {
-                Feature* feature = model->GetFeature(j);
-                if (feature->GetFeatureSchema()->GetType()->IsImplement(SketchConstraintFeatureSchema::GetTypeInstance())) {
-                    SketchConstraint* constraint2 = ((SketchConstraintFeature*)feature)->GetConstraint();
-                    if (constraint == constraint2) {
-                        b = false;
-                        break;
-                    }
-                }
-            }
-            if (b) {
-                if (constraint->GetType() == SketchPoint2dEqualConstraint::GetTypeInstance()) {
-                    SketchPoint2dEqualConstraintFeature* constraint_feature = new SketchPoint2dEqualConstraintFeature(model, model->GetDrawing()->AllocId(),
-                        model->GetDrawing()->GetSketchPoint2dEqualConstraintFeatureSchema(), (SketchPoint2dEqualConstraint*)constraint);
-                    AddFeatureCommandLog* log1 = new AddFeatureCommandLog(model, constraint_feature);
-                    log->AppendLog(log1);
-                } 
-                else if (constraint->GetType() == SketchFixPoint2dConstraint::GetTypeInstance()) {
-                    SketchFixPoint2dConstraintFeature* constraint_feature = new SketchFixPoint2dConstraintFeature(model, model->GetDrawing()->AllocId(),
-                        model->GetDrawing()->GetSketchFixPoint2dConstraintFeatureSchema(), (SketchFixPoint2dConstraint*)constraint);
-                    AddFeatureCommandLog* log1 = new AddFeatureCommandLog(model, constraint_feature);
-                    log->AppendLog(log1);
-                }
-                else if (constraint->GetType() == SketchFixPoint2dPoint2dDistanceConstraint::GetTypeInstance()) {
-                    SketchFixPoint2dPoint2dDistanceConstraintFeature* constraint_feature = new SketchFixPoint2dPoint2dDistanceConstraintFeature(
-                        model, model->GetDrawing()->AllocId(), model->GetDrawing()->GetSketchFixPoint2dPoint2dDistanceConstraintFeatureSchema(), 
-                        (SketchFixPoint2dPoint2dDistanceConstraint*)constraint);
-                    AddFeatureCommandLog* log1 = new AddFeatureCommandLog(model, constraint_feature);
-                    log->AppendLog(log1);
-                }
-                else if (constraint->GetType() == SketchFixLine2dLine2dAngleConstraint::GetTypeInstance()) {
-                    SketchFixLine2dLine2dAngleConstraintFeature* constraint_feature = new SketchFixLine2dLine2dAngleConstraintFeature(
-                        model, model->GetDrawing()->AllocId(), model->GetDrawing()->GetSketchFixLine2dLine2dAngleConstraintFeatureSchema(), 
-                        (SketchFixLine2dLine2dAngleConstraint*)constraint);
-                    AddFeatureCommandLog* log1 = new AddFeatureCommandLog(model, constraint_feature);
-                    log->AppendLog(log1);
-                }
-            }
-        }
-        for (int j = model->GetFeatureCount() - 1; j >= 0; --j) {
-            Feature* feature = model->GetFeature(j);
-            if (feature->GetFeatureSchema()->GetType()->IsImplement(SketchGeometryFeatureSchema::GetTypeInstance())) {
-                SketchGeometry* geometry2 = ((SketchGeometryFeature*)feature)->GetGeometry();
-                bool b = true;
-                for (int i = 0; i < sketch->GetGeometryCount(); ++i) {
-                    SketchGeometry* geometry = sketch->GetGeometry(i);
-                    if (geometry == geometry2) {
-                        b = false;
-                        break;
-                    }
-                }
-                if (b) {
-                    RemoveFeatureCommandLog* log1 = new RemoveFeatureCommandLog(model, feature);
-                    log->AppendLog(log1);
-                }
-            }
-            else if (feature->GetFeatureSchema()->GetType()->IsImplement(SketchConstraintFeatureSchema::GetTypeInstance())) {
-                SketchConstraint* constraint2 = ((SketchConstraintFeature*)feature)->GetConstraint();
-                bool b = true;
-                for (int i = 0; i < sketch->GetConstraintCount(); ++i) {
-                    SketchConstraint* constraint = sketch->GetConstraint(i);
-                    if (constraint == constraint2) {
-                        b = false;
-                        break;
-                    }
-                }
-                if (b) {
-                    RemoveFeatureCommandLog* log1 = new RemoveFeatureCommandLog(model, feature);
-                    log->AppendLog(log1);
-                }
-            }
-        }
-        log->Redo();
-        log->SetRefersher(new SketchFeatureRefresher((SketchFeature*)model->GetFeature(0)));
-        logs.Append(log);
-        for (int i = 0; i < new_variables->GetCount(); ++i) {
-            SketchEntityVariable* variable1 = new_variables->GetPointer(i);
-            for (int j = 0; j < old_variables->GetCount(); ++j) {
-                SketchEntityVariable* variable2 = old_variables->GetPointer(j);
-                if (variable1->Entity == variable2->Entity && variable1->Index == variable2->Index) {
-                    if (variable1->CurrentValue != variable2->CurrentValue) {
-                        for (int k = 0; k < model->GetFeatureCount(); ++k) {
-                            Feature* feature = model->GetFeature(k);
-                            if (feature->GetFeatureSchema()->GetType()->IsImplement(SketchGeometryFeatureSchema::GetTypeInstance())) {
-                                SketchGeometry* geometry = ((SketchGeometryFeature*)feature)->GetGeometry();
-                                if (geometry == variable1->Entity) {
-                                    SetSketchGeometryVariableCommandLog* log1 = new SetSketchGeometryVariableCommandLog(feature,
-                                        ((SketchGeometryFeatureSchema*)feature->GetFeatureSchema())->GetGeometryFieldSchema(),
-                                        variable1->Index, variable2->CurrentValue, variable1->CurrentValue);
-                                    logs.Append(log1);
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                    break;
-                }
-            }
-        }
-        for (int i = 0; i < new_variables->GetCount(); ++i) {
-            new_variables->GetPointer(i)->Entity->DecRef();
-        }
-        for (int i = 0; i < old_variables->GetCount(); ++i) {
-            old_variables->GetPointer(i)->Entity->DecRef();
-        }
-    }
-    */
-
     bool SketchModelHelper::InitializeSketchModel(Model* model, SceneId sketch_feature_id) {
         if (model->GetFeatureCount() > 0) {
             return false;
         }
-        static String add_sketch_feature_prompt = String("Add sketch feature");
+        static String add_sketch_feature_prompt = StringResource("Add sketch feature");
         Ptr<SketchFeature> sketch_feature = new SketchFeature(model, sketch_feature_id, model->GetDrawing()->GetSketchFeatureSchema());
         return model->AddFeature(sketch_feature.Get(), &add_sketch_feature_prompt);
     }
 
     SketchLine2dFeature* SketchModelHelper::AddSketchLine2d(Model* model, SceneId geometry_id, const Vector2d& start_point, const Vector2d& end_point) {
-        static String add_sketch_line2d_prompt = String("Add sketch line2d");
+        static String add_sketch_line2d_prompt = StringResource("Add sketch line2d");
         SketchFeature* sketch_feature = (SketchFeature*)model->GetFeature(0);
         Ptr<SketchLine2d> geometry = new SketchLine2d(sketch_feature->GetSketch(), start_point, end_point);
         Ptr<SketchLine2dFeature> feature = new SketchLine2dFeature(model, geometry_id, model->GetDrawing()->GetSketchLine2dFeatureSchema(), geometry.Get());
@@ -590,10 +527,10 @@ namespace wgp {
         return model->Execute(&edit_command, &add_sketch_line2d_prompt) ? feature.Get() : nullptr;
     }
 
-    bool SketchModelHelper::AddSketchPoint2dEqualConstraint(Model* model, SceneId constraint_id,
+    SketchPoint2dEqualConstraintFeature* SketchModelHelper::AddSketchPoint2dEqualConstraint(Model* model, SceneId constraint_id,
         SketchGeometryFeature* geometry0, int x_variable_index0, int y_variable_index0,
         SketchGeometryFeature* geometry1, int x_variable_index1, int y_variable_index1, double epsilon) {
-        static String add_sketch_point2d_equal_constraint_prompt = String("Add sketch point2d equal constraint");
+        static String add_sketch_point2d_equal_constraint_prompt = StringResource("Add sketch point2d equal constraint");
         SketchFeature* sketch_feature = (SketchFeature*)model->GetFeature(0);
         Ptr<SketchPoint2dEqualConstraint> constraint = new SketchPoint2dEqualConstraint(sketch_feature->GetSketch(),
             geometry0->GetGeometry(), x_variable_index0, y_variable_index0,
@@ -602,13 +539,13 @@ namespace wgp {
             model->GetDrawing()->GetSketchPoint2dEqualConstraintFeatureSchema(), constraint.Get());
         ModelEditCommand edit_command;
         edit_command.SetLog(new AddFeatureCommandLog(model, constraint_feature.Get()));
-        return model->Execute(&edit_command, &add_sketch_point2d_equal_constraint_prompt);
+        return model->Execute(&edit_command, &add_sketch_point2d_equal_constraint_prompt) ? constraint_feature.Get() : nullptr;
     }
 
     bool SketchModelHelper::AddSketchFixPoint2dConstraint(Model* model, SceneId constraint_id,
         SketchGeometryFeature* geometry, int x_variable_index, int y_variable_index,
         const Vector2d& point, double epsilon) {
-        static String add_sketch_fix_point2d_constraint_prompt = String("Add sketch fix point2d constraint");
+        static String add_sketch_fix_point2d_constraint_prompt = StringResource("Add sketch fix point2d constraint");
         SketchFeature* sketch_feature = (SketchFeature*)model->GetFeature(0);
         Ptr<SketchFixPoint2dConstraint> constraint = new SketchFixPoint2dConstraint(sketch_feature->GetSketch(),
             geometry->GetGeometry(), x_variable_index, y_variable_index, point, epsilon);
@@ -623,7 +560,7 @@ namespace wgp {
         SketchGeometryFeature* entity0, int x_variable_index0, int y_variable_index0,
         SketchGeometryFeature* entity1, int x_variable_index1, int y_variable_index1,
         double distance, double epsilon) {
-        static String add_sketch_fix_point2d_point2d_distance_constraint_prompt = String("Add sketch fix point2d point2d distance constraint");
+        static String add_sketch_fix_point2d_point2d_distance_constraint_prompt = StringResource("Add sketch fix point2d point2d distance constraint");
         SketchFeature* sketch_feature = (SketchFeature*)model->GetFeature(0);
         Ptr<SketchFixPoint2dPoint2dDistanceConstraint> constraint = new SketchFixPoint2dPoint2dDistanceConstraint(sketch_feature->GetSketch(),
             entity0->GetGeometry(), x_variable_index0, y_variable_index0, 
@@ -639,7 +576,7 @@ namespace wgp {
         SketchGeometryFeature* entity0, int start_x_variable_index0, int start_y_variable_index0, int end_x_variable_index0, int end_y_variable_index0,
         SketchGeometryFeature* entity1, int start_x_variable_index1, int start_y_variable_index1, int end_x_variable_index1, int end_y_variable_index1,
         double angle, double epsilon) {
-        static String add_sketch_fix_line2d_line2d_angle_constraint_prompt = String("Add sketch fix line2d line2d angle constraint");
+        static String add_sketch_fix_line2d_line2d_angle_constraint_prompt = StringResource("Add sketch fix line2d line2d angle constraint");
         SketchFeature* sketch_feature = (SketchFeature*)model->GetFeature(0);
         Ptr<SketchFixLine2dLine2dAngleConstraint> constraint = new SketchFixLine2dLine2dAngleConstraint(sketch_feature->GetSketch(),
             entity0->GetGeometry(), start_x_variable_index0, start_y_variable_index0, end_x_variable_index0, end_y_variable_index0,
@@ -650,5 +587,24 @@ namespace wgp {
         edit_command.SetLog(new AddFeatureCommandLog(model, constraint_feature.Get()));
         return model->Execute(&edit_command, &add_sketch_fix_line2d_line2d_angle_constraint_prompt);
     }
+
+    bool SketchModelHelper::SetSketchLine2dStartPoint(SketchLine2dFeature* line2d_feature, const Vector2d& point, double epsilon) {
+        static String set_sketch_line2d_start_point_prompt = StringResource("Set sketch line2d start point");
+        StreamCommandLog* log = new StreamCommandLog(&g_set_sketch_line2d_start_point_command_log_type);
+        log->Write(line2d_feature)->Write(point)->Write(epsilon);
+        ModelEditCommand edit_command;
+        edit_command.SetLog(log);
+        return line2d_feature->GetModel()->Execute(&edit_command, &set_sketch_line2d_start_point_prompt);
+    }
+
+    bool SketchModelHelper::SetSketchLine2dEndPoint(SketchLine2dFeature* line2d_feature, const Vector2d& point, double epsilon) {
+        static String set_sketch_line2d_end_point_prompt = StringResource("Set sketch line2d end point");
+        StreamCommandLog* log = new StreamCommandLog(&g_set_sketch_line2d_end_point_command_log_type);
+        log->Write(line2d_feature)->Write(point)->Write(epsilon);
+        ModelEditCommand edit_command;
+        edit_command.SetLog(log);
+        return line2d_feature->GetModel()->Execute(&edit_command, &set_sketch_line2d_end_point_prompt);
+    }
+
 
 }

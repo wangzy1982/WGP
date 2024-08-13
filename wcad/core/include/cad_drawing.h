@@ -17,7 +17,7 @@ namespace wcad {
     class LayerFeatureSchema;
     class Layer;
     class Block;
-    class EntityFeature;
+    class Entity;
     class EntityFeatureSchema;
 
     class WCAD_API Drawing : public wgp::Drawing {

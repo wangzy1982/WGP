@@ -345,15 +345,22 @@ namespace wgp {
         LineStipple* m_new_value;
     };
 
-    class WGP_API SetSketchGeometryVariableCommandLog : public SetFieldCommandLog {
+    class SketchGeometryFeature;
+
+    class WGP_API SetSketchGeometryVariableCommandLog : public CommandLog {
     public:
         TYPE_DEF_1(SetSketchGeometryVariableCommandLog);
     public:
-        SetSketchGeometryVariableCommandLog(Feature* feature, SketchGeometryFeatureFieldSchema* field_schema,
+        SetSketchGeometryVariableCommandLog(SketchGeometryFeature* feature, SketchGeometryFeatureFieldSchema* field_schema,
             int variable_index, double old_value, double new_value);
         virtual void Undo();
         virtual void Redo();
+        virtual void AppendAffectedFeature(Array<Feature*>& affected_features);
+        virtual void AppendAffectedFeature(Drawing* drawing);
+        virtual void AppendRecheckRelationFeature(Drawing* drawing);
     protected:
+        SketchGeometryFeature* m_feature;
+        SketchGeometryFeatureFieldSchema* m_field_schema;
         int m_variable_index;
         double m_old_value;
         double m_new_value;

@@ -11,6 +11,7 @@
 #include "wstd/array.h"
 #include "wstd/utils.h"
 #include "wstd/vector3d.h"
+#include "wstd/vector2d.h"
 #include "wstd/quaternion.h"
 #include "wstd/string.h"
 #include "feature_visitor.h"
@@ -130,6 +131,7 @@ namespace wgp {
         virtual ~Model();
         Drawing* GetDrawing() const;
         SceneId GetId() const;
+        ModelExecutor* GetExecutor() const;
         bool AddFeature(Feature* feature, const String* prompt);
         bool RemoveFeature(Feature* feature, const String* prompt);
         int GetFeatureCount() const;
@@ -353,6 +355,42 @@ namespace wgp {
         friend class Drawing;
         Array<CommandLog*> m_logs;
         String m_prompt;
+    };
+
+    class WGP_API StreamCommandLog : public CommandLog {
+    public:
+        TYPE_DEF_1(StreamCommandLog);
+    public:
+        StreamCommandLog(Type* stream_type);
+        virtual ~StreamCommandLog();
+        Type* GetStreamType() const;
+    public:
+        void SeekBegin();
+        void SeekEnd();
+    public:
+        StreamCommandLog* Write(Feature* value);
+        StreamCommandLog* Read(Feature*& value);
+        StreamCommandLog* Write(double value);
+        StreamCommandLog* Read(double& value);
+        StreamCommandLog* Write(const Vector2d& value);
+        StreamCommandLog* Read(Vector2d& value);
+    public:
+        virtual void AppendAffectedFeature(Array<Feature*>& affected_features);
+        virtual void AppendAffectedFeature(Drawing* drawing);
+        virtual void AppendRecheckRelationFeature(Drawing* drawing);
+        virtual void Undo();
+        virtual void Redo();
+    private:
+        static const int m_data_capacity = 256;
+        static const int m_ref_object_capacity = 32;
+    private:
+        Type* m_stream_type;
+        uint8_t m_data[m_data_capacity];
+        RefObject* m_ref_objects[m_ref_object_capacity];
+        int m_size;
+        int m_ref_object_count;
+    private:
+        int m_current_offset;
     };
 
 }

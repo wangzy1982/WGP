@@ -14,7 +14,7 @@
 
 namespace wgp {
 
-    const int g_renderer_state_count = 16;
+    const int g_renderer_layer_count = 16;
 
     class RenderingMaterial;
     class RenderingObjectFragment;
@@ -42,7 +42,7 @@ namespace wgp {
         virtual ~RenderingObjectFragment();
         RenderingObject* GetRenderingObject() const;
         virtual int GetClassification() const;
-        virtual void SetState(int state) = 0;
+        virtual void SetLayer(int layer) = 0;
     protected:
         RenderingObject* m_rendering_object;
     };
@@ -51,7 +51,7 @@ namespace wgp {
     public:
         NullRenderingObjectFragment(int classification);
         virtual int GetClassification() const;
-        virtual void SetState(int state);
+        virtual void SetLayer(int layer);
     protected:
         int m_classification;
     };
@@ -105,8 +105,8 @@ namespace wgp {
         Model* GetModel() const;
         void RemoveRenderingObjects(int classification);
         void GetRenderingObjects(int classification, wgp::Array<RenderingObject*>& rendering_objects);
-        void SetState(Feature* feature, const Array<wgp::Feature*>& path, int state);
-        void ClearState();
+        void SetLayer(Feature* feature, const Array<wgp::Feature*>& path, int layer);
+        void ClearLayer();
     protected:
         virtual int GetDirtyLevel(CommandLog* log) = 0;
         virtual void AppendDirtyFeatures(CommandLog* log, Array<Feature*>& dirty_features) = 0;
@@ -142,7 +142,7 @@ namespace wgp {
         void RemoveRenderingObjects(int classification, FeatureInfo* feature_info);
         void GetRenderingObjects(RenderingGroup* group, int classification, wgp::Array<RenderingObject*>& rendering_objects);
         void GetRenderingObjects(RenderingGroup* group, RenderingNode* node, int classification, wgp::Array<RenderingObject*>& rendering_objects);
-        void ClearState(FeatureInfo* feature_info, int clear_state);
+        void ClearLayer(FeatureInfo* feature_info, int clear_layer);
         int Compare(FeatureInfo* feature_info, Feature* feature, const Array<Feature*>& path);
         int Compare(RenderingGroup* rendering_group, RenderingMaterial* material, bool is_classification_enabled);
         void SetFeatureInfoDirty(Feature* feature);

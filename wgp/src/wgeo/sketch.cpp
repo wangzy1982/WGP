@@ -130,6 +130,10 @@ namespace wgp {
         return m_owner;
     }
 
+    double SketchEquation::GetCurrentValue(int index) {
+        return GetVariableEntity(index)->GetCurrentVariable(GetEntityVariableIndex(0));
+    }
+
     SketchVariableEntity::SketchVariableEntity(Sketch* owner) : SketchEquations(owner) {
     }
 
@@ -1305,16 +1309,6 @@ namespace wgp {
             if (!success) {
                 actived_variables.Clear();
             }
-            /*
-            else {
-                for (int i = 0; i < m_actived_variables.GetCount(); ++i) {
-                    SketchEntityVariable* entity_variable = m_actived_variables.GetPointer(i);
-                    entity_variable->Entity->SetCurrentVariable(entity_variable->Index, entity_variable->CurrentValue);
-                    entity_variable->Entity->SetCurrentVariableIndex(entity_variable->Index, -1);
-                }
-            }
-            m_actived_variables.Clear();
-            */
         }
         for (int i = 0; i < action_equations.GetCount(); ++i) {
             m_sketch->RemoveEquationRelation(action_equations.Get(i));

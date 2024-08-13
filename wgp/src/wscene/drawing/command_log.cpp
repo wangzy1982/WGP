@@ -3,6 +3,7 @@
     Copyright (c) 2024 Zuoyuan Wang
 */
 #include "wscene/drawing/command_log.h"
+#include "wscene/drawing/sketch_feature.h"
 
 namespace wgp {
 
@@ -874,22 +875,36 @@ namespace wgp {
         ((LineStippleFeatureFieldSchema*)m_field_schema)->m_direct_set_func(m_feature, m_field_schema, m_new_value);
     }
 
-    TYPE_IMP_1(SetSketchGeometryVariableCommandLog, SetFieldCommandLog::GetTypeInstance());
+    TYPE_IMP_1(SetSketchGeometryVariableCommandLog, CommandLog::GetTypeInstance());
         
-    SetSketchGeometryVariableCommandLog::SetSketchGeometryVariableCommandLog(Feature* feature, SketchGeometryFeatureFieldSchema* field_schema,
+    SetSketchGeometryVariableCommandLog::SetSketchGeometryVariableCommandLog(SketchGeometryFeature* feature, SketchGeometryFeatureFieldSchema* field_schema,
         int variable_index, double old_value, double new_value) :
-        SetFieldCommandLog(feature, field_schema),
+        m_feature(feature),
+        m_field_schema(field_schema),
         m_variable_index(variable_index),
         m_old_value(old_value),
         m_new_value(new_value) {
     }
 
     void SetSketchGeometryVariableCommandLog::Undo() {
-        ((SketchGeometryFeatureFieldSchema*)m_field_schema)->GetAsSketchGeometry(m_feature)->SetCurrentVariable(m_variable_index, m_old_value);
+        m_field_schema->GetAsSketchGeometry(m_feature)->SetCurrentVariable(m_variable_index, m_old_value);
     }
 
     void SetSketchGeometryVariableCommandLog::Redo() {
-        ((SketchGeometryFeatureFieldSchema*)m_field_schema)->GetAsSketchGeometry(m_feature)->SetCurrentVariable(m_variable_index, m_new_value);
+        m_field_schema->GetAsSketchGeometry(m_feature)->SetCurrentVariable(m_variable_index, m_new_value);
+    }
+
+    void SetSketchGeometryVariableCommandLog::AppendAffectedFeature(Array<Feature*>& affected_features) {
+        affected_features.Append(m_feature);
+        ((SketchModelExecutor*)m_feature->GetModel()->GetExecutor())->AppendAffectedConstaintFeature(m_feature, affected_features);
+    }
+
+    void SetSketchGeometryVariableCommandLog::AppendAffectedFeature(Drawing* drawing) {
+        drawing->AppendAffectedFeature(m_feature);
+        ((SketchModelExecutor*)m_feature->GetModel()->GetExecutor())->AppendAffectedConstaintFeature(m_feature, drawing);
+    }
+
+    void SetSketchGeometryVariableCommandLog::AppendRecheckRelationFeature(Drawing* drawing) {
     }
 
 }

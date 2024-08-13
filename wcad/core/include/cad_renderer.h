@@ -11,10 +11,19 @@
 #include "wscene/renderer.h"
 #include "wscene/viewport.h"
 #include "wscene/renderer/opengl_renderer.h"
+#include "cad_entities/cad_line2d.h"
+#include "cad_entities/cad_point2d_equal_constraint.h"
 
 namespace wcad {
 
     class Viewport;
+
+    class WCAD_API SketchTagTextureManager {
+    public:
+        static wgp::OpenGLTexture* GetPoint2dEqualConstraintTexture();
+    private:
+        static wgp::OpenGLTexture m_point2d_equal_constraint_texture;
+    };
 
     class WCAD_API RenderingMaterial : public wgp::RenderingMaterial {
     public:
@@ -51,6 +60,25 @@ namespace wcad {
         double m_stipple_scale;
     };
 
+    class WCAD_API TagRenderingMaterial : public RenderingMaterial {
+    public:
+        TYPE_DEF_1(TagRenderingMaterial);
+    public:
+        TagRenderingMaterial(const wgp::Array<Layer*>& layers, Layer* color_layer, const Color& color,
+            Layer* transparent_layer, Transparent transparent, wgp::OpenGLTexture* texture, int base_order);
+        virtual ~TagRenderingMaterial();
+        virtual int Compare(wgp::RenderingMaterial* material);
+        wgp::Color GetColor(Viewport* viewport) const;
+        wgp::OpenGLTexture* GetTexture() const;
+    protected:
+        wgp::Array<Layer*> m_layers;
+        Layer* m_color_layer;
+        Color m_color;
+        Layer* m_transparent_layer;
+        Transparent m_transparent;
+        wgp::OpenGLTexture* m_texture;
+    };
+
     class WCAD_API RenderingTree : public wgp::RenderingTree {
     public:
         RenderingTree(wgp::Model* model);
@@ -65,7 +93,13 @@ namespace wcad {
         virtual void BuildRenderingObject(wgp::FeatureInfo* feature_info, int classification, wgp::Array<wgp::RenderingObject*>& rendering_objects);
     protected:
         Layer* GetRealLayer(wgp::FeatureInfo* feature_info, int i);
+        void GetLayers(wgp::FeatureInfo* feature_info, wgp::Array<Layer*>& layers);
+        void GetColor(wgp::FeatureInfo* feature_info, Layer*& color_layer, Color& color);
+        void GetTransparent(wgp::FeatureInfo* feature_info, Layer*& transparent_layer, Transparent& transparent);
         LineRenderingMaterial* BuildLineMaterial(wgp::FeatureInfo* feature_info);
+        TagRenderingMaterial* BuildTagMaterial(wgp::FeatureInfo* feature_info, wgp::OpenGLTexture* texture, int base_order_offset);
+    public:
+        static wgp::Color GetColor(Viewport* viewport, Layer* color_layer, const Color& color, Layer* transparent_layer, const Transparent& transparent);
     };
 
     class WCAD_API Viewport : public wgp::Viewport {
@@ -75,7 +109,7 @@ namespace wcad {
         virtual void Draw(wgp::Array<wgp::RenderingObject*>& rendering_objects);
     private:
         void Draw(wgp::Array<wgp::RenderingObject*>& rendering_objects, float* model_view_matrix, 
-            float* projection_matrix, int screen_width, int screen_height, int state);
+            float* projection_matrix, int screen_width, int screen_height, int layer);
     private:
         wgp::OpenGLRenderedTexture m_texture1;
     };
