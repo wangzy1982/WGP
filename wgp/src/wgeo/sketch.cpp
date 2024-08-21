@@ -110,10 +110,12 @@ namespace wgp {
         memset(m_data, 0, m_row_count * m_col_count * sizeof(Interval));
     }
 
-    SketchEquations::SketchEquations(Sketch* owner) : m_owner(owner) {
+    TYPE_IMP_0(SketchEntity);
+
+    SketchEntity::SketchEntity(Sketch* owner) : m_owner(owner) {
     }
 
-    Sketch* SketchEquations::GetOwner() {
+    Sketch* SketchEntity::GetOwner() const {
         return m_owner;
     }
 
@@ -122,373 +124,121 @@ namespace wgp {
         m_current_equation_index(-1) {
     }
 
-    void SketchEquation::SetOwner(SketchEquations* owner) {
+    void SketchEquation::SetOwner(SketchEntity* owner) {
         m_owner = owner;
     }
 
-    SketchEquations* SketchEquation::GetOwner() {
+    SketchEntity* SketchEquation::GetOwner() const {
         return m_owner;
     }
 
     double SketchEquation::GetCurrentValue(int index) {
-        return GetVariableEntity(index)->GetCurrentVariable(GetEntityVariableIndex(0));
-    }
-
-    SketchVariableEntity::SketchVariableEntity(Sketch* owner) : SketchEquations(owner) {
-    }
-
-    TYPE_IMP_0(SketchGeometry);
-
-    SketchGeometry::SketchGeometry(Sketch* owner) : SketchVariableEntity(owner) {
-    }
-
-    TYPE_IMP_0(SketchConstraint);
-
-    SketchConstraint::SketchConstraint(Sketch* owner) : SketchEquations(owner) {
-    }
-
-    SketchAdditive::SketchAdditive(SketchEquation* equation, double v) {
-        m_equation = equation;
-        m_variable = v;
-        m_first_related_equation = nullptr;
-        m_current_variable_index = -1;
-    }
-
-    SketchAdditive::~SketchAdditive() {
-        delete m_equation;
-    }
-
-    double SketchAdditive::GetCurrentVariable() {
-        return m_variable;
-    }
-
-    void SketchAdditive::SetCurrentVariable(double variable) {
-        m_variable = variable;
-    }
-
-    SketchEquation* SketchAdditive::GetFirstRelatedEquation() {
-        return m_first_related_equation;
-    }
-
-    void SketchAdditive::SetFirstRelatedEquation(SketchEquation* equation) {
-        m_first_related_equation = equation;
-    }
-
-    int SketchAdditive::GetCurrentVariableIndex() {
-        return m_current_variable_index;
-    }
-
-    void SketchAdditive::SetCurrentVariableIndex(int variable_index) {
-        m_current_variable_index = variable_index;
-    }
-
-    SketchEquation* SketchAdditive::GetEquation() {
-        return m_equation;
-    }
-
-    SketchStrategy::SketchStrategy(Sketch* owner) : 
-        SketchVariableEntity(owner),
-        m_additive(nullptr),
-        m_variable_priority(g_default_sketch_strategy_priority) {
-    }
-
-    SketchStrategy::~SketchStrategy() {
-        delete m_additive;
-    }
-
-    SketchStrategy* SketchStrategy::SetAdditive(SketchAdditive* additive) {
-        if (m_additive != additive) {
-            if (m_additive) {
-                delete m_additive;
-            }
-            m_additive = additive;
-            if (m_additive) {
-                m_additive->GetEquation()->SetOwner(this);
-            }
-        }
-        return this;
-    }
-
-    int SketchStrategy::GetVariableCount() {
-        return 1;
-    }
-
-    Interval SketchStrategy::GetVariableDomain(int index) {
-        return m_additive->GetCurrentVariable();
-    }
-
-    double SketchStrategy::GetCurrentVariable(int index) {
-        return m_additive->GetCurrentVariable();
-    }
-
-    void SketchStrategy::SetCurrentVariable(int index, double variable) {
-        m_additive->SetCurrentVariable(variable);
-    }
-
-    SketchEquation* SketchStrategy::GetFirstRelatedEquation(int index) {
-        return m_additive->GetFirstRelatedEquation();
-    }
-
-    void SketchStrategy::SetFirstRelatedEquation(int index, SketchEquation* equation) {
-        return m_additive->SetFirstRelatedEquation(equation);
-    }
-
-    int SketchStrategy::GetCurrentVariableIndex(int index) {
-        return m_additive->GetCurrentVariableIndex();
-    }
-
-    void SketchStrategy::SetCurrentVariableIndex(int index, int variable_index) {
-        m_additive->SetCurrentVariableIndex(variable_index);
-    }
-
-    int SketchStrategy::GetEquationCount() {
-        return 1;
-    }
-
-    SketchEquation* SketchStrategy::GetEquation(int index) {
-        return m_additive->GetEquation();
-    }
-
-    double SketchStrategy::GetVariablePriority() {
-        return m_variable_priority;
-    }
-
-    void SketchStrategy::SetVariablePriority(double priority) {
-        m_variable_priority = priority;
-    }
-
-    SketchInequalityConstraint::SketchInequalityConstraint(Sketch* owner) : 
-        SketchVariableEntity(owner),
-        m_additive(nullptr) {
-    }
-
-    SketchInequalityConstraint::~SketchInequalityConstraint() {
-        delete m_additive;
-    }
-
-    SketchInequalityConstraint* SketchInequalityConstraint::SetAdditive(SketchAdditive* additive) {
-        if (m_additive != additive) {
-            if (m_additive) {
-                delete m_additive;
-            }
-            m_additive = additive;
-            if (m_additive) {
-                m_additive->GetEquation()->SetOwner(this);
-            }
-        }
-        return this;
-    }
-
-    SketchInequalityConstraint* SketchInequalityConstraint::SetDomain(const Interval& domain) {
-        m_domain = domain;
-        return this;
-    }
-
-    int SketchInequalityConstraint::GetVariableCount() {
-        return 1;
-    }
-
-    Interval SketchInequalityConstraint::GetVariableDomain(int index) {
-        double a = m_additive->GetCurrentVariable();
-        double b = m_owner->GetSketchSize();
-        Interval domain = Interval(a - b, a + b);
-        domain.Intersect(m_domain);
-        return domain;
-    }
-
-    double SketchInequalityConstraint::GetCurrentVariable(int index) {
-        return m_additive->GetCurrentVariable();
-    }
-
-    void SketchInequalityConstraint::SetCurrentVariable(int index, double variable) {
-        m_additive->SetCurrentVariable(variable);
-    }
-
-    SketchEquation* SketchInequalityConstraint::GetFirstRelatedEquation(int index) {
-        return m_additive->GetFirstRelatedEquation();
-    }
-
-    void SketchInequalityConstraint::SetFirstRelatedEquation(int index, SketchEquation* equation) {
-        return m_additive->SetFirstRelatedEquation(equation);
-    }
-
-    int SketchInequalityConstraint::GetCurrentVariableIndex(int index) {
-        return m_additive->GetCurrentVariableIndex();
-    }
-
-    void SketchInequalityConstraint::SetCurrentVariableIndex(int index, int variable_index) {
-        m_additive->SetCurrentVariableIndex(variable_index);
-    }
-
-    int SketchInequalityConstraint::GetEquationCount() {
-        return 1;
-    }
-
-    SketchEquation* SketchInequalityConstraint::GetEquation(int index) {
-        return m_additive->GetEquation();
+        return GetVariableEntity(index)->GetCurrentVariable(GetEntityVariableIndex(index));
     }
 
     SketchAction::SketchAction() {
     }
 
     SketchAction::~SketchAction() {
-        for (int i = 0; i < m_constraints.GetCount(); ++i) {
-            m_constraints.Get(i)->DecRef();
-        }
-        for (int i = 0; i < m_strategis.GetCount(); ++i) {
-            m_strategis.Get(i)->DecRef();
+        for (int i = 0; i < m_entities.GetCount(); ++i) {
+            m_entities.Get(i)->DecRef();
         }
     }
 
-    void SketchAction::AddConstraint(SketchConstraint* constraint) {
-        constraint->IncRef();
-        m_constraints.Append(constraint);
+    void SketchAction::AddEntity(SketchEntity* entity) {
+        entity->IncRef();
+        m_entities.Append(entity);
     }
 
-    int SketchAction::GetConstraintCount() {
-        return m_constraints.GetCount();
+    int SketchAction::GetEntityCount() {
+        return m_entities.GetCount();
     }
 
-    SketchConstraint* SketchAction::GetConstraint(int index) {
-        return m_constraints.Get(index);
+    SketchEntity* SketchAction::GetEntity(int index) {
+        return m_entities.Get(index);
     }
 
-    void SketchAction::AddStrategy(SketchStrategy* strategy) {
-        strategy->IncRef();
-        m_strategis.Append(strategy);
-    }
-
-    int SketchAction::GetStrategyCount() {
-        return m_strategis.GetCount();
-    }
-
-    SketchStrategy* SketchAction::GetStrategy(int index) {
-        return m_strategis.Get(index);
-    }
-
-    Sketch::Sketch(double sketch_size) : m_sketch_size(sketch_size) {
+    Sketch::Sketch(double sketch_radius, double distance_epsilon) : 
+        m_sketch_radius(sketch_radius),
+        m_distance_epsilon(distance_epsilon) {
     }
 
     Sketch::~Sketch() {
         Clear();
     }
 
-    double Sketch::GetSketchSize() {
-        return m_sketch_size;
+    double Sketch::GetSketchRadius() {
+        return m_sketch_radius;
+    }
+
+    double Sketch::GetDistanceEpsilon() {
+        return m_distance_epsilon;
     }
 
     void Sketch::Clear() {
-        for (int i = 0; i < m_constraints.GetCount(); ++i) {
-            m_constraints.Get(i)->DecRef();
+        for (int i = 0; i < m_entities.GetCount(); ++i) {
+            m_entities.Get(i)->DecRef();
         }
-        m_constraints.Clear();
-        for (int i = 0; i < m_geometries.GetCount(); ++i) {
-            m_geometries.Get(i)->DecRef();
-        }
-        m_geometries.Clear();
     }
 
-    int Sketch::GetGeometryCount() const {
-        return m_geometries.GetCount();
+    int Sketch::GetEntityCount() const {
+        return m_entities.GetCount();
     }
 
-    SketchGeometry* Sketch::GetGeometry(int index) const {
-        return m_geometries.Get(index);
+    SketchEntity* Sketch::GetEntity(int index) const {
+        return m_entities.Get(index);
     }
 
-    void Sketch::AddGeometry(SketchGeometry* geometry, bool solve, Array<SketchEntityVariable>& actived_variables) {
-        geometry->IncRef();
+    bool Sketch::AddEntity(SketchEntity* entity, SketchAction* action, Array<SketchEntityVariable>* actived_variables) {
+        entity->IncRef();
         Array<SketchEquation*> equations;
-        for (int i = 0; i < geometry->GetVariableCount(); ++i) {
-            geometry->SetCurrentVariableIndex(i, -1);
-        }
-        m_geometries.Append(geometry);
-        for (int i = 0; i < geometry->GetEquationCount(); ++i) {
-            SketchEquation* equation = geometry->GetEquation(i);
+        m_entities.Append(entity);
+        for (int i = 0; i < entity->GetEquationCount(); ++i) {
+            SketchEquation* equation = entity->GetEquation(i);
             AddEquationRelation(equation);
             equations.Append(equation);
         }
-        if (solve) {
+        if (actived_variables) {
             SketchSolver solver(this);
-            solver.Solve(equations, nullptr, actived_variables);
-        }
-    }
-
-    void Sketch::RemoveGeometry(int index) {
-        SketchGeometry* geometry = m_geometries.Get(index);
-        for (int i = 0; i < geometry->GetVariableCount(); ++i) {
-            while (true) {
-                SketchEquation* equation = geometry->GetFirstRelatedEquation(i);
-                if (!equation) {
-                    break;
-                }
-                if (equation->GetOwner() == geometry) {
-                    RemoveEquationRelation(equation);
-                }
-                else {
-                    for (int j = 0; j < m_constraints.GetCount(); ++j) {
-                        if (m_constraints.Get(j) == equation->GetOwner()) {
-                            RemoveConstraint(j);
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-        geometry->DecRef();
-        m_geometries.Remove(index);
-    }
-
-    void Sketch::RemoveGeometry(SketchGeometry* geometry) {
-        for (int i = 0; i < m_geometries.GetCount(); ++i) {
-            if (m_geometries.Get(i) == geometry) {
-                RemoveGeometry(i);
-                break;
-            }
-        }
-    }
-
-    int Sketch::GetConstraintCount() const {
-        return m_constraints.GetCount();
-    }
-
-    SketchConstraint* Sketch::GetConstraint(int index) const {
-        return m_constraints.Get(index);
-    }
-
-    bool Sketch::AddConstraint(SketchConstraint* constraint, bool solve, SketchAction* action, Array<SketchEntityVariable>& actived_variables) {
-        constraint->IncRef();
-        Array<SketchEquation*> equations;
-        m_constraints.Append(constraint);
-        for (int i = 0; i < constraint->GetEquationCount(); ++i) {
-            SketchEquation* equation = constraint->GetEquation(i);
-            AddEquationRelation(equation);
-            equations.Append(equation);
-        }
-        if (solve) {
-            SketchSolver solver(this);
-            if (!solver.Solve(equations, action, actived_variables)) {
-                RemoveConstraint(m_constraints.GetCount() - 1);
+            if (!solver.Solve(equations, action, *actived_variables)) {
+                RemoveEntity(m_entities.GetCount() - 1);
                 return false;
             }
         }
         return true;
     }
 
-    void Sketch::RemoveConstraint(int index) {
-        SketchConstraint* constraint = m_constraints.Get(index);
-        for (int i = 0; i < constraint->GetEquationCount(); ++i) {
-            SketchEquation* equation = constraint->GetEquation(i);
+    void Sketch::RemoveEntity(int index) {
+        SketchEntity* entity = m_entities.Get(index);
+        m_entities.Remove(index);
+        for (int i = 0; i < entity->GetVariableCount(); ++i) {
+            while (true) {
+                SketchEquation* equation = entity->GetFirstRelatedEquation(i);
+                if (!equation) {
+                    break;
+                }
+                if (equation->GetOwner() == entity) {
+                    continue;
+                }
+                for (int j = 0; j < m_entities.GetCount(); ++j) {
+                    if (m_entities.Get(j) == equation->GetOwner()) {
+                        RemoveEntity(j);
+                        break;
+                    }
+                }
+            }
+        }
+        for (int i = 0; i < entity->GetEquationCount(); ++i) {
+            SketchEquation* equation = entity->GetEquation(i);
             RemoveEquationRelation(equation);
         }
-        constraint->DecRef();
-        m_constraints.Remove(index);
+        entity->DecRef();
     }
 
-    void Sketch::RemoveConstraint(SketchConstraint* constraint) {
-        for (int i = 0; i < m_constraints.GetCount(); ++i) {
-            if (m_constraints.Get(i) == constraint) {
-                RemoveConstraint(i);
+    void Sketch::RemoveEntity(SketchEntity* entity) {
+        for (int i = m_entities.GetCount() - 1; i >= 0; --i) {
+            if (m_entities.Get(i) == entity) {
+                RemoveEntity(i);
                 break;
             }
         }
@@ -497,17 +247,21 @@ namespace wgp {
     void Sketch::AddEquationRelation(SketchEquation* equation) {
         equation->m_current_equation_index = -1;
         for (int j = 0; j < equation->GetVariableCount(); ++j) {
-            SketchVariableEntity* entity = equation->GetVariableEntity(j);
+            SketchEntity* entity = equation->GetVariableEntity(j);
             int index = equation->GetEntityVariableIndex(j);
             equation->SetPrevRelatedEquation(entity, index, nullptr);
-            equation->SetNextRelatedEquation(entity, index, entity->GetFirstRelatedEquation(index));
+            SketchEquation* next = entity->GetFirstRelatedEquation(index);
+            equation->SetNextRelatedEquation(entity, index, next);
+            if (next) {
+                next->SetPrevRelatedEquation(entity, index, equation);
+            }
             entity->SetFirstRelatedEquation(index, equation);
         }
     }
 
     void Sketch::RemoveEquationRelation(SketchEquation* equation) {
         for (int i = 0; i < equation->GetVariableCount(); ++i) {
-            SketchVariableEntity* entity = equation->GetVariableEntity(i);
+            SketchEntity* entity = equation->GetVariableEntity(i);
             int index = equation->GetEntityVariableIndex(i);
             if (entity->GetFirstRelatedEquation(index) == equation) {
                 SketchEquation* next = equation->GetNextRelatedEquation(entity, index);
@@ -532,544 +286,24 @@ namespace wgp {
     class SketchEntityVariablePriorityLess {
     public:
         bool operator()(const SketchEntityVariable& variable1, const SketchEntityVariable& variable2) {
-            if (variable1.Entity->IsStrategy()) {
-                if (variable2.Entity->IsStrategy()) {
-                    double priority1 = ((SketchStrategy*)variable1.Entity)->GetVariablePriority();
-                    double priority2 = ((SketchStrategy*)variable2.Entity)->GetVariablePriority();
-                    if (priority1 > priority2) {
-                        return true;
-                    }
-                    if (priority1 < priority2) {
-                        return false;
-                    }
-                    int current_index1 = variable1.Entity->GetCurrentVariableIndex(variable1.Index);
-                    int current_index2 = variable2.Entity->GetCurrentVariableIndex(variable2.Index);
-                    return current_index1 < current_index2;
-                }
-                else {
-                    return true;
-                }
+            int priority1 = variable1.Entity->GetPriority();
+            int priority2 = variable2.Entity->GetPriority();
+            if (priority1 > priority2) {
+                return true;
             }
-            else {
-                if (variable2.Entity->IsStrategy()) {
-                    return false;
-                }
-                else {
-                    int current_index1 = variable1.Entity->GetCurrentVariableIndex(variable1.Index);
-                    int current_index2 = variable2.Entity->GetCurrentVariableIndex(variable2.Index);
-                    return current_index1 < current_index2;
-                }
+            if (priority1 < priority2) {
+                return false;
             }
+            int current_index1 = variable1.Entity->GetCurrentVariableIndex(variable1.Index);
+            int current_index2 = variable2.Entity->GetCurrentVariableIndex(variable2.Index);
+            return current_index1 < current_index2;
         }
     };
 
-    bool Sketch::Solve(SketchAction* action, Array<SketchEntityVariable>& actived_variables) {
+    bool Sketch::SetVariables(SketchAction* action, Array<SketchEntityVariable>& actived_variables) {
         Array<SketchEquation*> equations;
         SketchSolver solver(this);
         return solver.Solve(equations, action, actived_variables);
-    }
-
-    SketchEquation1V::SketchEquation1V(SketchVariableEntity* entity, int variable_index, double epsilon) {
-        m_entity = entity;
-        m_variable_index = variable_index;
-        m_next_related_equation = nullptr;
-        m_prev_related_equation = nullptr;
-        m_epsilon = epsilon;
-    }
-
-    int SketchEquation1V::GetVariableCount() {
-        return 1;
-    }
-
-    SketchVariableEntity* SketchEquation1V::GetVariableEntity(int index) {
-        return m_entity;
-    }
-
-    int SketchEquation1V::GetEntityVariableIndex(int index) {
-        return m_variable_index;
-    }
-
-    SketchEquation* SketchEquation1V::GetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index) {
-        return m_next_related_equation;
-    }
-
-    void SketchEquation1V::SetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation) {
-        m_next_related_equation = equation;
-    }
-
-    SketchEquation* SketchEquation1V::GetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index) {
-        return m_prev_related_equation;
-    }
-
-    void SketchEquation1V::SetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation) {
-        m_prev_related_equation = equation;
-    }
-
-    double SketchEquation1V::GetValueEpsilon(const SketchVector& variable) {
-        return m_epsilon;
-    }
-
-    SketchEquation2V::SketchEquation2V(SketchVariableEntity* entity0, int variable_index0,
-        SketchVariableEntity* entity1, int variable_index1, double epsilon) {
-        m_entities[0] = entity0;
-        m_entities[1] = entity1;
-        m_variable_indices[0] = variable_index0;
-        m_variable_indices[1] = variable_index1;
-        m_next_related_equations[0] = nullptr;
-        m_next_related_equations[1] = nullptr;
-        m_prev_related_equations[0] = nullptr;
-        m_prev_related_equations[1] = nullptr;
-        m_epsilon = epsilon;
-    }
-
-    int SketchEquation2V::GetVariableCount() {
-        return 2;
-    }
-
-    SketchVariableEntity* SketchEquation2V::GetVariableEntity(int index) {
-        return m_entities[index];
-    }
-
-    int SketchEquation2V::GetEntityVariableIndex(int index) {
-        return m_variable_indices[index];
-    }
-
-    SketchEquation* SketchEquation2V::GetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index) {
-        for (int i = 0; i < 2; ++i) {
-            if (m_entities[i] == entity && m_variable_indices[i] == entity_variable_index) {
-                return m_next_related_equations[i];
-            }
-        }
-        return nullptr;
-    }
-
-    void SketchEquation2V::SetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation) {
-        for (int i = 0; i < 2; ++i) {
-            if (m_entities[i] == entity && m_variable_indices[i] == entity_variable_index) {
-                m_next_related_equations[i] = equation;
-                break;
-            }
-        }
-    }
-
-    SketchEquation* SketchEquation2V::GetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index) {
-        for (int i = 0; i < 2; ++i) {
-            if (m_entities[i] == entity && m_variable_indices[i] == entity_variable_index) {
-                return m_prev_related_equations[i];
-            }
-        }
-        return nullptr;
-    }
-
-    void SketchEquation2V::SetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation) {
-        for (int i = 0; i < 2; ++i) {
-            if (m_entities[i] == entity && m_variable_indices[i] == entity_variable_index) {
-                m_prev_related_equations[i] = equation;
-                break;
-            }
-        }
-    }
-
-    double SketchEquation2V::GetValueEpsilon(const SketchVector& variable) {
-        return m_epsilon;
-    }
-
-    SketchEquation4V::SketchEquation4V(SketchVariableEntity* entity0, int variable_index0,
-        SketchVariableEntity* entity1, int variable_index1,
-        SketchVariableEntity* entity2, int variable_index2,
-        SketchVariableEntity* entity3, int variable_index3, double epsilon) {
-        m_entities[0] = entity0;
-        m_entities[1] = entity1;
-        m_entities[2] = entity2;
-        m_entities[3] = entity3;
-        m_variable_indices[0] = variable_index0;
-        m_variable_indices[1] = variable_index1;
-        m_variable_indices[2] = variable_index2;
-        m_variable_indices[3] = variable_index3;
-        m_next_related_equations[0] = nullptr;
-        m_next_related_equations[1] = nullptr;
-        m_next_related_equations[2] = nullptr;
-        m_next_related_equations[3] = nullptr;
-        m_prev_related_equations[0] = nullptr;
-        m_prev_related_equations[1] = nullptr;
-        m_prev_related_equations[2] = nullptr;
-        m_prev_related_equations[3] = nullptr;
-        m_epsilon = epsilon;
-    }
-
-    int SketchEquation4V::GetVariableCount() {
-        return 4;
-    }
-
-    SketchVariableEntity* SketchEquation4V::GetVariableEntity(int index) {
-        return m_entities[index];
-    }
-
-    int SketchEquation4V::GetEntityVariableIndex(int index) {
-        return m_variable_indices[index];
-    }
-
-    SketchEquation* SketchEquation4V::GetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index) {
-        for (int i = 0; i < 4; ++i) {
-            if (m_entities[i] == entity && m_variable_indices[i] == entity_variable_index) {
-                return m_next_related_equations[i];
-            }
-        }
-        return nullptr;
-    }
-
-    void SketchEquation4V::SetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation) {
-        for (int i = 0; i < 4; ++i) {
-            if (m_entities[i] == entity && m_variable_indices[i] == entity_variable_index) {
-                m_next_related_equations[i] = equation;
-                break;
-            }
-        }
-    }
-
-    SketchEquation* SketchEquation4V::GetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index) {
-        for (int i = 0; i < 4; ++i) {
-            if (m_entities[i] == entity && m_variable_indices[i] == entity_variable_index) {
-                return m_prev_related_equations[i];
-            }
-        }
-        return nullptr;
-    }
-
-    void SketchEquation4V::SetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation) {
-        for (int i = 0; i < 4; ++i) {
-            if (m_entities[i] == entity && m_variable_indices[i] == entity_variable_index) {
-                m_prev_related_equations[i] = equation;
-                break;
-            }
-        }
-    }
-
-    double SketchEquation4V::GetValueEpsilon(const SketchVector& variable) {
-        return m_epsilon;
-    }
-    
-    SketchEquation5V::SketchEquation5V(SketchVariableEntity* entity0, int variable_index0,
-        SketchVariableEntity* entity1, int variable_index1,
-        SketchVariableEntity* entity2, int variable_index2,
-        SketchVariableEntity* entity3, int variable_index3,
-        SketchVariableEntity* entity4, int variable_index4, double epsilon) {
-        m_entities[0] = entity0;
-        m_entities[1] = entity1;
-        m_entities[2] = entity2;
-        m_entities[3] = entity3;
-        m_entities[4] = entity4;
-        m_variable_indices[0] = variable_index0;
-        m_variable_indices[1] = variable_index1;
-        m_variable_indices[2] = variable_index2;
-        m_variable_indices[3] = variable_index3;
-        m_variable_indices[4] = variable_index4;
-        m_next_related_equations[0] = nullptr;
-        m_next_related_equations[1] = nullptr;
-        m_next_related_equations[2] = nullptr;
-        m_next_related_equations[3] = nullptr;
-        m_next_related_equations[4] = nullptr;
-        m_prev_related_equations[0] = nullptr;
-        m_prev_related_equations[1] = nullptr;
-        m_prev_related_equations[2] = nullptr;
-        m_prev_related_equations[3] = nullptr;
-        m_prev_related_equations[4] = nullptr;
-        m_epsilon = epsilon;
-    }
-
-    int SketchEquation5V::GetVariableCount() {
-        return 5;
-    }
-
-    SketchVariableEntity* SketchEquation5V::GetVariableEntity(int index) {
-        return m_entities[index];
-    }
-
-    int SketchEquation5V::GetEntityVariableIndex(int index) {
-        return m_variable_indices[index];
-    }
-
-    SketchEquation* SketchEquation5V::GetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index) {
-        for (int i = 0; i < 5; ++i) {
-            if (m_entities[i] == entity && m_variable_indices[i] == entity_variable_index) {
-                return m_next_related_equations[i];
-            }
-        }
-        return nullptr;
-    }
-
-    void SketchEquation5V::SetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation) {
-        for (int i = 0; i < 5; ++i) {
-            if (m_entities[i] == entity && m_variable_indices[i] == entity_variable_index) {
-                m_next_related_equations[i] = equation;
-                break;
-            }
-        }
-    }
-
-    SketchEquation* SketchEquation5V::GetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index) {
-        for (int i = 0; i < 5; ++i) {
-            if (m_entities[i] == entity && m_variable_indices[i] == entity_variable_index) {
-                return m_prev_related_equations[i];
-            }
-        }
-        return nullptr;
-    }
-
-    void SketchEquation5V::SetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation) {
-        for (int i = 0; i < 5; ++i) {
-            if (m_entities[i] == entity && m_variable_indices[i] == entity_variable_index) {
-                m_prev_related_equations[i] = equation;
-                break;
-            }
-        }
-    }
-
-    double SketchEquation5V::GetValueEpsilon(const SketchVector& variable) {
-        return m_epsilon;
-    }
-
-    SketchEquation8V::SketchEquation8V(SketchVariableEntity* entity0, int variable_index0,
-        SketchVariableEntity* entity1, int variable_index1,
-        SketchVariableEntity* entity2, int variable_index2,
-        SketchVariableEntity* entity3, int variable_index3,
-        SketchVariableEntity* entity4, int variable_index4,
-        SketchVariableEntity* entity5, int variable_index5,
-        SketchVariableEntity* entity6, int variable_index6,
-        SketchVariableEntity* entity7, int variable_index7, double epsilon) {
-        m_entities[0] = entity0;
-        m_entities[1] = entity1;
-        m_entities[2] = entity2;
-        m_entities[3] = entity3;
-        m_entities[4] = entity4;
-        m_entities[5] = entity5;
-        m_entities[6] = entity6;
-        m_entities[7] = entity7;
-        m_variable_indices[0] = variable_index0;
-        m_variable_indices[1] = variable_index1;
-        m_variable_indices[2] = variable_index2;
-        m_variable_indices[3] = variable_index3;
-        m_variable_indices[4] = variable_index4;
-        m_variable_indices[5] = variable_index5;
-        m_variable_indices[6] = variable_index6;
-        m_variable_indices[7] = variable_index7;
-        m_next_related_equations[0] = nullptr;
-        m_next_related_equations[1] = nullptr;
-        m_next_related_equations[2] = nullptr;
-        m_next_related_equations[3] = nullptr;
-        m_next_related_equations[4] = nullptr;
-        m_next_related_equations[5] = nullptr;
-        m_next_related_equations[6] = nullptr;
-        m_next_related_equations[7] = nullptr;
-        m_prev_related_equations[0] = nullptr;
-        m_prev_related_equations[1] = nullptr;
-        m_prev_related_equations[2] = nullptr;
-        m_prev_related_equations[3] = nullptr;
-        m_prev_related_equations[4] = nullptr;
-        m_prev_related_equations[5] = nullptr;
-        m_prev_related_equations[6] = nullptr;
-        m_prev_related_equations[7] = nullptr;
-        m_epsilon = epsilon;
-    }
-
-    int SketchEquation8V::GetVariableCount() {
-        return 8;
-    }
-
-    SketchVariableEntity* SketchEquation8V::GetVariableEntity(int index) {
-        return m_entities[index];
-    }
-
-    int SketchEquation8V::GetEntityVariableIndex(int index) {
-        return m_variable_indices[index];
-    }
-
-    SketchEquation* SketchEquation8V::GetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index) {
-        for (int i = 0; i < 8; ++i) {
-            if (m_entities[i] == entity && m_variable_indices[i] == entity_variable_index) {
-                return m_next_related_equations[i];
-            }
-        }
-        return nullptr;
-    }
-
-    void SketchEquation8V::SetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation) {
-        for (int i = 0; i < 8; ++i) {
-            if (m_entities[i] == entity && m_variable_indices[i] == entity_variable_index) {
-                m_next_related_equations[i] = equation;
-                break;
-            }
-        }
-    }
-
-    SketchEquation* SketchEquation8V::GetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index) {
-        for (int i = 0; i < 8; ++i) {
-            if (m_entities[i] == entity && m_variable_indices[i] == entity_variable_index) {
-                return m_prev_related_equations[i];
-            }
-        }
-        return nullptr;
-    }
-
-    void SketchEquation8V::SetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation) {
-        for (int i = 0; i < 8; ++i) {
-            if (m_entities[i] == entity && m_variable_indices[i] == entity_variable_index) {
-                m_prev_related_equations[i] = equation;
-                break;
-            }
-        }
-    }
-
-    double SketchEquation8V::GetValueEpsilon(const SketchVector& variable) {
-        return m_epsilon;
-    }
-
-    SketchEquation9V::SketchEquation9V(SketchVariableEntity* entity0, int variable_index0,
-        SketchVariableEntity* entity1, int variable_index1,
-        SketchVariableEntity* entity2, int variable_index2,
-        SketchVariableEntity* entity3, int variable_index3,
-        SketchVariableEntity* entity4, int variable_index4,
-        SketchVariableEntity* entity5, int variable_index5,
-        SketchVariableEntity* entity6, int variable_index6,
-        SketchVariableEntity* entity7, int variable_index7, 
-        SketchVariableEntity* entity8, int variable_index8, double epsilon) {
-        m_entities[0] = entity0;
-        m_entities[1] = entity1;
-        m_entities[2] = entity2;
-        m_entities[3] = entity3;
-        m_entities[4] = entity4;
-        m_entities[5] = entity5;
-        m_entities[6] = entity6;
-        m_entities[7] = entity7;
-        m_entities[8] = entity8;
-        m_variable_indices[0] = variable_index0;
-        m_variable_indices[1] = variable_index1;
-        m_variable_indices[2] = variable_index2;
-        m_variable_indices[3] = variable_index3;
-        m_variable_indices[4] = variable_index4;
-        m_variable_indices[5] = variable_index5;
-        m_variable_indices[6] = variable_index6;
-        m_variable_indices[7] = variable_index7;
-        m_variable_indices[8] = variable_index8;
-        m_next_related_equations[0] = nullptr;
-        m_next_related_equations[1] = nullptr;
-        m_next_related_equations[2] = nullptr;
-        m_next_related_equations[3] = nullptr;
-        m_next_related_equations[4] = nullptr;
-        m_next_related_equations[5] = nullptr;
-        m_next_related_equations[6] = nullptr;
-        m_next_related_equations[7] = nullptr;
-        m_next_related_equations[8] = nullptr;
-        m_prev_related_equations[0] = nullptr;
-        m_prev_related_equations[1] = nullptr;
-        m_prev_related_equations[2] = nullptr;
-        m_prev_related_equations[3] = nullptr;
-        m_prev_related_equations[4] = nullptr;
-        m_prev_related_equations[5] = nullptr;
-        m_prev_related_equations[6] = nullptr;
-        m_prev_related_equations[7] = nullptr;
-        m_prev_related_equations[8] = nullptr;
-        m_epsilon = epsilon;
-    }
-
-    int SketchEquation9V::GetVariableCount() {
-        return 9;
-    }
-
-    SketchVariableEntity* SketchEquation9V::GetVariableEntity(int index) {
-        return m_entities[index];
-    }
-
-    int SketchEquation9V::GetEntityVariableIndex(int index) {
-        return m_variable_indices[index];
-    }
-
-    SketchEquation* SketchEquation9V::GetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index) {
-        for (int i = 0; i < 9; ++i) {
-            if (m_entities[i] == entity && m_variable_indices[i] == entity_variable_index) {
-                return m_next_related_equations[i];
-            }
-        }
-        return nullptr;
-    }
-
-    void SketchEquation9V::SetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation) {
-        for (int i = 0; i < 9; ++i) {
-            if (m_entities[i] == entity && m_variable_indices[i] == entity_variable_index) {
-                m_next_related_equations[i] = equation;
-                break;
-            }
-        }
-    }
-
-    SketchEquation* SketchEquation9V::GetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index) {
-        for (int i = 0; i < 9; ++i) {
-            if (m_entities[i] == entity && m_variable_indices[i] == entity_variable_index) {
-                return m_prev_related_equations[i];
-            }
-        }
-        return nullptr;
-    }
-
-    void SketchEquation9V::SetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation) {
-        for (int i = 0; i < 9; ++i) {
-            if (m_entities[i] == entity && m_variable_indices[i] == entity_variable_index) {
-                m_prev_related_equations[i] = equation;
-                break;
-            }
-        }
-    }
-
-    double SketchEquation9V::GetValueEpsilon(const SketchVector& variable) {
-        return m_epsilon;
-    }
-
-    SketchGeometry4V::SketchGeometry4V(Sketch* owner, double v0, double v1, double v2, double v3) :
-        SketchGeometry(owner) {
-        m_variable[0] = v0;
-        m_variable[1] = v1;
-        m_variable[2] = v2;
-        m_variable[3] = v3;
-        m_first_related_equations[0] = nullptr;
-        m_first_related_equations[1] = nullptr;
-        m_first_related_equations[2] = nullptr;
-        m_first_related_equations[3] = nullptr;
-        m_current_variable_indices[0] = -1;
-        m_current_variable_indices[1] = -1;
-        m_current_variable_indices[2] = -1;
-        m_current_variable_indices[3] = -1;
-    }
-
-    int SketchGeometry4V::GetVariableCount() {
-        return 4;
-    }
-
-    Interval SketchGeometry4V::GetVariableDomain(int index) {
-        return Interval(m_variable[index] - m_owner->GetSketchSize(), m_variable[index] + m_owner->GetSketchSize());
-    }
-
-    double SketchGeometry4V::GetCurrentVariable(int index) {
-        return m_variable[index];
-    }
-
-    void SketchGeometry4V::SetCurrentVariable(int index, double variable) {
-        m_variable[index] = variable;
-    }
-
-    SketchEquation* SketchGeometry4V::GetFirstRelatedEquation(int index) {
-        return m_first_related_equations[index];
-    }
-
-    void SketchGeometry4V::SetFirstRelatedEquation(int index, SketchEquation* equation) {
-        m_first_related_equations[index] = equation;
-    }
-
-    int SketchGeometry4V::GetCurrentVariableIndex(int index) {
-        return m_current_variable_indices[index];
-    }
-
-    void SketchGeometry4V::SetCurrentVariableIndex(int index, int variable_index) {
-        m_current_variable_indices[index] = variable_index;
     }
 
     SketchVariable::SketchVariable() : 
@@ -1118,8 +352,7 @@ namespace wgp {
     }
 
     void SketchVariable::Set(int i, const Interval& value) {
-        assert(i >= m_solver->GetCurrentAdditiveVariableCount());
-        if (m_state[i] == 0) {
+        if ((m_state[i] & 4) == 0) {
             m_data.Set(i, value);
         }
         else {
@@ -1127,13 +360,13 @@ namespace wgp {
             Interval a = m_data.Get(i);
             if (d <= a.Min + g_double_epsilon) {
                 if (value.Min != a.Min) {
-                    m_state[i] = 0;
+                    m_state[i] -= 4;
                 }
             }
             else {
                 assert(d >= a.Max - g_double_epsilon);
                 if (value.Max != a.Max) {
-                    m_state[i] = 0;
+                    m_state[i] -= 4;
                 }
             }
             m_data.Set(i, value);
@@ -1143,8 +376,7 @@ namespace wgp {
     void SketchVariable::Split(int index, SketchVariable& vt1, SketchVariable& vt2) {
         vt1 = *this;
         vt2 = *this;
-        if (index < m_solver->GetCurrentAdditiveVariableCount()) {
-            assert(m_state[index] == 0);
+        if (m_state[index] == 0) {
             vt1.m_state[index] = 1;
             vt1.m_calculated = false;
             vt2.m_state[index] = 2;
@@ -1153,15 +385,15 @@ namespace wgp {
         else {
             double d = m_solver->GetCurrentVariables()->GetPointer(index)->CurrentValue;
             Interval a = m_data.Get(index);
-            if (m_state[index] == 1) {
+            if ((m_state[index] & 4) != 0) {
                 double m = a.Center();
                 vt1.m_data.Set(index, Interval(a.Min, m));
                 vt2.m_data.Set(index, Interval(m, a.Max));
                 if (d < m) {
-                    vt2.m_state[index] = 0;
+                    vt2.m_state[index] -= 4;
                 }
                 else {
-                    vt1.m_state[index] = 0;
+                    vt1.m_state[index] -= 4;
                 }
                 vt1.m_calculated = false;
                 vt2.m_calculated = false;
@@ -1170,13 +402,13 @@ namespace wgp {
                 if (d <= a.Min + g_double_epsilon) {
                     vt1.m_data.Set(index, a.Min);
                     vt1.m_calculated = false;
-                    vt2.m_state[index] = 1;
+                    vt2.m_state[index] += 4;
                     vt2.m_calculated = true;
                 }
                 else if (d >= a.Max - g_double_epsilon) {
                     vt1.m_data.Set(index, a.Max);
                     vt1.m_calculated = false;
-                    vt2.m_state[index] = 1;
+                    vt2.m_state[index] += 4;
                     vt2.m_calculated = true;
                 }
                 else {
@@ -1190,7 +422,6 @@ namespace wgp {
     }
 
     SketchSolver::SketchSolver(Sketch* sketch) : m_sketch(sketch) {
-        m_current_strategy_variable_count = 0;
     }
 
     SketchSolver::~SketchSolver() {
@@ -1199,18 +430,10 @@ namespace wgp {
     bool SketchSolver::Solve(const Array<SketchEquation*>& equations, SketchAction* action, Array<SketchEntityVariable>& actived_variables) {
         Array<SketchEquation*> action_equations;
         if (action) {
-            for (int i = 0; i < action->GetStrategyCount(); ++i) {
-                SketchStrategy* strategy = action->GetStrategy(i);
-                for (int j = 0; j < strategy->GetEquationCount(); ++j) {
-                    SketchEquation* equation = strategy->GetEquation(j);
-                    m_sketch->AddEquationRelation(equation);
-                    action_equations.Append(equation);
-                }
-            }
-            for (int i = 0; i < action->GetConstraintCount(); ++i) {
-                SketchConstraint* constraint = action->GetConstraint(i);
-                for (int j = 0; j < constraint->GetEquationCount(); ++j) {
-                    SketchEquation* equation = constraint->GetEquation(j);
+            for (int i = 0; i < action->GetEntityCount(); ++i) {
+                SketchEntity* entity = action->GetEntity(i);
+                for (int j = 0; j < entity->GetEquationCount(); ++j) {
+                    SketchEquation* equation = entity->GetEquation(j);
                     m_sketch->AddEquationRelation(equation);
                     action_equations.Append(equation);
                 }
@@ -1255,18 +478,17 @@ namespace wgp {
                     initial_variable.m_solver = this;
                     for (int i = 0; i < m_current_variables.GetCount(); ++i) {
                         SketchEntityVariable* entity_variable = m_current_variables.GetPointer(i);
-                        if (entity_variable->Entity->IsStrategy()) {
-                            initial_variable.m_data.Set(i, entity_variable->CurrentValue);
-                            m_current_strategy_variable_count = i + 1;
+                        initial_variable.m_data.Set(i, entity_variable->Entity->GetVariableDomain(entity_variable->Index));
+                        if (entity_variable->Entity->GetPriority() > 0) {
                             initial_variable.m_state[i] = 0;
                         }
                         else {
-                            initial_variable.m_data.Set(i, entity_variable->Entity->GetVariableDomain(entity_variable->Index));
-                            initial_variable.m_state[i] = 0;
+                            initial_variable.m_state[i] = 1;
+
                         }
                     }
                     initial_variable.m_calculated = false;
-                    if (m_current_strategy_variable_count < m_current_variables.GetCount()) {
+                    if (m_current_variables.GetCount() > 0 && m_current_variables.GetPointer(m_current_variables.GetCount() - 1)->Entity->GetPriority() == 0) {
                         Solver<SketchSolver, SketchVariable, SketchVector, SketchVector, SketchMatrix> solver;
                         solver.SetEquationSystem(this);
                         solver.SetMaxRootCount(1);
@@ -1277,9 +499,8 @@ namespace wgp {
                         }
                         else {
                             const SketchVariable* root = clear_roots.GetPointer(0);
-                            for (int i = m_current_strategy_variable_count; i < m_current_variables.GetCount(); ++i) {
+                            for (int i = 0; i < m_current_variables.GetCount(); ++i) {
                                 SketchEntityVariable* entity_variable = m_current_variables.GetPointer(i);
-
                                 double t = entity_variable->Entity->GetCurrentVariable(entity_variable->Index);
                                 if (t < root->m_data.Get(i).Min) {
                                     t = root->m_data.Get(i).Min;
@@ -1296,7 +517,6 @@ namespace wgp {
                     }
                     m_current_equations.Clear();
                     m_current_variables.Clear();
-                    m_current_strategy_variable_count = 0;
                     if (!success) {
                         break;
                     }
@@ -1307,6 +527,10 @@ namespace wgp {
                 entity_variable->Entity->SetCurrentVariableIndex(entity_variable->Index, -1);
             }
             if (!success) {
+                for (int i = 0; i < actived_variables.GetCount(); ++i) {
+                    SketchEntityVariable* entity_variable = actived_variables.GetPointer(i);
+                    entity_variable->Entity->SetCurrentVariable(entity_variable->Index, entity_variable->CurrentValue);
+                }
                 actived_variables.Clear();
             }
         }
@@ -1338,9 +562,9 @@ namespace wgp {
     void SketchSolver::CalculateValue(const SketchVariable& variable, SketchVector& value) {
         for (int i = 0; i < m_current_equations.GetCount(); ++i) {
             SketchEquation* equation = m_current_equations.Get(i);
-            if (equation->GetOwner()->IsStrategy()) {
-                int index = ((SketchStrategy*)equation->GetOwner())->GetCurrentVariableIndex(0);
-                if (variable.m_state[index] == 1) {
+            if (equation->GetOwner()->GetPriority() > 0) {
+                int index = ((SketchEntity*)equation->GetOwner())->GetCurrentVariableIndex(0);
+                if ((variable.m_state[index] & 1) != 0 && (variable.m_state[index] & 2) == 0) {
                     equation->CalculateValue(variable.m_data, value);
                 }
                 else {
@@ -1357,9 +581,9 @@ namespace wgp {
         value.SetZero();
         for (int i = 0; i < m_current_equations.GetCount(); ++i) {
             SketchEquation* equation = m_current_equations.Get(i);
-            if (equation->GetOwner()->IsStrategy()) {
-                int index = ((SketchStrategy*)equation->GetOwner())->GetCurrentVariableIndex(0);
-                if (variable.m_state[index] == 1) {
+            if (equation->GetOwner()->GetPriority() > 0) {
+                int index = ((SketchEntity*)equation->GetOwner())->GetCurrentVariableIndex(0);
+                if ((variable.m_state[index] & 1) != 0 && (variable.m_state[index] & 2) == 0) {
                     equation->CalculatePartialDerivative(variable.m_data, value);
                 }
             }
@@ -1370,46 +594,32 @@ namespace wgp {
     }
     
     double SketchSolver::CalculatePriority(const SketchVariable& variable, const SketchVector& value, double size) {
-        int n0 = 0;
-        for (int i = 0; i < m_current_strategy_variable_count; ++i) {
-            if (variable.m_state[i] == 0) {
-                return 1E7 - i;
-            }
-            if (variable.m_state[i] == 1) {
-                ++n0;
-            }
-        }
-        int n1 = 0;
-        double d2 = 0;
-        for (int i = m_current_strategy_variable_count; i < m_current_variables.GetCount(); ++i) {
-            Interval a = variable.Get(i);
-            if (a.Length() == 0) {
-                ++n1;
-            }
-            double d = m_current_variables.GetPointer(i)->CurrentValue;
-            if (d < a.Min) {
-                d2 += a.Min - d;
-            }
-            else if (d > a.Max) {
-                d2 += d - a.Max;
-            }
-        }
-        return n0 + n1 * 1E-4 - d2 * 1E-10;
+        return CalculatePriority(variable);
     }
     
     int SketchSolver::GetSplitIndex(const SketchVariable& variable, int prev_split_index, double priority) {
-        for (int i = 0; i < m_current_strategy_variable_count; ++i) {
-            if (variable.m_state[i] == 0) {
-                return i;
+        int k = -1;
+        double d = -1;
+        for (int i = 0; i < m_current_variables.GetCount(); ++i) {
+            SketchEntityVariable* entity_variable = m_current_variables.GetPointer(i);
+            if (entity_variable->Entity->GetPriority() > 0) {
+                if (entity_variable->Index == 0 && variable.m_state[i] == 0) {
+                    return i;
+                }
+                if ((variable.m_state[entity_variable->Entity->GetCurrentVariableIndex(0)] & 2) == 0) {
+                    double d2 = variable.m_data.Get(i).Length();
+                    if (d2 > d) {
+                        k = i;
+                        d = d2;
+                    }
+                }
             }
-        }
-        int k = m_current_strategy_variable_count;
-        double d = variable.m_data.Get(k).Length();
-        for (int i = m_current_strategy_variable_count + 1; i < m_current_variables.GetCount(); ++i) {
-            double d2 = variable.m_data.Get(i).Length();
-            if (d2 > d) {
-                k = i;
-                d = d2;
+            else {
+                double d2 = variable.m_data.Get(i).Length();
+                if (d2 > d) {
+                    k = i;
+                    d = d2;
+                }
             }
         }
         return k;
@@ -1428,7 +638,7 @@ namespace wgp {
     bool SketchSolver::PreIterate(SketchVariable* variable, SolverIteratedResult& result, double& priority) {
         if (variable->m_calculated) {
             result = SolverIteratedResult::Fuzzy;
-            priority = 1E12;
+            priority = CalculatePriority(*variable);
             return true;
         }
         return false;
@@ -1442,15 +652,15 @@ namespace wgp {
         return &m_current_variables;
     }
 
-    int SketchSolver::GetCurrentAdditiveVariableCount() {
-        return m_current_strategy_variable_count;
+    bool SketchSolver::IsStratety(int current_index) {
+        return m_current_variables.GetPointer(current_index)->Entity->GetPriority() > 0;
     }
 
     void SketchSolver::DfsActived(SketchEquation* equation, Array<SketchEntityVariable>& actived_variables) {
         equation->m_current_equation_index = m_current_equations.GetCount();
         m_current_equations.Append(equation);
         for (int i = 0; i < equation->GetVariableCount(); ++i) {
-            SketchVariableEntity* entity = equation->GetVariableEntity(i);
+            SketchEntity* entity = equation->GetVariableEntity(i);
             int index = equation->GetEntityVariableIndex(i);
             if (entity->GetCurrentVariableIndex(index) == -1) {
                 entity->SetCurrentVariableIndex(index, actived_variables.GetCount());
@@ -1474,7 +684,7 @@ namespace wgp {
         equation->m_current_equation_index = m_current_equations.GetCount();
         m_current_equations.Append(equation);
         for (int i = 0; i < equation->GetVariableCount(); ++i) {
-            SketchVariableEntity* entity = equation->GetVariableEntity(i);
+            SketchEntity* entity = equation->GetVariableEntity(i);
             int index = equation->GetEntityVariableIndex(i);
             if (entity->GetCurrentVariableIndex(index) == -1) {
                 entity->SetCurrentVariableIndex(index, m_current_variables.GetCount());
@@ -1492,6 +702,39 @@ namespace wgp {
                 }
             }
         }
+    }
+
+    double SketchSolver::CalculatePriority(const SketchVariable& variable) {
+        int n0 = 0;
+        int n1 = 0;
+        double d2 = 0;
+        for (int i = 0; i < m_current_variables.GetCount(); ++i) {
+            SketchEntityVariable* entity_variable = m_current_variables.GetPointer(i);
+            if (entity_variable->Entity->GetPriority() > 0) {
+                if (entity_variable->Index == 0) {
+                    if (variable.m_state[i] == 0) {
+                        return 1E7 - i;
+                    }
+                    if ((variable.m_state[i] & 2) == 0) {
+                        ++n0;
+                    }
+                }
+            }
+            else {
+                Interval a = variable.Get(i);
+                if (a.Length() == 0) {
+                    ++n1;
+                }
+                double d = m_current_variables.GetPointer(i)->CurrentValue;
+                if (d < a.Min) {
+                    d2 += a.Min - d;
+                }
+                else if (d > a.Max) {
+                    d2 += d - a.Max;
+                }
+            }
+        }
+        return n0 + n1 * 1E-4 - d2 * 1E-10;
     }
 
 }

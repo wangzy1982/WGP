@@ -127,38 +127,21 @@ namespace wgp {
         return new SetAsQuaternionCommandLog(feature, this, m_get_func(feature, this), value);
     }
 
-    TYPE_IMP_1(SketchGeometryFeatureFieldSchema, FeatureFieldSchema::GetTypeInstance());
+    TYPE_IMP_1(SketchEntityFeatureFieldSchema, FeatureFieldSchema::GetTypeInstance());
 
-    SketchGeometryFeatureFieldSchema::SketchGeometryFeatureFieldSchema(FeatureSchema* feature_schema, const String& name,
-        GetAsSketchGeometryFunc get_func, DirectSetAsSketchGeometryFunc direct_set_func) :
+    SketchEntityFeatureFieldSchema::SketchEntityFeatureFieldSchema(FeatureSchema* feature_schema, const String& name,
+        GetAsSketchEntityFunc get_func, DirectSetAsSketchEntityFunc direct_set_func) :
         FeatureFieldSchema(m_feature_schema, name),
         m_get_func(get_func),
         m_direct_set_func(direct_set_func) {
     }
 
-    SketchGeometry* SketchGeometryFeatureFieldSchema::GetAsSketchGeometry(Feature* feature) {
+    SketchEntity* SketchEntityFeatureFieldSchema::GetAsSketchEntity(Feature* feature) {
         return m_get_func(feature, this);
     }
     
-    SetAsSketchGeometryCommandLog* SketchGeometryFeatureFieldSchema::NewSetCommandLog(Feature* feature, SketchGeometry* value) {
-        return new SetAsSketchGeometryCommandLog(feature, this, m_get_func(feature, this), value);
-    }
-
-    TYPE_IMP_1(SketchConstraintFeatureFieldSchema, FeatureFieldSchema::GetTypeInstance());
-
-    SketchConstraintFeatureFieldSchema::SketchConstraintFeatureFieldSchema(FeatureSchema* feature_schema, const String& name,
-            GetAsSketchConstraintFunc get_func, DirectSetAsSketchConstraintFunc direct_set_func) :
-        FeatureFieldSchema(m_feature_schema, name),
-        m_get_func(get_func),
-        m_direct_set_func(direct_set_func) {
-    }
-
-    SketchConstraint* SketchConstraintFeatureFieldSchema::GetAsSketchConstraint(Feature* feature) {
-        return m_get_func(feature, this);
-    }
-
-    SetAsSketchConstraintCommandLog* SketchConstraintFeatureFieldSchema::NewSetCommandLog(Feature* feature, SketchConstraint* value) {
-        return new SetAsSketchConstraintCommandLog(feature, this, m_get_func(feature, this), value);
+    SetAsSketchEntityCommandLog* SketchEntityFeatureFieldSchema::NewSetCommandLog(Feature* feature, SketchEntity* value) {
+        return new SetAsSketchEntityCommandLog(feature, this, m_get_func(feature, this), value);
     }
 
     TYPE_IMP_1(SketchFeatureFieldSchema, FeatureFieldSchema::GetTypeInstance());

@@ -699,10 +699,10 @@ namespace wgp {
         ((QuaternionFeatureFieldSchema*)m_field_schema)->m_direct_set_func(m_feature, m_field_schema, m_new_value);
     }
 
-    TYPE_IMP_1(SetAsSketchGeometryCommandLog, SetFieldCommandLog::GetTypeInstance());
+    TYPE_IMP_1(SetAsSketchEntityCommandLog, SetFieldCommandLog::GetTypeInstance());
 
-    SetAsSketchGeometryCommandLog::SetAsSketchGeometryCommandLog(Feature* feature, SketchGeometryFeatureFieldSchema* field_schema,
-        SketchGeometry* old_value, SketchGeometry* new_value) :
+    SetAsSketchEntityCommandLog::SetAsSketchEntityCommandLog(Feature* feature, SketchEntityFeatureFieldSchema* field_schema,
+        SketchEntity* old_value, SketchEntity* new_value) :
         SetFieldCommandLog(feature, field_schema),
         m_old_value(old_value),
         m_new_value(new_value) {
@@ -714,7 +714,7 @@ namespace wgp {
         }
     }
 
-    SetAsSketchGeometryCommandLog::~SetAsSketchGeometryCommandLog() {
+    SetAsSketchEntityCommandLog::~SetAsSketchEntityCommandLog() {
         if (m_old_value) {
             m_old_value->DecRef();
         }
@@ -723,68 +723,24 @@ namespace wgp {
         }
     }
 
-    void SetAsSketchGeometryCommandLog::Undo() {
-        if (m_new_value) {
-            m_new_value->DecRef();
-        }
-        if (m_old_value) {
-            m_old_value->IncRef();
-        }
-        ((SketchGeometryFeatureFieldSchema*)m_field_schema)->m_direct_set_func(m_feature, m_field_schema, m_old_value);
-    }
-
-    void SetAsSketchGeometryCommandLog::Redo() {
-        if (m_old_value) {
-            m_old_value->DecRef();
-        }
-        if (m_new_value) {
-            m_new_value->IncRef();
-        }
-        ((SketchGeometryFeatureFieldSchema*)m_field_schema)->m_direct_set_func(m_feature, m_field_schema, m_new_value);
-    }
-
-    TYPE_IMP_1(SetAsSketchConstraintCommandLog, SetFieldCommandLog::GetTypeInstance());
-
-    SetAsSketchConstraintCommandLog::SetAsSketchConstraintCommandLog(Feature* feature, SketchConstraintFeatureFieldSchema* field_schema,
-            SketchConstraint* old_value, SketchConstraint* new_value) :
-        SetFieldCommandLog(feature, field_schema),
-        m_old_value(old_value),
-        m_new_value(new_value) {
-        if (m_old_value) {
-            m_old_value->IncRef();
-        }
-        if (m_new_value) {
-            m_new_value->IncRef();
-        }
-    }
-
-    SetAsSketchConstraintCommandLog::~SetAsSketchConstraintCommandLog() {
-        if (m_old_value) {
-            m_old_value->DecRef();
-        }
-        if (m_new_value) {
-            m_new_value->DecRef();
-        }
-    }
-
-    void SetAsSketchConstraintCommandLog::Undo() {
+    void SetAsSketchEntityCommandLog::Undo() {
         if (m_new_value) {
             m_new_value->DecRef();
         }
         if (m_old_value) {
             m_old_value->IncRef();
         }
-        ((SketchConstraintFeatureFieldSchema*)m_field_schema)->m_direct_set_func(m_feature, m_field_schema, m_old_value);
+        ((SketchEntityFeatureFieldSchema*)m_field_schema)->m_direct_set_func(m_feature, m_field_schema, m_old_value);
     }
 
-    void SetAsSketchConstraintCommandLog::Redo() {
+    void SetAsSketchEntityCommandLog::Redo() {
         if (m_old_value) {
             m_old_value->DecRef();
         }
         if (m_new_value) {
             m_new_value->IncRef();
         }
-        ((SketchConstraintFeatureFieldSchema*)m_field_schema)->m_direct_set_func(m_feature, m_field_schema, m_new_value);
+        ((SketchEntityFeatureFieldSchema*)m_field_schema)->m_direct_set_func(m_feature, m_field_schema, m_new_value);
     }
 
     TYPE_IMP_1(SetAsSketchCommandLog, SetFieldCommandLog::GetTypeInstance());
@@ -875,36 +831,40 @@ namespace wgp {
         ((LineStippleFeatureFieldSchema*)m_field_schema)->m_direct_set_func(m_feature, m_field_schema, m_new_value);
     }
 
-    TYPE_IMP_1(SetSketchGeometryVariableCommandLog, CommandLog::GetTypeInstance());
+    TYPE_IMP_1(SetSketchEntityVariableCommandLog, CommandLog::GetTypeInstance());
         
-    SetSketchGeometryVariableCommandLog::SetSketchGeometryVariableCommandLog(SketchGeometryFeature* feature, SketchGeometryFeatureFieldSchema* field_schema,
+    SetSketchEntityVariableCommandLog::SetSketchEntityVariableCommandLog(SketchEntityFeature* feature,
         int variable_index, double old_value, double new_value) :
         m_feature(feature),
-        m_field_schema(field_schema),
         m_variable_index(variable_index),
         m_old_value(old_value),
         m_new_value(new_value) {
+        m_feature->IncRef();
     }
 
-    void SetSketchGeometryVariableCommandLog::Undo() {
-        m_field_schema->GetAsSketchGeometry(m_feature)->SetCurrentVariable(m_variable_index, m_old_value);
+    SetSketchEntityVariableCommandLog::~SetSketchEntityVariableCommandLog() {
+        m_feature->DecRef();
     }
 
-    void SetSketchGeometryVariableCommandLog::Redo() {
-        m_field_schema->GetAsSketchGeometry(m_feature)->SetCurrentVariable(m_variable_index, m_new_value);
+    void SetSketchEntityVariableCommandLog::Undo() {
+        m_feature->GetEntity()->SetCurrentVariable(m_variable_index, m_old_value);
     }
 
-    void SetSketchGeometryVariableCommandLog::AppendAffectedFeature(Array<Feature*>& affected_features) {
+    void SetSketchEntityVariableCommandLog::Redo() {
+        m_feature->GetEntity()->SetCurrentVariable(m_variable_index, m_new_value);
+    }
+
+    void SetSketchEntityVariableCommandLog::AppendAffectedFeature(Array<Feature*>& affected_features) {
         affected_features.Append(m_feature);
-        ((SketchModelExecutor*)m_feature->GetModel()->GetExecutor())->AppendAffectedConstaintFeature(m_feature, affected_features);
+        ((SketchModelExecutor*)m_feature->GetModel()->GetExecutor())->AppendAffectedEntityFeature(m_feature, affected_features);
     }
 
-    void SetSketchGeometryVariableCommandLog::AppendAffectedFeature(Drawing* drawing) {
+    void SetSketchEntityVariableCommandLog::AppendAffectedFeature(Drawing* drawing) {
         drawing->AppendAffectedFeature(m_feature);
-        ((SketchModelExecutor*)m_feature->GetModel()->GetExecutor())->AppendAffectedConstaintFeature(m_feature, drawing);
+        ((SketchModelExecutor*)m_feature->GetModel()->GetExecutor())->AppendAffectedEntityFeature(m_feature, drawing);
     }
 
-    void SetSketchGeometryVariableCommandLog::AppendRecheckRelationFeature(Drawing* drawing) {
+    void SetSketchEntityVariableCommandLog::AppendRecheckRelationFeature(Drawing* drawing) {
     }
 
 }

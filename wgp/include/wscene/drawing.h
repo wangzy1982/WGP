@@ -33,12 +33,8 @@ namespace wgp {
 
     class ReferenceFeatureSchema;
     class SketchFeatureSchema;
-    class SketchLine2dFeatureSchema;
-    class SketchPoint2dEqualConstraintFeatureSchema;
-    class SketchFixPoint2dConstraintFeatureSchema;
-    class SketchFixPoint2dPoint2dDistanceConstraintFeatureSchema;
-    class SketchFixLine2dLine2dAngleConstraintFeatureSchema;
-
+    class SketchEntityFeatureSchema;
+    
     class WGP_API Drawing {
     public:
         Drawing();
@@ -64,11 +60,7 @@ namespace wgp {
     public:
         ReferenceFeatureSchema* GetReferenceFeatureSchema();
         SketchFeatureSchema* GetSketchFeatureSchema();
-        SketchLine2dFeatureSchema* GetSketchLine2dFeatureSchema();
-        SketchPoint2dEqualConstraintFeatureSchema* GetSketchPoint2dEqualConstraintFeatureSchema();
-        SketchFixPoint2dConstraintFeatureSchema* GetSketchFixPoint2dConstraintFeatureSchema();
-        SketchFixPoint2dPoint2dDistanceConstraintFeatureSchema* GetSketchFixPoint2dPoint2dDistanceConstraintFeatureSchema();
-        SketchFixLine2dLine2dAngleConstraintFeatureSchema* GetSketchFixLine2dLine2dAngleConstraintFeatureSchema();
+        SketchEntityFeatureSchema* GetSketchEntityFeatureSchema();
     private:
         bool Calculate(const Array<Feature*>& affected_features);
         bool TopoSortAffectedFeatures(Feature* feature, int state, Array<Feature*>& sorted_features);
@@ -89,11 +81,7 @@ namespace wgp {
     private:
         ReferenceFeatureSchema* m_reference_feature_schema;
         SketchFeatureSchema* m_sketch_feature_schema;
-        SketchLine2dFeatureSchema* m_sketch_line2d_feature_schema;
-        SketchPoint2dEqualConstraintFeatureSchema* m_sketch_point2d_equal_constraint_feature_schema;
-        SketchFixPoint2dConstraintFeatureSchema* m_sketch_fix_point2d_constraint_feature_schema;
-        SketchFixPoint2dPoint2dDistanceConstraintFeatureSchema* m_sketch_fix_point2d_point2d_distance_constraint_feature_schema;
-        SketchFixLine2dLine2dAngleConstraintFeatureSchema* m_sketch_fix_line2d_line2d_angle_constraint_feature_schema;
+        SketchEntityFeatureSchema* m_sketch_entity_feature_schema;
     };
 
     class WGP_API DrawingObserver : public RefObject {
@@ -370,6 +358,8 @@ namespace wgp {
     public:
         StreamCommandLog* Write(Feature* value);
         StreamCommandLog* Read(Feature*& value);
+        StreamCommandLog* Write(void* value);
+        StreamCommandLog* Read(void*& value);
         StreamCommandLog* Write(double value);
         StreamCommandLog* Read(double& value);
         StreamCommandLog* Write(const Vector2d& value);

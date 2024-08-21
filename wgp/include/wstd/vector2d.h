@@ -21,6 +21,7 @@ namespace wgp {
         double Dot(const Vector2d& other) const;
         double Cross(const Vector2d& other) const;
         double Length() const;
+        double Angle() const;
         Vector2d Normalize() const;
         Vector2d Normalize(double& length) const;
     };
@@ -69,6 +70,18 @@ namespace wgp {
 
     inline double Vector2d::Length() const {
         return sqrt(this->Dot(*this));
+    }
+
+    inline double Vector2d::Angle() const {
+        double d = Length();
+        if (d < g_double_epsilon) {
+            return 0;
+        }
+        double angle = acos_safe(X / d);
+        if (Y < 0) {
+            angle = g_pi * 2 - angle;
+        }
+        return angle;
     }
 
     inline Vector2d Vector2d::Normalize() const {

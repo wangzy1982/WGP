@@ -10,6 +10,7 @@
 #include "wstd/solver.h"
 #include "wstd/vector2d.h"
 #include "wstd/type.h"
+#include <assert.h>
 
 namespace wgp {
 
@@ -53,33 +54,41 @@ namespace wgp {
 
     class SketchEquation;
 
-    class WGP_API SketchEquations : public RefObject {
+    class WGP_API SketchEntity : public RefObject {
     public:
-        SketchEquations(Sketch* owner);
-        virtual ~SketchEquations() {}
-        Sketch* GetOwner();
-        virtual bool IsStrategy() = 0;
+        TYPE_DEF_0(SketchEntity);
+    public:
+        SketchEntity(Sketch* owner);
+        virtual ~SketchEntity() {}
+        Sketch* GetOwner() const;
+        virtual int GetPriority() = 0;
+        virtual int GetVariableCount() = 0;
+        virtual Interval GetVariableDomain(int index) = 0;
+        virtual double GetCurrentVariable(int index) const = 0;
+        virtual void SetCurrentVariable(int index, double variable) = 0;
+        virtual SketchEquation* GetFirstRelatedEquation(int index) = 0;
+        virtual void SetFirstRelatedEquation(int index, SketchEquation* equation) = 0;
+        virtual int GetCurrentVariableIndex(int index) = 0;
+        virtual void SetCurrentVariableIndex(int index, int variable_index) = 0;
         virtual int GetEquationCount() = 0;
         virtual SketchEquation* GetEquation(int index) = 0;
     protected:
         Sketch* m_owner;
     };
 
-    class SketchVariableEntity;
-
     class WGP_API SketchEquation {
     public:
         SketchEquation();
-        void SetOwner(SketchEquations* owner);
-        SketchEquations* GetOwner();
+        void SetOwner(SketchEntity* owner);
+        SketchEntity* GetOwner() const;
         double GetCurrentValue(int index);
         virtual int GetVariableCount() = 0;
-        virtual SketchVariableEntity* GetVariableEntity(int index) = 0;
+        virtual SketchEntity* GetVariableEntity(int index) = 0;
         virtual int GetEntityVariableIndex(int index) = 0;
-        virtual SketchEquation* GetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index) = 0;
-        virtual void SetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation) = 0;
-        virtual SketchEquation* GetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index) = 0;
-        virtual void SetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation) = 0;
+        virtual SketchEquation* GetNextRelatedEquation(SketchEntity* variable_entity, int entity_variable_index) = 0;
+        virtual void SetNextRelatedEquation(SketchEntity* variable_entity, int entity_variable_index, SketchEquation* equation) = 0;
+        virtual SketchEquation* GetPrevRelatedEquation(SketchEntity* variable_entity, int entity_variable_index) = 0;
+        virtual void SetPrevRelatedEquation(SketchEntity* variable_entity, int entity_variable_index, SketchEquation* equation) = 0;
         virtual double GetValueEpsilon(const SketchVector& variable) = 0;
         virtual bool CheckCurrent() = 0;
         virtual void CalculateValue(const SketchVector& variable, SketchVector& value) = 0;
@@ -87,307 +96,367 @@ namespace wgp {
     protected:
         friend class Sketch;
         friend class SketchSolver;
-        SketchEquations* m_owner;
+        SketchEntity* m_owner;
         int m_current_equation_index;
     };
 
-    class WGP_API SketchVariableEntity : public SketchEquations {
-    public:
-        SketchVariableEntity(Sketch* owner);
-        virtual int GetVariableCount() = 0;
-        virtual Interval GetVariableDomain(int index) = 0;
-        virtual double GetCurrentVariable(int index) = 0;
-        virtual void SetCurrentVariable(int index, double variable) = 0;
-        virtual SketchEquation* GetFirstRelatedEquation(int index) = 0;
-        virtual void SetFirstRelatedEquation(int index, SketchEquation* equation) = 0;
-        virtual int GetCurrentVariableIndex(int index) = 0;
-        virtual void SetCurrentVariableIndex(int index, int variable_index) = 0;
-    };
-
-    class WGP_API SketchGeometry : public SketchVariableEntity {
-    public:
-        TYPE_DEF_0(SketchGeometry);
-    public:
-        SketchGeometry(Sketch* owner);
-        virtual bool IsStrategy() { return false; }
-    };
-
-    class WGP_API SketchConstraint : public SketchEquations {
-    public:
-        TYPE_DEF_0(SketchConstraint);
-    public:
-        SketchConstraint(Sketch* owner);
-        virtual bool IsStrategy() { return false; }
-    };
-
-    class WGP_API SketchAdditive {
-    public:
-        SketchAdditive(SketchEquation* equation, double v);
-        virtual ~SketchAdditive();
-        double GetCurrentVariable();
-        void SetCurrentVariable(double variable);
-        SketchEquation* GetFirstRelatedEquation();
-        void SetFirstRelatedEquation(SketchEquation* equation);
-        int GetCurrentVariableIndex();
-        void SetCurrentVariableIndex(int variable_index);
-    public:
-        SketchEquation* GetEquation();
-    protected:
-        SketchEquation* m_equation;
-        double m_variable;
-        SketchEquation* m_first_related_equation;
-        int m_current_variable_index;
-    };
-
-    class WGP_API SketchStrategy : public SketchVariableEntity {
-    public:
-        SketchStrategy(Sketch* owner);
-        virtual ~SketchStrategy();
-        virtual bool IsStrategy() { return true; }
-        SketchStrategy* SetAdditive(SketchAdditive* additive);
-        virtual int GetVariableCount();
-        virtual Interval GetVariableDomain(int index);
-        virtual double GetCurrentVariable(int index);
-        virtual void SetCurrentVariable(int index, double variable);
-        virtual SketchEquation* GetFirstRelatedEquation(int index);
-        virtual void SetFirstRelatedEquation(int index, SketchEquation* equation);
-        virtual int GetCurrentVariableIndex(int index);
-        virtual void SetCurrentVariableIndex(int index, int variable_index);
-        virtual int GetEquationCount();
-        virtual SketchEquation* GetEquation(int index);
-    public:
-        double GetVariablePriority();
-        void SetVariablePriority(double priority);
-    protected:
-        SketchAdditive* m_additive;
-        double m_variable_priority;
-    };
-
-    class WGP_API SketchInequalityConstraint : public SketchVariableEntity {
-    public:
-        SketchInequalityConstraint(Sketch* owner);
-        virtual ~SketchInequalityConstraint();
-        virtual bool IsStrategy() { return false; }
-        SketchInequalityConstraint* SetAdditive(SketchAdditive* additive);
-        SketchInequalityConstraint* SetDomain(const Interval& domain);
-        virtual int GetVariableCount();
-        virtual Interval GetVariableDomain(int index);
-        virtual double GetCurrentVariable(int index);
-        virtual void SetCurrentVariable(int index, double variable);
-        virtual SketchEquation* GetFirstRelatedEquation(int index);
-        virtual void SetFirstRelatedEquation(int index, SketchEquation* equation);
-        virtual int GetCurrentVariableIndex(int index);
-        virtual void SetCurrentVariableIndex(int index, int variable_index);
-        virtual int GetEquationCount();
-        virtual SketchEquation* GetEquation(int index);
-    protected:
-        SketchAdditive* m_additive;
-        Interval m_domain;
-    };
-
     struct WGP_API SketchEntityVariable {
-        SketchVariableEntity* Entity;
+        SketchEntity* Entity;
         int Index;
         double CurrentValue;
     };
-
-    const double g_default_sketch_strategy_priority = 5000000;
 
     class WGP_API SketchAction {
     public:
         SketchAction();
         virtual ~SketchAction();
-        void AddConstraint(SketchConstraint* constraint);
-        int GetConstraintCount();
-        SketchConstraint* GetConstraint(int index);
-        void AddStrategy(SketchStrategy* strategy);
-        int GetStrategyCount();
-        SketchStrategy* GetStrategy(int index);
+        void AddEntity(SketchEntity* entity);
+        int GetEntityCount();
+        SketchEntity* GetEntity(int index);
     private:
-        Array<SketchConstraint*> m_constraints;
-        Array<SketchStrategy*> m_strategis;
+        Array<SketchEntity*> m_entities;
     };
 
     class WGP_API Sketch : public RefObject {
     public:
-        Sketch(double sketch_size);
+        Sketch(double sketch_radius, double distance_epsilon);
         virtual ~Sketch();
-        double GetSketchSize();
+        double GetSketchRadius();
+        double GetDistanceEpsilon();
         void Clear();
-        int GetGeometryCount() const;
-        SketchGeometry* GetGeometry(int index) const;
-        void AddGeometry(SketchGeometry* geometry, bool solve, Array<SketchEntityVariable>& actived_variables);
-        void RemoveGeometry(int index);
-        void RemoveGeometry(SketchGeometry* geometry);
-        int GetConstraintCount() const;
-        SketchConstraint* GetConstraint(int index) const;
-        bool AddConstraint(SketchConstraint* constraint, bool solve, SketchAction* action, Array<SketchEntityVariable>& actived_variables);
-        void RemoveConstraint(int index);
-        void RemoveConstraint(SketchConstraint* constraint);
+        int GetEntityCount() const;
+        SketchEntity* GetEntity(int index) const;
+        bool AddEntity(SketchEntity* entity, SketchAction* action, Array<SketchEntityVariable>* actived_variables);
+        void RemoveEntity(int index);
+        void RemoveEntity(SketchEntity* entity);
     public:
-        bool Solve(SketchAction* action, Array<SketchEntityVariable>& actived_variables);
-    private:
+        bool SetVariables(SketchAction* action, Array<SketchEntityVariable>& actived_variables);
+    protected:
         void AddEquationRelation(SketchEquation* equation);
         void RemoveEquationRelation(SketchEquation* equation);
-    private:
+    protected:
         friend class SketchSolver;
-        double m_sketch_size;
-        Array<SketchGeometry*> m_geometries;
-        Array<SketchConstraint*> m_constraints;
+        double m_sketch_radius;
+        double m_distance_epsilon;
+        Array<SketchEntity*> m_entities;
     };
 
-    class WGP_API SketchEquation1V : public SketchEquation {
+    template<int variable_count, int equation_count>
+    class WGP_API SketchBaseEntity : public SketchEntity {
     public:
-        SketchEquation1V(SketchVariableEntity* entity, int variable_index, double epsilon);
-        virtual int GetVariableCount();
-        virtual SketchVariableEntity* GetVariableEntity(int index);
-        virtual int GetEntityVariableIndex(int index);
-        virtual SketchEquation* GetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index);
-        virtual void SetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation);
-        virtual SketchEquation* GetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index);
-        virtual void SetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation);
-        virtual double GetValueEpsilon(const SketchVector& variable);
+        SketchBaseEntity(Sketch* owner, int priority) : SketchEntity(owner), m_priority(priority) {
+        }
+
+        virtual ~SketchBaseEntity() {
+            for (int i = 0; i < equation_count; ++i) {
+                delete m_equations[i];
+            }
+        }
+
+        SketchBaseEntity* InitializeVariable(int index, const Interval& domain, double value) {
+            m_variable_domains[index] = domain;
+            m_variable[index] = value;
+            m_first_related_equations[index] = nullptr;
+            m_current_variable_indices[index] = -1;
+            return this;
+        }
+
+        SketchBaseEntity* InitializeVariable(int index, double radius, double value) {
+            assert(radius >= -g_double_epsilon);
+            m_variable_domains[index] = Interval(radius, -996);
+            m_variable[index] = value;
+            m_first_related_equations[index] = nullptr;
+            m_current_variable_indices[index] = -1;
+            return this;
+        }
+
+        SketchBaseEntity* InitializeEquation(int index, SketchEquation* equation) {
+            equation->SetOwner(this);
+            m_equations[index] = equation;
+            return this;
+        }
+
+        virtual int GetPriority() {
+            return m_priority;
+        }
+
+        virtual int GetVariableCount() {
+            return variable_count;
+        }
+
+        virtual Interval GetVariableDomain(int index) {
+            if (m_variable_domains[index].Max == -996 && m_variable_domains[index].Min >= -g_double_epsilon) {
+                return Interval(m_variable[index] - m_variable_domains[index].Min, m_variable[index] + m_variable_domains[index].Min);
+            }
+            return m_variable_domains[index];
+        }
+
+        virtual double GetCurrentVariable(int index) const {
+            return m_variable[index];
+        }
+
+        virtual void SetCurrentVariable(int index, double variable) {
+            m_variable[index] = variable;
+        }
+
+        virtual SketchEquation* GetFirstRelatedEquation(int index) {
+            return m_first_related_equations[index];
+        }
+
+        virtual void SetFirstRelatedEquation(int index, SketchEquation* equation) {
+            m_first_related_equations[index] = equation;
+        }
+
+        virtual int GetCurrentVariableIndex(int index) {
+            return m_current_variable_indices[index];
+        }
+
+        virtual void SetCurrentVariableIndex(int index, int variable_index) {
+            m_current_variable_indices[index] = variable_index;
+        }
+
+        virtual int GetEquationCount() {
+            return equation_count;
+        }
+
+        virtual SketchEquation* GetEquation(int index) {
+            return m_equations[index];
+        }
+    private:
+        int m_priority;
+        Interval m_variable_domains[variable_count];
+        double m_variable[variable_count];
+        SketchEquation* m_first_related_equations[variable_count];
+        int m_current_variable_indices[variable_count];
+        SketchEquation* m_equations[equation_count];
+    };
+
+    template<int variable_count>
+    class WGP_API SketchBaseEntity<variable_count, 0> : public SketchEntity {
+    public:
+        SketchBaseEntity(Sketch* owner, int priority) : SketchEntity(owner), m_priority(priority) {
+        }
+
+        virtual ~SketchBaseEntity() {
+        }
+
+        SketchBaseEntity* InitializeVariable(int index, const Interval& domain, double value, int priority) {
+            m_variable_domains[index] = domain;
+            m_variable[index] = value;
+            m_first_related_equations[index] = nullptr;
+            m_current_variable_indices[index] = -1;
+            return this;
+        }
+
+        SketchBaseEntity* InitializeVariable(int index, double radius, double value, int priority) {
+            assert(radius >= -g_double_epsilon);
+            m_variable_domains[index] = Interval(radius, -996);
+            m_variable[index] = value;
+            m_first_related_equations[index] = nullptr;
+            m_current_variable_indices[index] = -1;
+            return this;
+        }
+
+        SketchBaseEntity* InitializeEquation(int index, SketchEquation* equation) {
+            return this;
+        }
+
+        virtual int GetPriority() {
+            return m_priority;
+        }
+
+        virtual int GetVariableCount() {
+            return variable_count;
+        }
+
+        virtual Interval GetVariableDomain(int index) {
+            if (m_variable_domains[index].Max == -996 && m_variable_domains[index].Min >= -g_double_epsilon) {
+                return Interval(m_variable[index] - m_variable_domains[index].Min, m_variable[index] + m_variable_domains[index].Min);
+            }
+            return m_variable_domains[index];
+        }
+
+        virtual double GetCurrentVariable(int index) const {
+            return m_variable[index];
+        }
+
+        virtual void SetCurrentVariable(int index, double variable) {
+            m_variable[index] = variable;
+        }
+
+        virtual SketchEquation* GetFirstRelatedEquation(int index) {
+            return m_first_related_equations[index];
+        }
+
+        virtual void SetFirstRelatedEquation(int index, SketchEquation* equation) {
+            m_first_related_equations[index] = equation;
+        }
+
+        virtual int GetCurrentVariableIndex(int index) {
+            return m_current_variable_indices[index];
+        }
+
+        virtual void SetCurrentVariableIndex(int index, int variable_index) {
+            m_current_variable_indices[index] = variable_index;
+        }
+
+        virtual int GetEquationCount() {
+            return 0;
+        }
+
+        virtual SketchEquation* GetEquation(int index) {
+            return nullptr;
+        }
+    private:
+        int m_priority;
+        Interval m_variable_domains[variable_count];
+        double m_variable[variable_count];
+        SketchEquation* m_first_related_equations[variable_count];
+        int m_current_variable_indices[variable_count];
+    };
+
+    template<int equation_count>
+    class WGP_API SketchBaseEntity<0, equation_count> : public SketchEntity {
+    public:
+        SketchBaseEntity(Sketch* owner, int priority) : SketchEntity(owner), m_priority(priority) {
+        }
+
+        virtual ~SketchBaseEntity() {
+            for (int i = 0; i < equation_count; ++i) {
+                delete m_equations[i];
+            }
+        }
+
+        SketchBaseEntity* InitializeVariable(int index, const Interval& domain, double value, int priority) {
+            return this;
+        }
+
+        SketchBaseEntity* InitializeVariable(int index, double radius, double value, int priority) {
+            return this;
+        }
+
+        SketchBaseEntity* InitializeEquation(int index, SketchEquation* equation) {
+            equation->SetOwner(this);
+            m_equations[index] = equation;
+            return this;
+        }
+
+        virtual int GetPriority() {
+            return m_priority;
+        }
+
+        virtual int GetVariableCount() {
+            return 0;
+        }
+
+        virtual Interval GetVariableDomain(int index) {
+            return 0;
+        }
+
+        virtual double GetCurrentVariable(int index) const {
+            return 0;
+        }
+
+        virtual void SetCurrentVariable(int index, double variable) {
+        }
+
+        virtual SketchEquation* GetFirstRelatedEquation(int index) {
+            return nullptr;
+        }
+
+        virtual void SetFirstRelatedEquation(int index, SketchEquation* equation) {
+        }
+
+        virtual int GetCurrentVariableIndex(int index) {
+            return 0;
+        }
+
+        virtual void SetCurrentVariableIndex(int index, int variable_index) {
+        }
+
+        virtual int GetEquationCount() {
+            return equation_count;
+        }
+
+        virtual SketchEquation* GetEquation(int index) {
+            return m_equations[index];
+        }
+    private:
+        int m_priority;
+        SketchEquation* m_equations[equation_count];
+    };
+
+    template<int variable_count>
+    class WGP_API SketchBaseEquation : public SketchEquation {
+    public:
+        SketchBaseEquation(double epsilon) : m_epsilon(epsilon) {
+        }
+
+        SketchBaseEquation* InitializeVariable(int index, SketchEntity* variable_entity, int variable_index) {
+            m_variable_entities[index] = variable_entity;
+            m_variable_indices[index] = variable_index;
+            m_next_related_equations[index] = nullptr;
+            m_prev_related_equations[index] = nullptr;
+            return this;
+        }
+
+        virtual int GetVariableCount() {
+            return variable_count;
+        }
+
+        virtual SketchEntity* GetVariableEntity(int index) {
+            return m_variable_entities[index];
+        }
+
+        virtual int GetEntityVariableIndex(int index) {
+            return m_variable_indices[index];
+        }
+
+        virtual SketchEquation* GetNextRelatedEquation(SketchEntity* variable_entity, int entity_variable_index) {
+            for (int i = 0; i < variable_count; ++i) {
+                if (m_variable_entities[i] == variable_entity && m_variable_indices[i] == entity_variable_index) {
+                    return m_next_related_equations[i];
+                }
+            }
+            return nullptr;
+        }
+
+        virtual void SetNextRelatedEquation(SketchEntity* variable_entity, int entity_variable_index, SketchEquation* equation) {
+            for (int i = 0; i < variable_count; ++i) {
+                if (m_variable_entities[i] == variable_entity && m_variable_indices[i] == entity_variable_index) {
+                    m_next_related_equations[i] = equation;
+                    break;
+                }
+            }
+        }
+
+        virtual SketchEquation* GetPrevRelatedEquation(SketchEntity* variable_entity, int entity_variable_index) {
+            for (int i = 0; i < variable_count; ++i) {
+                if (m_variable_entities[i] == variable_entity && m_variable_indices[i] == entity_variable_index) {
+                    return m_prev_related_equations[i];
+                }
+            }
+            return nullptr;
+        }
+
+        virtual void SetPrevRelatedEquation(SketchEntity* variable_entity, int entity_variable_index, SketchEquation* equation) {
+            for (int i = 0; i < variable_count; ++i) {
+                if (m_variable_entities[i] == variable_entity && m_variable_indices[i] == entity_variable_index) {
+                    m_prev_related_equations[i] = equation;
+                    break;
+                }
+            }
+        }
+
+        virtual double GetValueEpsilon(const SketchVector& variable) {
+            return m_epsilon;
+        }
     protected:
-        SketchVariableEntity* m_entity;
-        int m_variable_index;
-        SketchEquation* m_next_related_equation;
-        SketchEquation* m_prev_related_equation;
+        SketchEntity* m_variable_entities[variable_count];
+        int m_variable_indices[variable_count];
+        SketchEquation* m_next_related_equations[variable_count];
+        SketchEquation* m_prev_related_equations[variable_count];
         double m_epsilon;
-    };
-
-    class WGP_API SketchEquation2V : public SketchEquation {
-    public:
-        SketchEquation2V(SketchVariableEntity* entity0, int variable_index0,
-            SketchVariableEntity* entity1, int variable_index1, double epsilon);
-        virtual int GetVariableCount();
-        virtual SketchVariableEntity* GetVariableEntity(int index);
-        virtual int GetEntityVariableIndex(int index);
-        virtual SketchEquation* GetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index);
-        virtual void SetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation);
-        virtual SketchEquation* GetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index);
-        virtual void SetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation);
-        virtual double GetValueEpsilon(const SketchVector& variable);
-    protected:
-        SketchVariableEntity* m_entities[2];
-        int m_variable_indices[2];
-        SketchEquation* m_next_related_equations[2];
-        SketchEquation* m_prev_related_equations[2];
-        double m_epsilon;
-    };
-
-    class WGP_API SketchEquation4V : public SketchEquation {
-    public:
-        SketchEquation4V(SketchVariableEntity* entity0, int variable_index0,
-            SketchVariableEntity* entity1, int variable_index1,
-            SketchVariableEntity* entity2, int variable_index2,
-            SketchVariableEntity* entity3, int variable_index3, double epsilon);
-        virtual int GetVariableCount();
-        virtual SketchVariableEntity* GetVariableEntity(int index);
-        virtual int GetEntityVariableIndex(int index);
-        virtual SketchEquation* GetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index);
-        virtual void SetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation);
-        virtual SketchEquation* GetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index);
-        virtual void SetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation);
-        virtual double GetValueEpsilon(const SketchVector& variable);
-    protected:
-        SketchVariableEntity* m_entities[4];
-        int m_variable_indices[4];
-        SketchEquation* m_next_related_equations[4];
-        SketchEquation* m_prev_related_equations[4];
-        double m_epsilon;
-    };
-
-    class WGP_API SketchEquation5V : public SketchEquation {
-    public:
-        SketchEquation5V(SketchVariableEntity* entity0, int variable_index0,
-            SketchVariableEntity* entity1, int variable_index1, 
-            SketchVariableEntity* entity2, int variable_index2, 
-            SketchVariableEntity* entity3, int variable_index3, 
-            SketchVariableEntity* entity4, int variable_index4, double epsilon);
-        virtual int GetVariableCount();
-        virtual SketchVariableEntity* GetVariableEntity(int index);
-        virtual int GetEntityVariableIndex(int index);
-        virtual SketchEquation* GetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index);
-        virtual void SetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation);
-        virtual SketchEquation* GetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index);
-        virtual void SetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation);
-        virtual double GetValueEpsilon(const SketchVector& variable);
-    protected:
-        SketchVariableEntity* m_entities[5];
-        int m_variable_indices[5];
-        SketchEquation* m_next_related_equations[5];
-        SketchEquation* m_prev_related_equations[5];
-        double m_epsilon;
-    };
-
-    class WGP_API SketchEquation8V : public SketchEquation {
-    public:
-        SketchEquation8V(SketchVariableEntity* entity0, int variable_index0,
-            SketchVariableEntity* entity1, int variable_index1,
-            SketchVariableEntity* entity2, int variable_index2,
-            SketchVariableEntity* entity3, int variable_index3,
-            SketchVariableEntity* entity4, int variable_index4,
-            SketchVariableEntity* entity5, int variable_index5,
-            SketchVariableEntity* entity6, int variable_index6,
-            SketchVariableEntity* entity7, int variable_index7, double epsilon);
-        virtual int GetVariableCount();
-        virtual SketchVariableEntity* GetVariableEntity(int index);
-        virtual int GetEntityVariableIndex(int index);
-        virtual SketchEquation* GetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index);
-        virtual void SetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation);
-        virtual SketchEquation* GetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index);
-        virtual void SetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation);
-        virtual double GetValueEpsilon(const SketchVector& variable);
-    protected:
-        SketchVariableEntity* m_entities[8];
-        int m_variable_indices[8];
-        SketchEquation* m_next_related_equations[8];
-        SketchEquation* m_prev_related_equations[8];
-        double m_epsilon;
-    };
-
-    class WGP_API SketchEquation9V : public SketchEquation {
-    public:
-        SketchEquation9V(SketchVariableEntity* entity0, int variable_index0,
-            SketchVariableEntity* entity1, int variable_index1,
-            SketchVariableEntity* entity2, int variable_index2,
-            SketchVariableEntity* entity3, int variable_index3,
-            SketchVariableEntity* entity4, int variable_index4,
-            SketchVariableEntity* entity5, int variable_index5,
-            SketchVariableEntity* entity6, int variable_index6,
-            SketchVariableEntity* entity7, int variable_index7, 
-            SketchVariableEntity* entity8, int variable_index8, double epsilon);
-        virtual int GetVariableCount();
-        virtual SketchVariableEntity* GetVariableEntity(int index);
-        virtual int GetEntityVariableIndex(int index);
-        virtual SketchEquation* GetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index);
-        virtual void SetNextRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation);
-        virtual SketchEquation* GetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index);
-        virtual void SetPrevRelatedEquation(SketchVariableEntity* entity, int entity_variable_index, SketchEquation* equation);
-        virtual double GetValueEpsilon(const SketchVector& variable);
-    protected:
-        SketchVariableEntity* m_entities[9];
-        int m_variable_indices[9];
-        SketchEquation* m_next_related_equations[9];
-        SketchEquation* m_prev_related_equations[9];
-        double m_epsilon;
-    };
-
-    class WGP_API SketchGeometry4V : public SketchGeometry {
-    public:
-        SketchGeometry4V(Sketch* owner, double v0, double v1, double v2, double v3);
-        virtual int GetVariableCount();
-        virtual Interval GetVariableDomain(int index);
-        virtual double GetCurrentVariable(int index);
-        virtual void SetCurrentVariable(int index, double variable);
-        virtual SketchEquation* GetFirstRelatedEquation(int index);
-        virtual void SetFirstRelatedEquation(int index, SketchEquation* equation);
-        virtual int GetCurrentVariableIndex(int index);
-        virtual void SetCurrentVariableIndex(int index, int variable_index);
-    protected:
-        double m_variable[4];
-        SketchEquation* m_first_related_equations[4];
-        int m_current_variable_indices[4];
     };
 
 #ifdef WGP_CUSTOM
@@ -437,15 +506,15 @@ namespace wgp {
         bool PreIterate(SketchVariable* variable, SolverIteratedResult& result, double& priority);
         bool CheckFinished(const Array<SolverHeapItem<SketchVariable>>& heap);
         Array<SketchEntityVariable>* GetCurrentVariables();
-        int GetCurrentAdditiveVariableCount();
+        bool IsStratety(int current_index);
     private:
         void DfsActived(SketchEquation* equation, Array<SketchEntityVariable>& actived_variables);
         void DfsCurrent(SketchEquation* equation);
+        double CalculatePriority(const SketchVariable& variable);
     private:
         Sketch* m_sketch;
         Array<SketchEntityVariable> m_current_variables;
         Array<SketchEquation*> m_current_equations;
-        int m_current_strategy_variable_count;
     };
 #endif
 

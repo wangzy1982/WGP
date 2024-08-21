@@ -135,38 +135,21 @@ namespace wgp {
         DirectSetAsQuaternionFunc m_direct_set_func;
     };
 
-    typedef SketchGeometry* (*GetAsSketchGeometryFunc)(Feature* feature, FeatureFieldSchema* field_schema);
-    typedef void (*DirectSetAsSketchGeometryFunc)(Feature* feature, FeatureFieldSchema* field_schema, SketchGeometry* value);
+    typedef SketchEntity* (*GetAsSketchEntityFunc)(Feature* feature, FeatureFieldSchema* field_schema);
+    typedef void (*DirectSetAsSketchEntityFunc)(Feature* feature, FeatureFieldSchema* field_schema, SketchEntity* value);
 
-    class WGP_API SketchGeometryFeatureFieldSchema : public FeatureFieldSchema {
+    class WGP_API SketchEntityFeatureFieldSchema : public FeatureFieldSchema {
     public:
-        TYPE_DEF_1(SketchGeometryFeatureFieldSchema);
+        TYPE_DEF_1(SketchEntityFeatureFieldSchema);
     public:
-        SketchGeometryFeatureFieldSchema(FeatureSchema* feature_schema, const String& name,
-            GetAsSketchGeometryFunc get_func, DirectSetAsSketchGeometryFunc direct_set_func);
-        SketchGeometry* GetAsSketchGeometry(Feature* feature);
-        friend class SetAsSketchGeometryCommandLog;
-        SetAsSketchGeometryCommandLog* NewSetCommandLog(Feature* feature, SketchGeometry* value);
+        SketchEntityFeatureFieldSchema(FeatureSchema* feature_schema, const String& name,
+            GetAsSketchEntityFunc get_func, DirectSetAsSketchEntityFunc direct_set_func);
+        SketchEntity* GetAsSketchEntity(Feature* feature);
+        friend class SetAsSketchEntityCommandLog;
+        SetAsSketchEntityCommandLog* NewSetCommandLog(Feature* feature, SketchEntity* value);
     private:
-        GetAsSketchGeometryFunc m_get_func;
-        DirectSetAsSketchGeometryFunc m_direct_set_func;
-    };
-
-    typedef SketchConstraint* (*GetAsSketchConstraintFunc)(Feature* feature, FeatureFieldSchema* field_schema);
-    typedef void (*DirectSetAsSketchConstraintFunc)(Feature* feature, FeatureFieldSchema* field_schema, SketchConstraint* value);
-
-    class WGP_API SketchConstraintFeatureFieldSchema : public FeatureFieldSchema {
-    public:
-        TYPE_DEF_1(SketchConstraintFeatureFieldSchema);
-    public:
-        SketchConstraintFeatureFieldSchema(FeatureSchema* feature_schema, const String& name,
-            GetAsSketchConstraintFunc get_func, DirectSetAsSketchConstraintFunc direct_set_func);
-        SketchConstraint* GetAsSketchConstraint(Feature* feature);
-        friend class SetAsSketchConstraintCommandLog;
-        SetAsSketchConstraintCommandLog* NewSetCommandLog(Feature* feature, SketchConstraint* value);
-    private:
-        GetAsSketchConstraintFunc m_get_func;
-        DirectSetAsSketchConstraintFunc m_direct_set_func;
+        GetAsSketchEntityFunc m_get_func;
+        DirectSetAsSketchEntityFunc m_direct_set_func;
     };
 
     typedef Sketch* (*GetAsSketchFunc)(Feature* feature, FeatureFieldSchema* field_schema);

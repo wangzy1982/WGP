@@ -9,13 +9,13 @@
 
 namespace wgp {
 
-    class WGP_API SketchLine2d : public SketchGeometry4V {
+    class WGP_API SketchLine2d : public SketchBaseEntity<4, 0> {
     public:
         TYPE_DEF_1(SketchLine2d);
     public:
         SketchLine2d(Sketch* owner, const Vector2d& start_point, const Vector2d& end_point);
-        virtual int GetEquationCount();
-        virtual SketchEquation* GetEquation(int index);
+        Vector2d GetStartPoint() const;
+        Vector2d GetEndPoint() const;
     };
 
 }

@@ -19,11 +19,7 @@ namespace wgp {
         m_next_id(1),
         m_reference_feature_schema(nullptr),
         m_sketch_feature_schema(nullptr),
-        m_sketch_line2d_feature_schema(nullptr),
-        m_sketch_point2d_equal_constraint_feature_schema(nullptr),
-        m_sketch_fix_point2d_constraint_feature_schema(nullptr),
-        m_sketch_fix_point2d_point2d_distance_constraint_feature_schema(nullptr),
-        m_sketch_fix_line2d_line2d_angle_constraint_feature_schema(nullptr) {
+        m_sketch_entity_feature_schema(nullptr) {
         m_current_group = new CommandLogGroup();
         m_calculating_count = 0;
     }
@@ -317,48 +313,12 @@ namespace wgp {
         return m_sketch_feature_schema;
     }
 
-    SketchLine2dFeatureSchema* Drawing::GetSketchLine2dFeatureSchema() {
-        if (!m_sketch_line2d_feature_schema) {
-            m_sketch_line2d_feature_schema = new SketchLine2dFeatureSchema(this, StringResource("SketchLine2d"));
-            m_feature_schemas.Append(m_sketch_line2d_feature_schema);
+    SketchEntityFeatureSchema* Drawing::GetSketchEntityFeatureSchema() {
+        if (!m_sketch_entity_feature_schema) {
+            m_sketch_entity_feature_schema = new SketchEntityFeatureSchema(this, StringResource("SketchEntity"));
+            m_feature_schemas.Append(m_sketch_entity_feature_schema);
         }
-        return m_sketch_line2d_feature_schema;
-    }
-
-    SketchPoint2dEqualConstraintFeatureSchema* Drawing::GetSketchPoint2dEqualConstraintFeatureSchema() {
-        if (!m_sketch_point2d_equal_constraint_feature_schema) {
-            m_sketch_point2d_equal_constraint_feature_schema = new SketchPoint2dEqualConstraintFeatureSchema(
-                this, StringResource("SketchPoint2dEqualConstraint"));
-            m_feature_schemas.Append(m_sketch_point2d_equal_constraint_feature_schema);
-        }
-        return m_sketch_point2d_equal_constraint_feature_schema;
-    }
-
-    SketchFixPoint2dConstraintFeatureSchema* Drawing::GetSketchFixPoint2dConstraintFeatureSchema() {
-        if (!m_sketch_fix_point2d_constraint_feature_schema) {
-            m_sketch_fix_point2d_constraint_feature_schema = new SketchFixPoint2dConstraintFeatureSchema(
-                this, StringResource("SketchFixPoint2dConstraint"));
-            m_feature_schemas.Append(m_sketch_fix_point2d_constraint_feature_schema);
-        }
-        return m_sketch_fix_point2d_constraint_feature_schema;
-    }
-
-    SketchFixPoint2dPoint2dDistanceConstraintFeatureSchema* Drawing::GetSketchFixPoint2dPoint2dDistanceConstraintFeatureSchema() {
-        if (!m_sketch_fix_point2d_point2d_distance_constraint_feature_schema) {
-            m_sketch_fix_point2d_point2d_distance_constraint_feature_schema = new SketchFixPoint2dPoint2dDistanceConstraintFeatureSchema(
-                this, StringResource("SketchFixPoint2dPoint2dDistanceConstraint"));
-            m_feature_schemas.Append(m_sketch_fix_point2d_point2d_distance_constraint_feature_schema);
-        }
-        return m_sketch_fix_point2d_point2d_distance_constraint_feature_schema;
-    }
-
-    SketchFixLine2dLine2dAngleConstraintFeatureSchema* Drawing::GetSketchFixLine2dLine2dAngleConstraintFeatureSchema() {
-        if (!m_sketch_fix_line2d_line2d_angle_constraint_feature_schema) {
-            m_sketch_fix_line2d_line2d_angle_constraint_feature_schema = new SketchFixLine2dLine2dAngleConstraintFeatureSchema(
-                this, StringResource("SketchFixLine2dLine2dAngleConstraint"));
-            m_feature_schemas.Append(m_sketch_fix_line2d_line2d_angle_constraint_feature_schema);
-        }
-        return m_sketch_fix_line2d_line2d_angle_constraint_feature_schema;
+        return m_sketch_entity_feature_schema;
     }
 
     ModelEditCommand::ModelEditCommand() : m_log(nullptr) {
@@ -1165,6 +1125,28 @@ namespace wgp {
             throw "Out of memory";
         }
         value = *(Feature**)(m_data + m_current_offset);
+        m_current_offset = new_offset;
+        return this;
+    }
+
+    StreamCommandLog* StreamCommandLog::Write(void* value) {
+        m_size = m_current_offset;
+        int new_size = m_size + sizeof(void*);
+        if (new_size > m_data_capacity) {
+            throw "Out of memory";
+        }
+        *(void**)(m_data + m_size) = value;
+        m_size = new_size;
+        m_current_offset = m_size;
+        return this;
+    }
+
+    StreamCommandLog* StreamCommandLog::Read(void*& value) {
+        int new_offset = m_current_offset + sizeof(void*);
+        if (new_offset > m_size) {
+            throw "Out of memory";
+        }
+        value = *(void**)(m_data + m_current_offset);
         m_current_offset = new_offset;
         return this;
     }

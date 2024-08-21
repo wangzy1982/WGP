@@ -14,7 +14,7 @@ namespace wcad {
     }
 
     wgp::Vector2d Point2dEqualConstraint::GetPoint() const {
-        wgp::SketchPoint2dEqualConstraint* constraint = (wgp::SketchPoint2dEqualConstraint*)((wgp::SketchPoint2dEqualConstraintFeature*)GetGeometry())->GetConstraint();
+        wgp::SketchPoint2dEqualConstraint* constraint = (wgp::SketchPoint2dEqualConstraint*)((wgp::SketchEntityFeature*)GetGeometry())->GetEntity();
         return wgp::Vector2d(constraint->GetEquation(0)->GetCurrentValue(0), constraint->GetEquation(1)->GetCurrentValue(0));
     }
 

@@ -14,19 +14,23 @@ namespace wcad {
     }
 
     wgp::Vector2d Line2d::GetStartPoint() const {
-        return ((wgp::SketchLine2dFeature*)GetGeometry())->GetStartPoint();
+        return ((wgp::SketchLine2d*)((wgp::SketchEntityFeature*)GetGeometry())->GetEntity())->GetStartPoint();
     }
 
     wgp::Vector2d Line2d::GetEndPoint() const {
-        return ((wgp::SketchLine2dFeature*)GetGeometry())->GetEndPoint();
+        return ((wgp::SketchLine2d*)((wgp::SketchEntityFeature*)GetGeometry())->GetEntity())->GetEndPoint();
     }
 
     bool Line2d::SetStartPoint(const wgp::Vector2d& point) const {
-        return wgp::SketchModelHelper::SetSketchLine2dStartPoint((wgp::SketchLine2dFeature*)GetGeometry(), point, cad_distance_epsilon);
+        wgp::SketchAction action;
+        wgp::SketchHelper::BuildSetLine2dStartPoint((wgp::SketchLine2d*)((wgp::SketchEntityFeature*)GetGeometry())->GetEntity(), point, action);
+        return wgp::SketchModelHelper::SetSketchVariables(GetModel(), &action);
     }
 
     bool Line2d::SetEndPoint(const wgp::Vector2d& point) const {
-        return wgp::SketchModelHelper::SetSketchLine2dEndPoint((wgp::SketchLine2dFeature*)GetGeometry(), point, cad_distance_epsilon);
+        wgp::SketchAction action;
+        wgp::SketchHelper::BuildSetLine2dEndPoint((wgp::SketchLine2d*)((wgp::SketchEntityFeature*)GetGeometry())->GetEntity(), point, action);
+        return wgp::SketchModelHelper::SetSketchVariables(GetModel(), &action);
     }
 
 }

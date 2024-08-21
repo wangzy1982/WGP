@@ -9,87 +9,81 @@
 
 namespace wgp {
 
-    class WGP_API SketchEqualEquation : public SketchEquation2V {
+    class WGP_API SketchEqualEquation : public SketchBaseEquation<2> {
     public:
-        SketchEqualEquation(SketchVariableEntity* entity0, int variable_index0,
-            SketchVariableEntity* entity1, int variable_index1, double epsilon);
+        SketchEqualEquation(SketchEntity* entity0, int variable_index0,
+            SketchEntity* entity1, int variable_index1, double epsilon);
         virtual bool CheckCurrent();
         virtual void CalculateValue(const SketchVector& variable, SketchVector& value);
         virtual void CalculatePartialDerivative(const SketchVector& variable, SketchMatrix& partial_derivative);
     };
 
-    class WGP_API SketchFixValueEquation : public SketchEquation1V {
+    class WGP_API SketchAddEquation : public SketchBaseEquation<3> {
     public:
-        SketchFixValueEquation(SketchVariableEntity* entity, int variable_index, double value, double epsilon);
+        SketchAddEquation(SketchEntity* entity0, int variable_index0,
+            SketchEntity* entity1, int variable_index1, 
+            SketchEntity* entity2, int variable_index2, double epsilon);
         virtual bool CheckCurrent();
         virtual void CalculateValue(const SketchVector& variable, SketchVector& value);
         virtual void CalculatePartialDerivative(const SketchVector& variable, SketchMatrix& partial_derivative);
-    protected:
-        double m_value;
     };
 
-    class WGP_API SketchPoint2dPoint2dDistanceEquation : public SketchEquation5V {
+    class WGP_API SketchMulEquation : public SketchBaseEquation<3> {
     public:
-        SketchPoint2dPoint2dDistanceEquation(
-            SketchVariableEntity* entity0, int x_variable_index0, int y_variable_index0,
-            SketchVariableEntity* entity1, int x_variable_index1, int y_variable_index1, 
-            SketchVariableEntity* distance_entity, int distance_variable_index, double epsilon);
+        SketchMulEquation(SketchEntity* entity0, int variable_index0,
+            SketchEntity* entity1, int variable_index1,
+            SketchEntity* entity2, int variable_index2, double epsilon);
+        virtual bool CheckCurrent();
+        virtual void CalculateValue(const SketchVector& variable, SketchVector& value);
+        virtual void CalculatePartialDerivative(const SketchVector& variable, SketchMatrix& partial_derivative);
+    };
+
+    class WGP_API SketchCosEquation : public SketchBaseEquation<2> {
+    public:
+        SketchCosEquation(SketchEntity* angle_entity, int angle_variable_index,
+            SketchEntity* result_entity, int result_variable_index, double epsilon);
+        virtual bool CheckCurrent();
+        virtual void CalculateValue(const SketchVector& variable, SketchVector& value);
+        virtual void CalculatePartialDerivative(const SketchVector& variable, SketchMatrix& partial_derivative);
+    };
+
+    class WGP_API SketchSinEquation : public SketchBaseEquation<2> {
+    public:
+        SketchSinEquation(SketchEntity* angle_entity, int angle_variable_index,
+            SketchEntity* result_entity, int result_variable_index, double epsilon);
+        virtual bool CheckCurrent();
+        virtual void CalculateValue(const SketchVector& variable, SketchVector& value);
+        virtual void CalculatePartialDerivative(const SketchVector& variable, SketchMatrix& partial_derivative);
+    };
+
+    class WGP_API SketchVector2dLengthEquation : public SketchBaseEquation<3> {
+    public:
+        SketchVector2dLengthEquation(SketchEntity* vector_entity, int x_variable_index, int y_variable_index,
+            SketchEntity* length_entity, int length_variable_index, double epsilon);
         virtual bool CheckCurrent();
         virtual void CalculateValue(const SketchVector& variable, SketchVector& value);
         virtual void CalculatePartialDerivative(const SketchVector& variable, SketchMatrix& partial_derivative);
         virtual double GetValueEpsilon(const SketchVector& variable);
     };
 
-    class WGP_API SketchFixPoint2dPoint2dDistanceEquation : public SketchEquation4V {
+    class WGP_API SketchVector2dDotEquation : public SketchBaseEquation<5> {
     public:
-        SketchFixPoint2dPoint2dDistanceEquation(
-            SketchVariableEntity* entity0, int x_variable_index0, int y_variable_index0,
-            SketchVariableEntity* entity1, int x_variable_index1, int y_variable_index1,
-            double distance, double epsilon);
+        SketchVector2dDotEquation(SketchEntity* vector_entity0, int x_variable_index0, int y_variable_index0,
+            SketchEntity* vector_entity1, int x_variable_index1, int y_variable_index1,
+            SketchEntity* result_entity, int result_variable_index, double epsilon);
         virtual bool CheckCurrent();
         virtual void CalculateValue(const SketchVector& variable, SketchVector& value);
         virtual void CalculatePartialDerivative(const SketchVector& variable, SketchMatrix& partial_derivative);
-        virtual double GetValueEpsilon(const SketchVector& variable);
-    protected:
-        double m_distance;
     };
 
-    //The angle from the x-axis to the line 
-    class WGP_API SketchLine2dAngleEquation : public SketchEquation5V {
+    class WGP_API SketchVector2dCrossEquation : public SketchBaseEquation<5> {
     public:
-        SketchLine2dAngleEquation(SketchVariableEntity* entity, 
-            int start_x_variable_index, int start_y_variable_index, int end_x_variable_index, int end_y_variable_index,
-            SketchVariableEntity* angle_entity, int angle_variable_index, double epsilon);
+        SketchVector2dCrossEquation(SketchEntity* vector_entity0, int x_variable_index0, int y_variable_index0,
+            SketchEntity* vector_entity1, int x_variable_index1, int y_variable_index1,
+            SketchEntity* result_entity, int result_variable_index, double epsilon);
         virtual bool CheckCurrent();
         virtual void CalculateValue(const SketchVector& variable, SketchVector& value);
         virtual void CalculatePartialDerivative(const SketchVector& variable, SketchMatrix& partial_derivative);
-        virtual double GetValueEpsilon(const SketchVector& variable);
-    };
-
-    class WGP_API SketchLine2dLine2dAngleEquation : public SketchEquation9V {
-    public:
-        SketchLine2dLine2dAngleEquation(
-            SketchVariableEntity* entity0, int start_x_variable_index0, int start_y_variable_index0, int end_x_variable_index0, int end_y_variable_index0,
-            SketchVariableEntity* entity1, int start_x_variable_index1, int start_y_variable_index1, int end_x_variable_index1, int end_y_variable_index1,
-            SketchVariableEntity* angle_entity, int angle_variable_index, double epsilon);
-        virtual bool CheckCurrent();
-        virtual void CalculateValue(const SketchVector& variable, SketchVector& value);
-        virtual void CalculatePartialDerivative(const SketchVector& variable, SketchMatrix& partial_derivative);
-        virtual double GetValueEpsilon(const SketchVector& variable);
-    };
-
-    class WGP_API SketchFixLine2dLine2dAngleEquation : public SketchEquation8V {
-    public:
-        SketchFixLine2dLine2dAngleEquation(
-            SketchVariableEntity* entity0, int start_x_variable_index0, int start_y_variable_index0, int end_x_variable_index0, int end_y_variable_index0,
-            SketchVariableEntity* entity1, int start_x_variable_index1, int start_y_variable_index1, int end_x_variable_index1, int end_y_variable_index1,
-            double angle, double epsilon);
-        virtual bool CheckCurrent();
-        virtual void CalculateValue(const SketchVector& variable, SketchVector& value);
-        virtual void CalculatePartialDerivative(const SketchVector& variable, SketchMatrix& partial_derivative);
-        virtual double GetValueEpsilon(const SketchVector& variable);
-    public:
-        double m_angle;
     };
 
 }

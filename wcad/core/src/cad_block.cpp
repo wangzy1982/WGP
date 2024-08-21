@@ -32,17 +32,30 @@ namespace wcad {
             geometry1, x_variable_index1, y_variable_index1, epsilon);
     }
 
+    Point2dPoint2dDistanceConstraint* Block::AddPoint2dPoint2dDistanceConstraint(
+        Layer* layer, const Color& color, const Transparent& transparent,
+        Linetype* linetype, LineWeight line_weight, double linetype_scale,
+        Entity* geometry0, int x_variable_index0, int y_variable_index0,
+        Entity* geometry1, int x_variable_index1, int y_variable_index1,
+        double distance, double epsilon) {
+        return AddPoint2dPoint2dDistanceConstraint(m_drawing->AllocId(), m_drawing->AllocId(), layer, color, transparent,
+            linetype, line_weight, linetype_scale, geometry0, x_variable_index0, y_variable_index0,
+            geometry1, x_variable_index1, y_variable_index1, distance, epsilon);
+    }
+
     Line2d* Block::AddLine2d(wgp::SceneId id, wgp::SceneId geometry_feature_id, Layer* layer, const Color& color,
         const Transparent& transparent, Linetype* linetype, LineWeight line_weight, double linetype_scale,
         const wgp::Vector2d& start_point, const wgp::Vector2d& end_point) {
         Drawing* drawing = (Drawing*)m_drawing;
         drawing->StartEdit();
-        Line2d* feature = new Line2d(this, id, drawing->GetEntityFeatureSchema());
-        if (!AddStandartEntity(feature, layer, color, transparent, linetype, line_weight, linetype_scale)) {
+        wgp::Ptr<Line2d> feature = new Line2d(this, id, drawing->GetEntityFeatureSchema());
+        if (!AddStandartEntity(feature.Get(), layer, color, transparent, linetype, line_weight, linetype_scale)) {
             drawing->AbortEdit();
             return nullptr;
         }
-        wgp::SketchLine2dFeature* geometry_feature = wgp::SketchModelHelper::AddSketchLine2d(this, geometry_feature_id, start_point, end_point);
+        wgp::SketchFeature* sketch_feature = wgp::SketchModelHelper::GetSketchFeature(this);
+        wgp::Ptr<wgp::SketchEntity> sketch_entity = wgp::SketchHelper::BuildLine2d(sketch_feature->GetSketch(), start_point, end_point);
+        wgp::SketchEntityFeature* geometry_feature = wgp::SketchModelHelper::AddSketchEntity(this, geometry_feature_id, sketch_entity.Get(), nullptr);
         if (!geometry_feature) {
             drawing->AbortEdit();
             return nullptr;
@@ -51,7 +64,7 @@ namespace wcad {
             drawing->AbortEdit();
             return nullptr;
         }
-        return drawing->FinishEdit() ? feature : nullptr;
+        return drawing->FinishEdit() ? feature.Get() : nullptr;
     }
 
     Point2dEqualConstraint* Block::AddPoint2dEqualConstraint(wgp::SceneId id, wgp::SceneId constraint_feature_id, Layer* layer, const Color& color,
@@ -60,14 +73,18 @@ namespace wcad {
         Entity* geometry1, int x_variable_index1, int y_variable_index1, double epsilon) {
         Drawing* drawing = (Drawing*)m_drawing;
         drawing->StartEdit();
-        Point2dEqualConstraint* feature = new Point2dEqualConstraint(this, id, drawing->GetEntityFeatureSchema());
-        if (!AddStandartEntity(feature, layer, color, transparent, linetype, line_weight, linetype_scale)) {
+        wgp::Ptr<Point2dEqualConstraint> feature = new Point2dEqualConstraint(this, id, drawing->GetEntityFeatureSchema());
+        if (!AddStandartEntity(feature.Get(), layer, color, transparent, linetype, line_weight, linetype_scale)) {
             drawing->AbortEdit();
             return nullptr;
         }
-        wgp::SketchPoint2dEqualConstraintFeature* constraint_feature = wgp::SketchModelHelper::AddSketchPoint2dEqualConstraint(
-            this, constraint_feature_id, (wgp::SketchGeometryFeature*)geometry0->GetGeometry(), x_variable_index0, y_variable_index0, 
-            (wgp::SketchGeometryFeature*)geometry1->GetGeometry(), x_variable_index1, y_variable_index1, epsilon);
+        wgp::SketchFeature* sketch_feature = wgp::SketchModelHelper::GetSketchFeature(this);
+        wgp::SketchAction action;
+        wgp::Ptr<wgp::SketchEntity> sketch_entity = wgp::SketchHelper::BuildPoint2dEqualConstraint(sketch_feature->GetSketch(), 
+            ((wgp::SketchEntityFeature*)geometry0->GetGeometry())->GetEntity(), x_variable_index0, y_variable_index0, 
+            ((wgp::SketchEntityFeature*)geometry1->GetGeometry())->GetEntity(), x_variable_index1, y_variable_index1, action);
+        wgp::SketchEntityFeature* constraint_feature = wgp::SketchModelHelper::AddSketchEntity(
+            this, constraint_feature_id, sketch_entity.Get(), &action);
         if (!constraint_feature) {
             drawing->AbortEdit();
             return nullptr;
@@ -76,7 +93,40 @@ namespace wcad {
             drawing->AbortEdit();
             return nullptr;
         }
-        return drawing->FinishEdit() ? feature : nullptr;
+        return drawing->FinishEdit() ? feature.Get() : nullptr;
+    }
+
+    Point2dPoint2dDistanceConstraint* Block::AddPoint2dPoint2dDistanceConstraint(
+        wgp::SceneId id, wgp::SceneId constraint_feature_id,
+        Layer* layer, const Color& color, const Transparent& transparent,
+        Linetype* linetype, LineWeight line_weight, double linetype_scale,
+        Entity* geometry0, int x_variable_index0, int y_variable_index0,
+        Entity* geometry1, int x_variable_index1, int y_variable_index1,
+        double distance, double epsilon) {
+        Drawing* drawing = (Drawing*)m_drawing;
+        drawing->StartEdit();
+        wgp::Ptr<Point2dPoint2dDistanceConstraint> feature = new Point2dPoint2dDistanceConstraint(this, id, drawing->GetEntityFeatureSchema());
+        if (!AddStandartEntity(feature.Get(), layer, color, transparent, linetype, line_weight, linetype_scale)) {
+            drawing->AbortEdit();
+            return nullptr;
+        }
+        wgp::SketchFeature* sketch_feature = wgp::SketchModelHelper::GetSketchFeature(this);
+        wgp::SketchAction action;
+        wgp::Ptr<wgp::SketchEntity> sketch_entity = wgp::SketchHelper::BuildPoint2dPoint2dDistanceConstraint(sketch_feature->GetSketch(),
+            ((wgp::SketchEntityFeature*)geometry0->GetGeometry())->GetEntity(), x_variable_index0, y_variable_index0,
+            ((wgp::SketchEntityFeature*)geometry1->GetGeometry())->GetEntity(), x_variable_index1, y_variable_index1,
+            distance, action);
+        wgp::SketchEntityFeature* constraint_feature = wgp::SketchModelHelper::AddSketchEntity(
+            this, constraint_feature_id, sketch_entity.Get(), &action);
+        if (!constraint_feature) {
+            drawing->AbortEdit();
+            return nullptr;
+        }
+        if (!feature->SetGeometry(constraint_feature)) {
+            drawing->AbortEdit();
+            return nullptr;
+        }
+        return drawing->FinishEdit() ? feature.Get() : nullptr;
     }
 
     bool Block::AddStandartEntity(Entity* entity, Layer* layer, const Color& color, const Transparent& transparent,

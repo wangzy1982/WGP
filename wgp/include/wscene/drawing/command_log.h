@@ -289,32 +289,18 @@ namespace wgp {
         Quaternion m_new_value;
     };
 
-    class WGP_API SetAsSketchGeometryCommandLog : public SetFieldCommandLog {
+    class WGP_API SetAsSketchEntityCommandLog : public SetFieldCommandLog {
     public:
-        TYPE_DEF_1(SetAsSketchGeometryCommandLog);
+        TYPE_DEF_1(SetAsSketchEntityCommandLog);
     public:
-        SetAsSketchGeometryCommandLog(Feature* feature, SketchGeometryFeatureFieldSchema* field_schema, 
-            SketchGeometry* old_value, SketchGeometry* new_value);
-        virtual ~SetAsSketchGeometryCommandLog();
+        SetAsSketchEntityCommandLog(Feature* feature, SketchEntityFeatureFieldSchema* field_schema, 
+            SketchEntity* old_value, SketchEntity* new_value);
+        virtual ~SetAsSketchEntityCommandLog();
         virtual void Undo();
         virtual void Redo();
     protected:
-        SketchGeometry* m_old_value;
-        SketchGeometry* m_new_value;
-    };
-
-    class WGP_API SetAsSketchConstraintCommandLog : public SetFieldCommandLog {
-    public:
-        TYPE_DEF_1(SetAsSketchConstraintCommandLog);
-    public:
-        SetAsSketchConstraintCommandLog(Feature* feature, SketchConstraintFeatureFieldSchema* field_schema,
-            SketchConstraint* old_value, SketchConstraint* new_value);
-        virtual ~SetAsSketchConstraintCommandLog();
-        virtual void Undo();
-        virtual void Redo();
-    protected:
-        SketchConstraint* m_old_value;
-        SketchConstraint* m_new_value;
+        SketchEntity* m_old_value;
+        SketchEntity* m_new_value;
     };
 
     class WGP_API SetAsSketchCommandLog : public SetFieldCommandLog {
@@ -345,22 +331,21 @@ namespace wgp {
         LineStipple* m_new_value;
     };
 
-    class SketchGeometryFeature;
+    class SketchEntityFeature;
 
-    class WGP_API SetSketchGeometryVariableCommandLog : public CommandLog {
+    class WGP_API SetSketchEntityVariableCommandLog : public CommandLog {
     public:
-        TYPE_DEF_1(SetSketchGeometryVariableCommandLog);
+        TYPE_DEF_1(SetSketchEntityVariableCommandLog);
     public:
-        SetSketchGeometryVariableCommandLog(SketchGeometryFeature* feature, SketchGeometryFeatureFieldSchema* field_schema,
-            int variable_index, double old_value, double new_value);
+        SetSketchEntityVariableCommandLog(SketchEntityFeature* feature, int variable_index, double old_value, double new_value);
+        virtual ~SetSketchEntityVariableCommandLog();
         virtual void Undo();
         virtual void Redo();
         virtual void AppendAffectedFeature(Array<Feature*>& affected_features);
         virtual void AppendAffectedFeature(Drawing* drawing);
         virtual void AppendRecheckRelationFeature(Drawing* drawing);
     protected:
-        SketchGeometryFeature* m_feature;
-        SketchGeometryFeatureFieldSchema* m_field_schema;
+        SketchEntityFeature* m_feature;
         int m_variable_index;
         double m_old_value;
         double m_new_value;
