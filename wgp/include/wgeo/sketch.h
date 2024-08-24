@@ -63,7 +63,7 @@ namespace wgp {
         Sketch* GetOwner() const;
         virtual int GetPriority() = 0;
         virtual int GetVariableCount() = 0;
-        virtual Interval GetVariableDomain(int index) = 0;
+        virtual Interval GetCurrentDomain(int index) = 0;
         virtual double GetCurrentVariable(int index) const = 0;
         virtual void SetCurrentVariable(int index, double variable) = 0;
         virtual SketchEquation* GetFirstRelatedEquation(int index) = 0;
@@ -119,9 +119,10 @@ namespace wgp {
 
     class WGP_API Sketch : public RefObject {
     public:
-        Sketch(double sketch_radius, double distance_epsilon);
+        Sketch(double unit_iterative_radius, double distance_iterative_radius, double distance_epsilon);
         virtual ~Sketch();
-        double GetSketchRadius();
+        double GetUnitIterativeRadius();
+        double GetDistanceIterativeRadius();
         double GetDistanceEpsilon();
         void Clear();
         int GetEntityCount() const;
@@ -136,7 +137,8 @@ namespace wgp {
         void RemoveEquationRelation(SketchEquation* equation);
     protected:
         friend class SketchSolver;
-        double m_sketch_radius;
+        double m_unit_iterative_radius;
+        double m_distance_iterative_radius;
         double m_distance_epsilon;
         Array<SketchEntity*> m_entities;
     };
@@ -153,17 +155,9 @@ namespace wgp {
             }
         }
 
-        SketchBaseEntity* InitializeVariable(int index, const Interval& domain, double value) {
+        SketchBaseEntity* InitializeVariable(int index, const Interval& domain, double iterative_radius, double value) {
             m_variable_domains[index] = domain;
-            m_variable[index] = value;
-            m_first_related_equations[index] = nullptr;
-            m_current_variable_indices[index] = -1;
-            return this;
-        }
-
-        SketchBaseEntity* InitializeVariable(int index, double radius, double value) {
-            assert(radius >= -g_double_epsilon);
-            m_variable_domains[index] = Interval(radius, -996);
+            m_variable_iterative_radius[index] = iterative_radius;
             m_variable[index] = value;
             m_first_related_equations[index] = nullptr;
             m_current_variable_indices[index] = -1;
@@ -184,11 +178,10 @@ namespace wgp {
             return variable_count;
         }
 
-        virtual Interval GetVariableDomain(int index) {
-            if (m_variable_domains[index].Max == -996 && m_variable_domains[index].Min >= -g_double_epsilon) {
-                return Interval(m_variable[index] - m_variable_domains[index].Min, m_variable[index] + m_variable_domains[index].Min);
-            }
-            return m_variable_domains[index];
+        virtual Interval GetCurrentDomain(int index) {
+            Interval current_domain = Interval(m_variable[index] - m_variable_iterative_radius[index], m_variable[index] + m_variable_iterative_radius[index]);
+            current_domain.Intersect(m_variable_domains[index]);
+            return current_domain;
         }
 
         virtual double GetCurrentVariable(int index) const {
@@ -225,6 +218,7 @@ namespace wgp {
     private:
         int m_priority;
         Interval m_variable_domains[variable_count];
+        double m_variable_iterative_radius[variable_count];
         double m_variable[variable_count];
         SketchEquation* m_first_related_equations[variable_count];
         int m_current_variable_indices[variable_count];
@@ -240,17 +234,9 @@ namespace wgp {
         virtual ~SketchBaseEntity() {
         }
 
-        SketchBaseEntity* InitializeVariable(int index, const Interval& domain, double value, int priority) {
+        SketchBaseEntity* InitializeVariable(int index, const Interval& domain, double iterative_radius, double value) {
             m_variable_domains[index] = domain;
-            m_variable[index] = value;
-            m_first_related_equations[index] = nullptr;
-            m_current_variable_indices[index] = -1;
-            return this;
-        }
-
-        SketchBaseEntity* InitializeVariable(int index, double radius, double value, int priority) {
-            assert(radius >= -g_double_epsilon);
-            m_variable_domains[index] = Interval(radius, -996);
+            m_variable_iterative_radius[index] = iterative_radius;
             m_variable[index] = value;
             m_first_related_equations[index] = nullptr;
             m_current_variable_indices[index] = -1;
@@ -269,11 +255,10 @@ namespace wgp {
             return variable_count;
         }
 
-        virtual Interval GetVariableDomain(int index) {
-            if (m_variable_domains[index].Max == -996 && m_variable_domains[index].Min >= -g_double_epsilon) {
-                return Interval(m_variable[index] - m_variable_domains[index].Min, m_variable[index] + m_variable_domains[index].Min);
-            }
-            return m_variable_domains[index];
+        virtual Interval GetCurrentDomain(int index) {
+            Interval current_domain = Interval(m_variable[index] - m_variable_iterative_radius[index], m_variable[index] + m_variable_iterative_radius[index]);
+            current_domain.Intersect(m_variable_domains[index]);
+            return current_domain;
         }
 
         virtual double GetCurrentVariable(int index) const {
@@ -310,6 +295,7 @@ namespace wgp {
     private:
         int m_priority;
         Interval m_variable_domains[variable_count];
+        double m_variable_iterative_radius[variable_count];
         double m_variable[variable_count];
         SketchEquation* m_first_related_equations[variable_count];
         int m_current_variable_indices[variable_count];
@@ -327,11 +313,7 @@ namespace wgp {
             }
         }
 
-        SketchBaseEntity* InitializeVariable(int index, const Interval& domain, double value, int priority) {
-            return this;
-        }
-
-        SketchBaseEntity* InitializeVariable(int index, double radius, double value, int priority) {
+        SketchBaseEntity* InitializeVariable(int index, const Interval& domain, double iterative_radius, double value) {
             return this;
         }
 
@@ -349,7 +331,7 @@ namespace wgp {
             return 0;
         }
 
-        virtual Interval GetVariableDomain(int index) {
+        virtual Interval GetCurrentDomain(int index) {
             return 0;
         }
 

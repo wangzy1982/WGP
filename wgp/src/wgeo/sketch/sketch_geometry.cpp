@@ -10,11 +10,11 @@ namespace wgp {
 
     SketchLine2d::SketchLine2d(Sketch* owner, const Vector2d& start_point, const Vector2d& end_point) :
         SketchBaseEntity<4, 0>(owner, 0) {
-        double sketch_radius = owner->GetSketchRadius();
-        InitializeVariable(0, sketch_radius, start_point.X, 0)->
-            InitializeVariable(1, sketch_radius, start_point.Y, 0)->
-            InitializeVariable(2, sketch_radius, end_point.X, 0)->
-            InitializeVariable(3, sketch_radius, end_point.Y, 0);
+        double distance_iterative_radius = owner->GetDistanceIterativeRadius();
+        InitializeVariable(0, Interval(-1E300, 1E300), distance_iterative_radius, start_point.X)->
+            InitializeVariable(1, Interval(-1E300, 1E300), distance_iterative_radius, start_point.Y)->
+            InitializeVariable(2, Interval(-1E300, 1E300), distance_iterative_radius, end_point.X)->
+            InitializeVariable(3, Interval(-1E300, 1E300), distance_iterative_radius, end_point.Y);
     }
 
     Vector2d SketchLine2d::GetStartPoint() const {

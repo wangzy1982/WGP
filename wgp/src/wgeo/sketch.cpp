@@ -158,8 +158,9 @@ namespace wgp {
         return m_entities.Get(index);
     }
 
-    Sketch::Sketch(double sketch_radius, double distance_epsilon) : 
-        m_sketch_radius(sketch_radius),
+    Sketch::Sketch(double unit_iterative_radius, double distance_iterative_radius, double distance_epsilon) :
+        m_unit_iterative_radius(unit_iterative_radius),
+        m_distance_iterative_radius(distance_iterative_radius),
         m_distance_epsilon(distance_epsilon) {
     }
 
@@ -167,8 +168,12 @@ namespace wgp {
         Clear();
     }
 
-    double Sketch::GetSketchRadius() {
-        return m_sketch_radius;
+    double Sketch::GetUnitIterativeRadius() {
+        return m_unit_iterative_radius;
+    }
+
+    double Sketch::GetDistanceIterativeRadius() {
+        return m_distance_iterative_radius;
     }
 
     double Sketch::GetDistanceEpsilon() {
@@ -211,14 +216,15 @@ namespace wgp {
     void Sketch::RemoveEntity(int index) {
         SketchEntity* entity = m_entities.Get(index);
         m_entities.Remove(index);
+        for (int i = 0; i < entity->GetEquationCount(); ++i) {
+            SketchEquation* equation = entity->GetEquation(i);
+            RemoveEquationRelation(equation);
+        }
         for (int i = 0; i < entity->GetVariableCount(); ++i) {
             while (true) {
                 SketchEquation* equation = entity->GetFirstRelatedEquation(i);
                 if (!equation) {
                     break;
-                }
-                if (equation->GetOwner() == entity) {
-                    continue;
                 }
                 for (int j = 0; j < m_entities.GetCount(); ++j) {
                     if (m_entities.Get(j) == equation->GetOwner()) {
@@ -227,10 +233,6 @@ namespace wgp {
                     }
                 }
             }
-        }
-        for (int i = 0; i < entity->GetEquationCount(); ++i) {
-            SketchEquation* equation = entity->GetEquation(i);
-            RemoveEquationRelation(equation);
         }
         entity->DecRef();
     }
@@ -457,7 +459,6 @@ namespace wgp {
         m_current_equations.Clear();
         bool success = true;
         if (actived_variables.GetCount() > 0) {
-            actived_variables.Sort(SketchEntityVariablePriorityLess());
             for (int i = 0; i < actived_variables.GetCount(); ++i) {
                 SketchEntityVariable* entity_variable = actived_variables.GetPointer(i);
                 entity_variable->Entity->SetCurrentVariableIndex(entity_variable->Index, -1);
@@ -474,17 +475,21 @@ namespace wgp {
                         }
                         equation2 = equation2->GetNextRelatedEquation(entity_variable->Entity, entity_variable->Index);
                     }
+                    m_current_variables.Sort(SketchEntityVariablePriorityLess());
+                    for (int i = 0; i < m_current_variables.GetCount(); ++i) {
+                        SketchEntityVariable* entity_variable = m_current_variables.GetPointer(i);
+                        entity_variable->Entity->SetCurrentVariableIndex(entity_variable->Index, i);
+                    }
                     SketchVariable initial_variable(m_current_variables.GetCount());
                     initial_variable.m_solver = this;
                     for (int i = 0; i < m_current_variables.GetCount(); ++i) {
                         SketchEntityVariable* entity_variable = m_current_variables.GetPointer(i);
-                        initial_variable.m_data.Set(i, entity_variable->Entity->GetVariableDomain(entity_variable->Index));
+                        initial_variable.m_data.Set(i, entity_variable->Entity->GetCurrentDomain(entity_variable->Index));
                         if (entity_variable->Entity->GetPriority() > 0) {
                             initial_variable.m_state[i] = 0;
                         }
                         else {
                             initial_variable.m_state[i] = 1;
-
                         }
                     }
                     initial_variable.m_calculated = false;

@@ -23,8 +23,8 @@ namespace wgp {
         const Vector2d& point, const Interval2d& point_domain) :
         SketchBaseEntity<2, 2>(owner, 0) {
         double epsilon = owner->GetDistanceEpsilon();
-        InitializeVariable(0, point_domain.X, point.X)->
-            InitializeVariable(1, point_domain.Y, point.Y);
+        InitializeVariable(0, point_domain.X, 0, point.X)->
+            InitializeVariable(1, point_domain.Y, 0, point.Y);
         InitializeEquation(0, new SketchEqualEquation(geometry, x_variable_index, this, 0, epsilon))->
             InitializeEquation(1, new SketchEqualEquation(geometry, y_variable_index, this, 1, epsilon));
     }
@@ -40,11 +40,11 @@ namespace wgp {
         SketchEntity* geometry1, int x_variable_index1, int y_variable_index1,
         double distance, const Interval& distance_domain) :
         SketchBaseEntity<3, 3>(owner, 0) {
-        double sketch_radius = owner->GetSketchRadius();
+        double distance_iterative_radius = owner->GetDistanceIterativeRadius();
         double epsilon = owner->GetDistanceEpsilon();
-        InitializeVariable(0, sketch_radius, 0)->
-            InitializeVariable(1, sketch_radius, 0)->
-            InitializeVariable(2, distance_domain, distance);
+        InitializeVariable(0, Interval(-1E300, 1E300), distance_iterative_radius, 0)->
+            InitializeVariable(1, Interval(-1E300, 1E300), distance_iterative_radius, 0)->
+            InitializeVariable(2, distance_domain, distance_iterative_radius, distance);
         InitializeEquation(0, new SketchAddEquation(geometry0, x_variable_index0, this, 0, geometry1, x_variable_index1, epsilon))->
             InitializeEquation(1, new SketchAddEquation(geometry0, y_variable_index0, this, 1, geometry1, y_variable_index1, epsilon))->
             InitializeEquation(2, new SketchVector2dLengthEquation(this, 0, 1, this, 2, epsilon));
@@ -57,21 +57,22 @@ namespace wgp {
         SketchEntity* geometry1, int start_x_variable_index1, int start_y_variable_index1, int end_x_variable_index1, int end_y_variable_index1,
         double angle, const Interval& angle_domain) :
         SketchBaseEntity<13, 14>(owner, 0) {
-        double sketch_radius = owner->GetSketchRadius();
+        double unit_iterative_radius = owner->GetUnitIterativeRadius();
+        double distance_iterative_radius = owner->GetDistanceIterativeRadius();
         double epsilon = owner->GetDistanceEpsilon();
-        InitializeVariable(0, sketch_radius, 0)->
-            InitializeVariable(1, sketch_radius, 0)->
-            InitializeVariable(2, sketch_radius, 0)->
-            InitializeVariable(3, sketch_radius, 0)->
-            InitializeVariable(4, Interval(0, sketch_radius), 0)->
-            InitializeVariable(5, Interval(0, sketch_radius), 0)->
-            InitializeVariable(6, Interval(-1, 1), 0)->
-            InitializeVariable(7, Interval(-1, 1), 0)->
-            InitializeVariable(8, Interval(-1, 1), 0)->
-            InitializeVariable(9, Interval(-1, 1), 0)->
-            InitializeVariable(10, angle_domain, angle)->
-            InitializeVariable(11, cos(angle_domain), cos(angle))->
-            InitializeVariable(12, sin(angle_domain), sin(angle));
+        InitializeVariable(0, Interval(-1E300, 1E300), distance_iterative_radius, 0)->
+            InitializeVariable(1, Interval(-1E300, 1E300), distance_iterative_radius, 0)->
+            InitializeVariable(2, Interval(-1E300, 1E300), distance_iterative_radius, 0)->
+            InitializeVariable(3, Interval(-1E300, 1E300), distance_iterative_radius, 0)->
+            InitializeVariable(4, Interval(0, 1E300), distance_iterative_radius, 0)->
+            InitializeVariable(5, Interval(0, 1E300), distance_iterative_radius, 0)->
+            InitializeVariable(6, Interval(-1, 1), unit_iterative_radius, 0)->
+            InitializeVariable(7, Interval(-1, 1), unit_iterative_radius, 0)->
+            InitializeVariable(8, Interval(-1, 1), unit_iterative_radius, 0)->
+            InitializeVariable(9, Interval(-1, 1), unit_iterative_radius, 0)->
+            InitializeVariable(10, angle_domain, unit_iterative_radius, angle)->
+            InitializeVariable(11, cos(angle_domain), unit_iterative_radius, cos(angle))->
+            InitializeVariable(12, sin(angle_domain), unit_iterative_radius, sin(angle));
         InitializeEquation(0, new SketchAddEquation(geometry0, start_x_variable_index0, this, 0, geometry0, end_x_variable_index0, epsilon))->
             InitializeEquation(1, new SketchAddEquation(geometry0, start_y_variable_index0, this, 1, geometry0, end_y_variable_index0, epsilon))->
             InitializeEquation(2, new SketchAddEquation(geometry1, start_x_variable_index1, this, 2, geometry1, end_x_variable_index1, epsilon))->

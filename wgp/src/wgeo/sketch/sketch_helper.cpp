@@ -18,8 +18,8 @@ namespace wgp {
         double y = geometry0->GetCurrentVariable(y_variable_index0);
         SketchBaseEntity<2, 2>* action_entity1 = new SketchBaseEntity<2, 2>(owner, 1);
         action_entity1->
-            InitializeVariable(0, Interval(x), x)->
-            InitializeVariable(1, Interval(y), y)->
+            InitializeVariable(0, Interval(x), 0, x)->
+            InitializeVariable(1, Interval(y), 0, y)->
             InitializeEquation(0, new SketchEqualEquation(geometry0, x_variable_index0, action_entity1, 0, owner->GetDistanceEpsilon()))->
             InitializeEquation(1, new SketchEqualEquation(geometry0, y_variable_index0, action_entity1, 1, owner->GetDistanceEpsilon()));
         action.AddEntity(action_entity1);
@@ -39,16 +39,16 @@ namespace wgp {
         double a = vt.Angle();
         double cosa, sina;
         sincos(a, &sina, &cosa);
-        double sketch_radius = owner->GetSketchRadius();
+        double distance_iterative_radius = owner->GetDistanceIterativeRadius();
         double distance_epsilon = owner->GetDistanceEpsilon();
         SketchBaseEntity<6, 4>* action_entity1 = new SketchBaseEntity<6, 4>(owner, 1);
         action_entity1->
-            InitializeVariable(0, sketch_radius, x1 - x0)->
-            InitializeVariable(1, sketch_radius, y1 - x0)->
-            InitializeVariable(2, Interval(cosa), cosa)->
-            InitializeVariable(3, Interval(sina), sina)->
-            InitializeVariable(4, Interval(0, sketch_radius), vt.Length())->
-            InitializeVariable(5, Interval(0), 0)->
+            InitializeVariable(0, Interval(-1E300, 1E300), distance_iterative_radius, x1 - x0)->
+            InitializeVariable(1, Interval(-1E300, 1E300), distance_iterative_radius, y1 - x0)->
+            InitializeVariable(2, Interval(cosa), 0, cosa)->
+            InitializeVariable(3, Interval(sina), 0, sina)->
+            InitializeVariable(4, Interval(0, 1E300), distance_iterative_radius, vt.Length())->
+            InitializeVariable(5, Interval(0), 0, 0)->
             InitializeEquation(0, new SketchAddEquation(action_entity1, 0, geometry0, x_variable_index0, geometry1, x_variable_index1, distance_epsilon))->
             InitializeEquation(1, new SketchAddEquation(action_entity1, 1, geometry0, y_variable_index0, geometry1, y_variable_index1, distance_epsilon))->
             InitializeEquation(2, new SketchVector2dDotEquation(action_entity1, 0, 1, action_entity1, 2, 3, action_entity1, 4, distance_epsilon))->
@@ -56,8 +56,8 @@ namespace wgp {
         action.AddEntity(action_entity1);
         SketchBaseEntity<2, 2>* action_entity2 = new SketchBaseEntity<2, 2>(owner, 2);
         action_entity2->
-            InitializeVariable(0, Interval(x0), x0)->
-            InitializeVariable(1, Interval(y0), y0)->
+            InitializeVariable(0, Interval(x0), 0, x0)->
+            InitializeVariable(1, Interval(y0), 0, y0)->
             InitializeEquation(0, new SketchEqualEquation(geometry0, x_variable_index0, action_entity2, 0, owner->GetDistanceEpsilon()))->
             InitializeEquation(1, new SketchEqualEquation(geometry0, y_variable_index0, action_entity2, 1, owner->GetDistanceEpsilon()));
         action.AddEntity(action_entity2);
@@ -72,15 +72,15 @@ namespace wgp {
         double distance_epsilon = owner->GetDistanceEpsilon();
         SketchBaseEntity<2, 2>* action_entity0 = new SketchBaseEntity<2, 2>(owner, 0);
         action_entity0->
-            InitializeVariable(0, Interval(point.X), point.X)->
-            InitializeVariable(1, Interval(point.Y), point.Y)->
+            InitializeVariable(0, Interval(point.X), 0, point.X)->
+            InitializeVariable(1, Interval(point.Y), 0, point.Y)->
             InitializeEquation(0, new SketchEqualEquation(line, 0, action_entity0, 0, distance_epsilon))->
             InitializeEquation(1, new SketchEqualEquation(line, 1, action_entity0, 1, distance_epsilon));
         action.AddEntity(action_entity0);
         SketchBaseEntity<2, 2>* action_entity1 = new SketchBaseEntity<2, 2>(owner, 1);
         action_entity1->
-            InitializeVariable(0, Interval(x1), x1)->
-            InitializeVariable(1, Interval(y1), y1)->
+            InitializeVariable(0, Interval(x1), 0, x1)->
+            InitializeVariable(1, Interval(y1), 0, y1)->
             InitializeEquation(0, new SketchEqualEquation(line, 2, action_entity1, 0, distance_epsilon))->
             InitializeEquation(1, new SketchEqualEquation(line, 3, action_entity1, 1, distance_epsilon));
         action.AddEntity(action_entity1);
@@ -93,15 +93,15 @@ namespace wgp {
         double distance_epsilon = owner->GetDistanceEpsilon();
         SketchBaseEntity<2, 2>* action_entity0 = new SketchBaseEntity<2, 2>(owner, 0);
         action_entity0->
-            InitializeVariable(0, Interval(point.X), point.X)->
-            InitializeVariable(1, Interval(point.Y), point.Y)->
+            InitializeVariable(0, Interval(point.X), 0, point.X)->
+            InitializeVariable(1, Interval(point.Y), 0, point.Y)->
             InitializeEquation(0, new SketchEqualEquation(line, 0, action_entity0, 0, distance_epsilon))->
             InitializeEquation(1, new SketchEqualEquation(line, 1, action_entity0, 1, distance_epsilon));
         action.AddEntity(action_entity0);
         SketchBaseEntity<2, 2>* action_entity1 = new SketchBaseEntity<2, 2>(owner, 1);
         action_entity1->
-            InitializeVariable(0, Interval(x0), x0)->
-            InitializeVariable(1, Interval(y0), y0)->
+            InitializeVariable(0, Interval(x0), 0, x0)->
+            InitializeVariable(1, Interval(y0), 0, y0)->
             InitializeEquation(0, new SketchEqualEquation(line, 0, action_entity1, 0, distance_epsilon))->
             InitializeEquation(1, new SketchEqualEquation(line, 1, action_entity1, 1, distance_epsilon));
         action.AddEntity(action_entity1);

@@ -27,7 +27,7 @@ namespace wgp {
 
     class WGP_API SketchFeature : public Feature {
     public:
-        SketchFeature(Model* model, SceneId id, FeatureSchema* feature_schema, double sketch_radius, double distance_epsilon);
+        SketchFeature(Model* model, SceneId id, FeatureSchema* feature_schema, double unit_iterative_radius, double distance_iterative_radius, double distance_epsilon);
         virtual ~SketchFeature();
         Sketch* GetSketch() const;
     protected:
@@ -86,7 +86,7 @@ namespace wgp {
 
     class WGP_API SketchModelHelper {
     public:
-        static bool InitializeSketchModel(Model* model, SceneId sketch_feature_id, double sketch_radius, double distance_epsilon);
+        static bool InitializeSketchModel(Model* model, SceneId sketch_feature_id, double unit_iterative_radius, double distance_iterative_radius, double distance_epsilon);
         static SketchFeature* GetSketchFeature(Model* model);
         static SketchEntityFeature* AddSketchEntity(Model* model, SceneId geometry_id, SketchEntity* entity, SketchAction* action);
         static bool SetSketchVariables(Model* model, SketchAction* action);

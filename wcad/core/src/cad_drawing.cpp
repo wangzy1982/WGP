@@ -204,7 +204,7 @@ namespace wcad {
             AbortEdit();
             return nullptr;
         }
-        if (!wgp::SketchModelHelper::InitializeSketchModel(block.Get(), sketch_feature_id, 1E5, cad_distance_epsilon)) {
+        if (!wgp::SketchModelHelper::InitializeSketchModel(block.Get(), sketch_feature_id, g_pi / 2, 200, cad_distance_epsilon)) {
             AbortEdit();
             return nullptr;
         }

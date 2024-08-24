@@ -29,9 +29,9 @@ namespace wgp {
         throw "Not Supported";
     }
 
-    SketchFeature::SketchFeature(Model* model, SceneId id, FeatureSchema* feature_schema, double sketch_radius, double distance_epsilon) :
+    SketchFeature::SketchFeature(Model* model, SceneId id, FeatureSchema* feature_schema, double unit_iterative_radius, double distance_iterative_radius, double distance_epsilon) :
         Feature(model, id, feature_schema, nullptr),
-        m_sketch(new Sketch(sketch_radius, distance_epsilon)) {
+        m_sketch(new Sketch(unit_iterative_radius, distance_iterative_radius, distance_epsilon)) {
         m_sketch->IncRef();
     }
 
@@ -264,12 +264,14 @@ namespace wgp {
         }
     }
 
-    bool SketchModelHelper::InitializeSketchModel(Model* model, SceneId sketch_feature_id, double sketch_radius, double distance_epsilon) {
+    bool SketchModelHelper::InitializeSketchModel(Model* model, SceneId sketch_feature_id, 
+        double unit_iterative_radius, double distance_iterative_radius, double distance_epsilon) {
         if (model->GetFeatureCount() > 0) {
             return false;
         }
         static String add_sketch_feature_prompt = StringResource("Add sketch feature");
-        Ptr<SketchFeature> sketch_feature = new SketchFeature(model, sketch_feature_id, model->GetDrawing()->GetSketchFeatureSchema(), sketch_radius, distance_epsilon);
+        Ptr<SketchFeature> sketch_feature = new SketchFeature(model, sketch_feature_id, model->GetDrawing()->GetSketchFeatureSchema(), 
+            unit_iterative_radius, distance_iterative_radius, distance_epsilon);
         return model->AddFeature(sketch_feature.Get(), &add_sketch_feature_prompt);
     }
 
