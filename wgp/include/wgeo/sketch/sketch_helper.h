@@ -23,20 +23,13 @@ namespace wgp {
             SketchEntity* geometry0, int x_variable_index0, int y_variable_index0,
             SketchEntity* geometry1, int x_variable_index1, int y_variable_index1,
             double distance, SketchAction& action);
+        static SketchLine2dLine2dAngleConstraint* BuildLine2dLine2dAngleConstraint(Sketch* owner,
+            SketchEntity* geometry0, int start_x_variable_index0, int start_y_variable_index0, int end_x_variable_index0, int end_y_variable_index0,
+            SketchEntity* geometry1, int start_x_variable_index1, int start_y_variable_index1, int end_x_variable_index1, int end_y_variable_index1,
+            double angle, SketchAction& action);
         static void BuildSetLine2dStartPoint(SketchLine2d* line, const Vector2d& point, SketchAction& action);
         static void BuildSetLine2dEndPoint(SketchLine2d* line, const Vector2d& point, SketchAction& action);
     };
-
-    /*
-    class WGP_API SketchPoint2dPoint2dDistanceAdditive : public SketchAdditive {
-    public:
-        TYPE_DEF_1(SketchPoint2dPoint2dDistanceAdditive);
-    public:
-        SketchPoint2dPoint2dDistanceAdditive(SketchVariableEntity* owner, double distance,
-            SketchVariableEntity* entity0, int x_variable_index0, int y_variable_index0,
-            SketchVariableEntity* entity1, int x_variable_index1, int y_variable_index1, double epsilon);
-    };
-    */
 
 }
 

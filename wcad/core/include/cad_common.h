@@ -10,7 +10,7 @@
 
 namespace wcad {
 
-    const double cad_distance_epsilon = 1E-8;
+    const double cad_distance_epsilon = 1E-6;
 
     enum class ColorMethod {
         ByLayer = 0,

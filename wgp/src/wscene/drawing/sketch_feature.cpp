@@ -29,9 +29,9 @@ namespace wgp {
         throw "Not Supported";
     }
 
-    SketchFeature::SketchFeature(Model* model, SceneId id, FeatureSchema* feature_schema, double unit_iterative_radius, double distance_iterative_radius, double distance_epsilon) :
+    SketchFeature::SketchFeature(Model* model, SceneId id, FeatureSchema* feature_schema, double distance_epsilon) :
         Feature(model, id, feature_schema, nullptr),
-        m_sketch(new Sketch(unit_iterative_radius, distance_iterative_radius, distance_epsilon)) {
+        m_sketch(new Sketch(1E6, distance_epsilon)) {
         m_sketch->IncRef();
     }
 
@@ -125,7 +125,8 @@ namespace wgp {
                         m_feature->GetSketch()->RemoveEntity(((SketchEntityFeature*)feature)->GetEntity());
                     }
                     else {
-                        m_feature->GetSketch()->AddEntity(((SketchEntityFeature*)feature)->GetEntity(), nullptr, nullptr);
+                        Array<SketchEntityVariable> actived_variables;
+                        m_feature->GetSketch()->AddEntity(((SketchEntityFeature*)feature)->GetEntity(), nullptr, actived_variables);
                     }
                 }
             }
@@ -136,7 +137,8 @@ namespace wgp {
                 Feature* feature = remove_log->GetFeature();
                 if (feature->GetFeatureSchema()->GetType()->IsImplement(SketchEntityFeatureSchema::GetTypeInstance())) {
                     if (is_undoing) {
-                        m_feature->GetSketch()->AddEntity(((SketchEntityFeature*)feature)->GetEntity(), nullptr, nullptr);
+                        Array<SketchEntityVariable> actived_variables;
+                        m_feature->GetSketch()->AddEntity(((SketchEntityFeature*)feature)->GetEntity(), nullptr, actived_variables);
                     }
                     else {
                         m_feature->GetSketch()->RemoveEntity(((SketchEntityFeature*)feature)->GetEntity());
@@ -188,7 +190,7 @@ namespace wgp {
                 Sketch* sketch = ((SketchFeature*)model->GetFeature(0))->GetSketch();
                 SketchEntity* entity = (SketchEntity*)((SketchEntityFeature*)feature)->GetEntity();
                 Array<SketchEntityVariable> actived_variables;
-                if (!sketch->AddEntity(entity, (SketchAction*)action, &actived_variables)) {
+                if (!sketch->AddEntity(entity, (SketchAction*)action, actived_variables)) {
                     return false;
                 }
                 AfterSolve(sketch, model, new AddFeatureCommandLog(model, feature), actived_variables);
@@ -200,7 +202,7 @@ namespace wgp {
                 stream_log->Read(action);
                 Sketch* sketch = ((SketchFeature*)model->GetFeature(0))->GetSketch();
                 Array<SketchEntityVariable> actived_variables;
-                if (!sketch->SetVariables((SketchAction*)action, actived_variables)) {
+                if (!sketch->Solve((SketchAction*)action, actived_variables)) {
                     return false;
                 }
                 AfterSolve(sketch, model, nullptr, actived_variables);
@@ -249,7 +251,7 @@ namespace wgp {
         }
         for (int i = 0; i < actived_variables.GetCount(); ++i) {
             const SketchEntityVariable* variable = actived_variables.GetPointer(i);
-            if (variable->Entity->GetPriority() > 0) {
+            if (variable->Entity->IsAlone()) {
                 continue;
             }
             double new_value = variable->Entity->GetCurrentVariable(variable->Index);
@@ -264,14 +266,12 @@ namespace wgp {
         }
     }
 
-    bool SketchModelHelper::InitializeSketchModel(Model* model, SceneId sketch_feature_id, 
-        double unit_iterative_radius, double distance_iterative_radius, double distance_epsilon) {
+    bool SketchModelHelper::InitializeSketchModel(Model* model, SceneId sketch_feature_id, double distance_epsilon) {
         if (model->GetFeatureCount() > 0) {
             return false;
         }
         static String add_sketch_feature_prompt = StringResource("Add sketch feature");
-        Ptr<SketchFeature> sketch_feature = new SketchFeature(model, sketch_feature_id, model->GetDrawing()->GetSketchFeatureSchema(), 
-            unit_iterative_radius, distance_iterative_radius, distance_epsilon);
+        Ptr<SketchFeature> sketch_feature = new SketchFeature(model, sketch_feature_id, model->GetDrawing()->GetSketchFeatureSchema(), distance_epsilon);
         return model->AddFeature(sketch_feature.Get(), &add_sketch_feature_prompt);
     }
 

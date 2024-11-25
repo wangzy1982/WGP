@@ -22,6 +22,7 @@ namespace wgp {
         double Cross(const Vector2d& other) const;
         double Length() const;
         double Angle() const;
+        double AngleTo(const Vector2d& vt) const;
         Vector2d Normalize() const;
         Vector2d Normalize(double& length) const;
     };
@@ -79,6 +80,22 @@ namespace wgp {
         }
         double angle = acos_safe(X / d);
         if (Y < 0) {
+            angle = g_pi * 2 - angle;
+        }
+        return angle;
+    }
+
+    inline double Vector2d::AngleTo(const Vector2d& vt) const {
+        double d = Length();
+        if (d < g_double_epsilon) {
+            return 0;
+        }
+        double d2 = vt.Length();
+        if (d2 < g_double_epsilon) {
+            return 0;
+        }
+        double angle = acos_safe(Dot(vt) / d / d2);
+        if (Cross(vt) < 0) {
             angle = g_pi * 2 - angle;
         }
         return angle;
